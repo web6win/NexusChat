@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NexusChat · 下載中心</title>
+<style>
+  :root { --brand: #6C5CE7; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
+         background:#f6f7fb; color:#1b1d29; line-height:1.6; }
+  @media (prefers-color-scheme: dark) { body { background:#0b0d14; color:#e8e9f0; } }
+  header { padding:48px 20px 28px; text-align:center;
+           background:linear-gradient(135deg, #6c5ce7, #8e7bff); color:#fff; }
+  header .logo { width:56px;height:56px;border-radius:18px;background:rgba(255,255,255,.18);
+           display:inline-flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:10px; }
+  header h1 { margin:0;font-size:26px; }
+  header p { margin:6px 0 0;opacity:.9; }
+  main { max-width:860px;margin:0 auto;padding:28px 18px 64px; }
+  .web-cta { display:block;text-align:center;margin:0 0 28px;padding:16px;
+           border:1px solid var(--brand);border-radius:14px;color:var(--brand);
+           text-decoration:none;font-weight:600;background:rgba(108,92,231,.06); }
+  .platform { background:#fff;border:1px solid #e7e8f0;border-radius:14px;padding:18px 20px;margin-bottom:18px; }
+  @media (prefers-color-scheme: dark) { .platform { background:#13151f;border-color:#262a3a; } }
+  .platform h2 { margin:0 0 12px;font-size:19px; }
+  .platform h2 small { color:#8a8da0;font-weight:400;font-size:13px;margin-left:6px; }
+  ul.files { list-style:none;margin:0;padding:0; }
+  li.file { display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 0;border-top:1px dashed #eceef5; }
+  li.file:first-child { border-top:none; }
+  li.file a { color:var(--brand);font-weight:600;text-decoration:none;word-break:break-all; }
+  li.file a:hover { text-decoration:underline; }
+  .meta { margin-left:auto;color:#8a8da0;font-size:13px;white-space:nowrap; }
+  .hash { color:#8a8da0;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  footer { text-align:center;color:#8a8da0;font-size:12px;padding:0 18px 40px; }
+  footer code { background:rgba(108,92,231,.1);padding:1px 6px;border-radius:6px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">💬</div>
+  <h1>NexusChat 下載中心</h1>
+  <p>去中心化聊天 · Waku 網路 · 端對端加密</p>
+</header>
+<main>
+  <a class="web-cta" href="../">🌐 直接開啟網頁版（Web App）</a>
+
+    <section class="platform">
+      <h2>Windows <small>Windows</small></h2>
+      <ul class="files">
+        <li class="file">
+          <a href="windows/windows-release.zip" download>windows-release.zip</a>
+          <span class="meta">13.5 MB</span>
+          <span class="hash" title="SHA-256">70bf9103c330fe6c…</span>
+        </li>
+      </ul>
+    </section>
+    <section class="platform">
+      <h2>macOS <small>macOS</small></h2>
+      <ul class="files">
+        <li class="file">
+          <a href="macos/macos-release.zip" download>macos-release.zip</a>
+          <span class="meta">20.8 MB</span>
+          <span class="hash" title="SHA-256">7307274f8a65a891…</span>
+        </li>
+      </ul>
+    </section>
+    <section class="platform">
+      <h2>Linux <small>Linux</small></h2>
+      <ul class="files">
+        <li class="file">
+          <a href="linux/linux-bundle.tar.gz" download>linux-bundle.tar.gz</a>
+          <span class="meta">11.1 MB</span>
+          <span class="hash" title="SHA-256">74d2764310b208be…</span>
+        </li>
+      </ul>
+    </section>
+</main>
+<footer>
+  版本 <code>1.0.0</code> · 建構 <code>e4f3dddd</code> · 2026-09-19 14:16 UTC<br>
+  所有桌面與行動版本均為 CI 自動建構產物。
+</footer>
+</body>
+</html>
