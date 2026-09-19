@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description"
+      content="NexusChat — 基於 Waku 的去中心化聊天，did:ethr 身份，端到端加密。">
+  <meta name="theme-color" content="#6C5CE7">
+
+  <!--
+    內容安全政策（CSP）。
+
+    為什麼要限制 script-src：這個應用持有可解密的憑證（保險庫密碼輸入）。
+    若攻擊者能注入 DOM，最有效的利用方式是載入外部惡意腳本並把資料外送。
+    把 script-src 限定在 'self'（外加 Flutter 需要的 inline / wasm / gstatic
+    畫布套件）能直接切斷這條路徑 —— 注入的 <script src="https://evil.example/x.js">
+    會被拒絕。
+
+    'unsafe-inline' 與 'unsafe-eval' 是 Flutter Web 啟動器與 dart2js 執行時
+    的必要條件，無法移除；release 模式還需從 Google 靜態網域載入 canvaskit.js，
+    因此額外放行 https://www.gstatic.com/flutter-canvaskit/（僅此路徑）。
+    這份 CSP 的價值在於「限制來源」而非「禁止內聯」。
+
+    connect-src 保留為 *：RPC 與 Waku 節點由使用者自行設定，無法預先列舉。
+    部署時建議由伺服器再補上 X-Frame-Options / X-Content-Type-Options 等標頭。
+  -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://www.gstatic.com/flutter-canvaskit/;
+    worker-src 'self' blob:;
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data: blob:;
+    font-src 'self' data: https://fonts.gstatic.com;
+    media-src 'self' data: blob:;
+    connect-src *;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'none';
+    frame-src 'none';
+  ">
+  <!-- 不要把應用網址洩漏給外部資源（同時避免 Referer 洩漏 DID 相關路徑）。 -->
+  <meta name="referrer" content="no-referrer">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="NexusChat">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>NexusChat</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    /* 開場載入畫面，避免白屏閃爍 */
+    #nexuschat-loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f6f7fb;
+    }
+    @media (prefers-color-scheme: dark) {
+      #nexuschat-loading { background: #0b0d14; }
+    }
+    #nexuschat-loading .mark {
+      width: 46px;
+      height: 46px;
+      border-radius: 15px;
+      background: linear-gradient(135deg, #6c5ce7, #8e7bff);
+      animation: nexuschat-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes nexuschat-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(0.86); opacity: 0.65; }
+    }
+  </style>
+</head>
+<body>
+  <div id="nexuschat-loading"><div class="mark"></div></div>
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
+
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // Flutter 首幀後移除載入畫面。
+    window.addEventListener('load', function () {
+      var el = document.getElementById('nexuschat-loading');
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    });
+  </script>
+</body>
+</html>

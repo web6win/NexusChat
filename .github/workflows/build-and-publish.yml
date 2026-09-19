@@ -1,0 +1,279 @@
+# =============================================================================
+# build-and-publish.yml
+#
+# 自動編譯並發佈 NexusChat：
+#   - Web 版        → 組裝進 docs/ 並經 GitHub Pages 自動部署（自訂網域見 CNAME）
+#   - 其它平台版本   → docs/download/<platform>/（windows / macos / linux / android / ios）
+#   - 下載總表       → docs/download/index.html（由 tool/gen_download_index.py 自動產生）
+#   - 部署方式       → 官方 actions/deploy-pages（GitHub Actions 來源），無需手動設定 Pages
+#
+# 觸發條件：推送至 main / master，或手動 workflow_dispatch。
+# 發佈方式：publish 作業把 docs/ 提交回同一分支，commit 訊息含 [skip ci] 避免無限迴圈。
+#
+# 可選的 iOS 簽署（預設關閉，需於倉庫 Settings → Secrets 設定以下 secrets 才會啟用）：
+#   IOS_P12_BASE64               : 簽署憑證 .p12 的 base64（echo cert.p12 | base64 -w0）
+#   IOS_P12_PASSWORD             : .p12 匯出密碼
+#   IOS_PROVISIONING_PROFILE_BASE64 : 佈建檔 .mobileprovision 的 base64
+#   並於 ios/ExportOptions.plist 提供匯出設定。
+# =============================================================================
+
+name: Build & Publish
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: build-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_CHANNEL: stable
+  # 如需固定 Flutter 版本以利重現，請取消下一行註解並填入版本號：
+  # FLUTTER_VERSION: "3.13.2"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Web + Linux + Android 皆可在 ubuntu 上建構，合併為一個作業節省 runner 分鐘。
+  # ---------------------------------------------------------------------------
+  build-web-linux-android:
+    name: Build Web / Linux / Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Install Linux desktop build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev libsecret-1-dev \
+            libjsoncpp-dev libsqlite3-dev libssl-dev \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Build Web (release, base-href /)
+        run: flutter build web --release --base-href "/"
+
+      - name: Build Linux (release)
+        run: flutter build linux --release
+
+      # Android 構建允許失敗（continue-on-error），避免單一平台出錯波及 Web / Linux 發佈；
+      # 只要產出任一 APK/AAB，下載清單就會出現 Android 區塊。
+      - name: Build Android (split-per-abi APK + universal APK + AAB)
+        continue-on-error: true
+        run: |
+          flutter build apk --release --split-per-abi
+          flutter build apk --release
+          flutter build appbundle --release
+
+      - name: Package Linux bundle
+        run: |
+          tar -czf build/linux-bundle.tar.gz -C build/linux/x64/release/bundle .
+
+      - name: Upload Web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: build/web
+          if-no-files-found: error
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: build/linux-bundle.tar.gz
+          if-no-files-found: error
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: |
+            build/app/outputs/flutter-apk/app-*-release.apk
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # Windows 需在 Windows runner 上建構。
+  # ---------------------------------------------------------------------------
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Build Windows (release)
+        run: flutter build windows --release
+
+      - name: Package Windows
+        shell: pwsh
+        run: Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath "build/windows-release.zip"
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: build/windows-release.zip
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # macOS 與 iOS 需在 macOS runner 上建構。iOS 簽署為可選（見檔首說明）。
+  # ---------------------------------------------------------------------------
+  build-macos-ios:
+    name: Build macOS / iOS
+    runs-on: macos-latest
+    # secrets 上下文無法直接用於 step 層級的 if:，故先在 job 層級 env 計算布林閘門。
+    env:
+      HAS_IOS_SIGNING: ${{ secrets.IOS_P12_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Accept Xcode license
+        run: sudo xcodebuild -license accept
+
+      - name: Enable macOS desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Build macOS (release)
+        run: flutter build macos --release
+
+      - name: Package macOS app
+        run: ditto -c -k --sequesterRsrc --keepParent build/macos/Build/Products/Release/NexusChat.app build/macos-release.zip
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: build/macos-release.zip
+          if-no-files-found: error
+
+      # ----- 以下為可選的 iOS 簽署建構，僅當設定 IOS_P12_BASE64 時執行 -----
+      - name: Decode iOS signing certificate
+        if: ${{ env.HAS_IOS_SIGNING == 'true' }}
+        run: echo "${{ secrets.IOS_P12_BASE64 }}" | base64 -d > build/ios_cert.p12
+
+      - name: Import certificate into keychain
+        if: ${{ env.HAS_IOS_SIGNING == 'true' }}
+        run: |
+          security create-keychain -p "" build.keychain
+          security import build/ios_cert.p12 -k build.keychain -P "${{ secrets.IOS_P12_PASSWORD }}" -T /usr/bin/codesign
+          security list-keychains -d user -s build.keychain login.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
+      - name: Install provisioning profile
+        if: ${{ env.HAS_IOS_SIGNING == 'true' }}
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/build.mobileprovision
+
+      - name: Build iOS IPA
+        if: ${{ env.HAS_IOS_SIGNING == 'true' }}
+        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload iOS artifact
+        if: ${{ env.HAS_IOS_SIGNING == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios
+          path: build/ios/ipa/NexusChat.ipa
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # 彙整所有成品：Web → docs/ 根目錄；其餘 → docs/download/<platform>/，
+  # 產生 docs/download/index.html，並把 docs/ 同時（1）提交回分支作為來源快照、
+  # （2）經官方 actions/deploy-pages 自動部署到 GitHub Pages。
+  # 採用 GitHub Actions 部署來源（非「從分支部署」），免去手動到 Settings 設定，
+  # 且能迴避 GITHUB_TOKEN 呼叫 /repos/{repo}/pages 建立端點的 403 限制。
+  # ---------------------------------------------------------------------------
+  publish:
+    name: Publish to GitHub Pages
+    needs: [build-web-linux-android, build-windows, build-macos-ios]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # 提交 docs/ 回分支作為快照
+      pages: write         # 部署到 GitHub Pages
+      id-token: write      # actions/deploy-pages 需要 OIDC
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Assemble docs/ (Web at root, others under download/)
+        run: |
+          rm -rf docs
+          mkdir -p docs/download
+          # Web 版 → docs/ 根目錄（GitHub Pages）
+          cp -r artifacts/web/. docs/
+          # 其它平台 → docs/download/<platform>/，僅拷貝確實存在的成品
+          for p in linux android windows macos ios; do
+            if [ -d "artifacts/$p" ] && [ -n "$(ls -A "artifacts/$p" 2>/dev/null)" ]; then
+              mkdir -p "docs/download/$p"
+              cp -r "artifacts/$p/." "docs/download/$p/"
+            fi
+          done
+          # 靜態託管輔助檔
+          touch docs/.nojekyll
+          [ -f CNAME ] && cp CNAME docs/CNAME
+
+      - name: Generate download index (docs/download/index.html)
+        run: |
+          APP_VERSION=$(grep -m1 '^version:' pubspec.yaml | sed -E 's/version: //; s/\+.*//')
+          GIT_COMMIT="${{ github.sha }}"
+          python3 tool/gen_download_index.py docs/download docs/download/index.html "$APP_VERSION" "$GIT_COMMIT"
+
+      - name: Commit docs/ as source snapshot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs
+          git commit -m "ci: snapshot docs/ [skip ci]" || echo "no changes to commit"
+          git push
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

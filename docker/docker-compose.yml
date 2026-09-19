@@ -1,0 +1,134 @@
+services:
+  # ---------------------------------------------------------------- 節點 A
+  # REST 對外 8645，供第一個 NexusChat 客戶端使用
+  nwaku-a:
+    image: ${NWAKU_IMAGE:-wakuorg/nwaku:v0.38.1}
+    container_name: nwaku-a
+    restart: unless-stopped
+    networks:
+      nwaku-net:
+        ipv4_address: ${IP_A:-172.28.0.10}
+    ports:
+      # REST 不直接對外：一律經 cors-proxy（nwaku 不回應 CORS 預檢，見 nginx-default.conf）
+      - '${TCP_A_PORT:-60000}:60000'
+      - '${UDP_A_PORT:-9000}:9000/udp'
+    volumes:
+      - nwaku-a-data:/data
+    command:
+      - --listen-address=0.0.0.0
+      - --tcp-port=60000
+      - --discv5-udp-port=9000
+      # 固定私鑰 → peer ID 穩定，重啟後對方的 staticnode 依然有效
+      - --nodekey=${NWAKU_NODEKEY_A}
+      # ---------------- REST API ----------------
+      - --rest=true
+      - --rest-address=0.0.0.0
+      - --rest-port=8645
+      - --rest-allow-origin=*
+      - --rest-relay-cache-capacity=5000
+      - --rest-admin=true
+      # ---------------- 協定 ----------------
+      - --relay=true
+      - --store=true
+      - --filter=true
+      - --lightpush=true
+      - --store-message-db-url=sqlite:///data/store.sqlite3
+      # ---------------- 分片 ----------------
+      # NexusChat 用 /relay/v1/auto/messages（自動分片），content topic 會映射到某個
+      # shard；訂閱全部 8 個 shard 確保任何 topic 都轉發得到。
+      - --cluster-id=0
+      - --num-shards-in-network=8
+      # ---------------- 組網 ----------------
+      # 官方 sandbox fleet 的 DNS 已停止解析，這裡不依賴外部網路，改由兩節點
+      # 以固定 IP 直連。注意：nwaku 的 DNS 解析器在容器內會回傳空陣列，
+      # 所以 staticnode 必須寫 IP，不能用 /dns4/ 主機名。
+      - --dns-discovery=false
+      - --discv5-discovery=false
+      - --relay-peer-exchange=true
+      - --nat=any
+      - --staticnode=/ip4/${IP_B:-172.28.0.11}/tcp/60000/p2p/${NWAKU_B_PEER}
+      - --log-level=INFO
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --spider -q http://127.0.0.1:8645/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ---------------------------------------------------------------- 節點 B
+  # REST 對外 8646，供第二個 NexusChat 客戶端使用
+  nwaku-b:
+    image: ${NWAKU_IMAGE:-wakuorg/nwaku:v0.38.1}
+    container_name: nwaku-b
+    restart: unless-stopped
+    depends_on:
+      - nwaku-a
+    networks:
+      nwaku-net:
+        ipv4_address: ${IP_B:-172.28.0.11}
+    ports:
+      # REST 不直接對外：經 cors-proxy（見 nginx-default.conf）
+      - '${TCP_B_PORT:-60001}:60000'
+      - '${UDP_B_PORT:-9001}:9000/udp'
+    volumes:
+      - nwaku-b-data:/data
+    command:
+      - --listen-address=0.0.0.0
+      - --tcp-port=60000
+      - --discv5-udp-port=9000
+      - --nodekey=${NWAKU_NODEKEY_B}
+      - --rest=true
+      - --rest-address=0.0.0.0
+      - --rest-port=8645
+      - --rest-allow-origin=*
+      - --rest-relay-cache-capacity=5000
+      - --rest-admin=true
+      - --relay=true
+      - --store=true
+      - --filter=true
+      - --lightpush=true
+      - --store-message-db-url=sqlite:///data/store.sqlite3
+      - --cluster-id=0
+      - --num-shards-in-network=8
+      - --dns-discovery=false
+      - --discv5-discovery=false
+      - --relay-peer-exchange=true
+      - --nat=any
+      - --staticnode=/ip4/${IP_A:-172.28.0.10}/tcp/60000/p2p/${NWAKU_A_PEER}
+      - --log-level=INFO
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --spider -q http://127.0.0.1:8645/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ---------------------------------------------------------------- CORS 反代
+  # 瀏覽器跨域 POST 前會先發 OPTIONS 預檢，nwaku v0.38.1 的 REST 不回應預檢
+  # （404 且無 CORS 頭），導致 filter 訂閱 / relay 發布全被瀏覽器攔截。
+  # 此反代對外仍暴露 8645 / 8646，客戶端地址不變。
+  cors-proxy:
+    image: ${NGINX_IMAGE:-nginx:1.27-alpine}
+    container_name: nwaku-cors
+    restart: unless-stopped
+    depends_on:
+      - nwaku-a
+      - nwaku-b
+    networks:
+      - nwaku-net
+    ports:
+      - '${REST_A_PORT:-8645}:8645'
+      - '${REST_B_PORT:-8646}:8646'
+    volumes:
+      - ./nginx-default.conf:/etc/nginx/conf.d/default.conf:ro
+
+networks:
+  nwaku-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${NWAKU_SUBNET:-172.28.0.0/16}
+
+volumes:
+  nwaku-a-data:
+  nwaku-b-data:
