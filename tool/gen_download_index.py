@@ -7,6 +7,10 @@ gen_download_index.py — 產生 docs/download/index.html 下載總表。
 並附上檔案大小與 SHA-256。index.html 本身與 .nojekyll / CNAME / README
 等輔助檔案會被自動忽略，不會出現在下載清單中。
 
+會遞迴走訪子資料夾，因為 CI 上傳 Android 產物時保留了
+build/app/outputs/ 的相對結構（flutter-apk/… 與 bundle/release/…）。
+不遞迴的話，只有子資料夾、沒有直接子檔案的平台會被整段略過。
+
 用法:
     python3 gen_download_index.py <download_dir> <output_index_html> [app_version] [git_commit]
 
@@ -28,6 +32,28 @@ PLATFORM_META = [
     ("android", "Android", "Android"),
     ("ios", "iOS", "iPhone / iPad"),
 ]
+
+# 各平台標題下方的補充說明（沒有對應鍵就不顯示）。
+PLATFORM_NOTES = {
+    "android": "手機一般下載 flutter-apk/app-release.apk（通用，適用所有機型）；"
+               "想縮小體積可改用對應 ABI 的版本，bundle/ 內的 AAB 供 Google Play 上架使用。",
+    "ios": "iOS 版本需要簽署憑證才能安裝，僅在倉庫設定簽署 secrets 後才會出現。",
+}
+
+# 檔名 → 一句話說明，讓使用者不必猜 ABI 差異。
+FILE_LABELS = {
+    "app-release.apk": "通用 APK（所有 ABI）",
+    "app-arm64-v8a-release.apk": "arm64-v8a（多數現代手機）",
+    "app-armeabi-v7a-release.apk": "armeabi-v7a（較舊手機）",
+    "app-x86_64-release.apk": "x86_64（模擬器）",
+    "app-release.aab": "AAB（Google Play 上架用）",
+    "windows-release.zip": "解壓後執行 NexusChat.exe",
+    "macos-release.zip": "解壓後開啟 NexusChat.app",
+    "linux-bundle.tar.gz": "解壓後執行 nexuschat",
+}
+
+# 排序優先序：可安裝的成品在前，上架包在後。
+EXTENSION_ORDER = {".apk": 0, ".zip": 0, ".tar.gz": 0, ".ipa": 1, ".aab": 2}
 
 # 不列入下載清單的輔助檔案。
 SKIP_FILES = {"index.html", "checksums.sha256", ".nojekyll", "cname", "readme.md"}
@@ -52,19 +78,53 @@ def sha256_of(path: str) -> str:
     return h.hexdigest()
 
 
+def sort_key(rel_path: str):
+    lower = rel_path.lower()
+    # .tar.gz 需先於 os.path.splitext 判斷，否則會被當成 .gz。
+    if lower.endswith(".tar.gz"):
+        rank = 0
+    else:
+        rank = EXTENSION_ORDER.get(os.path.splitext(lower)[1], 3)
+    return (rank, rel_path)
+
+
 def collect_platform(download_dir: str, name: str):
+    """收集某平台資料夾下的所有檔案（含子資料夾）。
+
+    回傳 (相對路徑, 大小, sha256) 清單；相對路徑一律使用 `/` 分隔，
+    因為它就是網頁上的連結（例如 flutter-apk/app-release.apk）。
+    """
     folder = os.path.join(download_dir, name)
     if not os.path.isdir(folder):
         return None
     files = []
-    for entry in sorted(os.listdir(folder)):
-        full = os.path.join(folder, entry)
-        if not os.path.isfile(full):
-            continue
-        if entry.lower() in SKIP_FILES:
-            continue
-        files.append((entry, os.path.getsize(full), sha256_of(full)))
+    for root, dirs, names in os.walk(folder):
+        # 略過隱藏資料夾（例如 .git），並讓走訪順序穩定。
+        dirs[:] = sorted(d for d in dirs if not d.startswith("."))
+        for entry in sorted(names):
+            if entry.lower() in SKIP_FILES or entry.startswith("."):
+                continue
+            full = os.path.join(root, entry)
+            rel = os.path.relpath(full, folder).replace(os.sep, "/")
+            files.append((rel, os.path.getsize(full), sha256_of(full)))
+    files.sort(key=lambda item: sort_key(item[0]))
     return files
+
+
+def render_rows(name: str, files) -> str:
+    rows = []
+    for rel, size, digest in files:
+        label = FILE_LABELS.get(os.path.basename(rel))
+        label_html = (
+            f'<span class="label">{html.escape(label)}</span>' if label else ""
+        )
+        rows.append(f"""
+        <li class="file">
+          <span class="name"><a href="{html.escape(name)}/{html.escape(rel)}" download>{html.escape(rel)}</a>{label_html}</span>
+          <span class="meta">{human_size(size)}</span>
+          <span class="hash" title="SHA-256">{html.escape(digest[:16])}…</span>
+        </li>""")
+    return "".join(rows)
 
 
 def main() -> int:
@@ -99,18 +159,12 @@ def main() -> int:
         files = collect_platform(download_dir, name)
         if not files:
             continue
-        rows = []
-        for fname, size, digest in files:
-            rows.append(f"""
-        <li class="file">
-          <a href="{html.escape(name)}/{html.escape(fname)}" download>{html.escape(fname)}</a>
-          <span class="meta">{human_size(size)}</span>
-          <span class="hash" title="SHA-256">{html.escape(digest[:16])}…</span>
-        </li>""")
+        note = PLATFORM_NOTES.get(name)
+        note_html = f'\n      <p class="note">{html.escape(note)}</p>' if note else ""
         sections.append(f"""
     <section class="platform">
-      <h2>{html.escape(zh)} <small>{html.escape(en)}</small></h2>
-      <ul class="files">{''.join(rows)}
+      <h2>{html.escape(zh)} <small>{html.escape(en)}</small></h2>{note_html}
+      <ul class="files">{render_rows(name, files)}
       </ul>
     </section>""")
 
@@ -146,11 +200,14 @@ def main() -> int:
   @media (prefers-color-scheme: dark) {{ .platform {{ background:#13151f;border-color:#262a3a; }} }}
   .platform h2 {{ margin:0 0 12px;font-size:19px; }}
   .platform h2 small {{ color:#8a8da0;font-weight:400;font-size:13px;margin-left:6px; }}
+  .note {{ margin:-6px 0 12px;color:#8a8da0;font-size:12.5px; }}
   ul.files {{ list-style:none;margin:0;padding:0; }}
   li.file {{ display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 0;border-top:1px dashed #eceef5; }}
   li.file:first-child {{ border-top:none; }}
+  .name {{ flex:1 1 260px;min-width:0; }}
   li.file a {{ color:var(--brand);font-weight:600;text-decoration:none;word-break:break-all; }}
   li.file a:hover {{ text-decoration:underline; }}
+  .label {{ color:#8a8da0;font-size:12.5px;margin-left:8px; }}
   .meta {{ margin-left:auto;color:#8a8da0;font-size:13px;white-space:nowrap; }}
   .hash {{ color:#8a8da0;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }}
   footer {{ text-align:center;color:#8a8da0;font-size:12px;padding:0 18px 40px; }}

@@ -24,11 +24,14 @@
   @media (prefers-color-scheme: dark) { .platform { background:#13151f;border-color:#262a3a; } }
   .platform h2 { margin:0 0 12px;font-size:19px; }
   .platform h2 small { color:#8a8da0;font-weight:400;font-size:13px;margin-left:6px; }
+  .note { margin:-6px 0 12px;color:#8a8da0;font-size:12.5px; }
   ul.files { list-style:none;margin:0;padding:0; }
   li.file { display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 0;border-top:1px dashed #eceef5; }
   li.file:first-child { border-top:none; }
+  .name { flex:1 1 260px;min-width:0; }
   li.file a { color:var(--brand);font-weight:600;text-decoration:none;word-break:break-all; }
   li.file a:hover { text-decoration:underline; }
+  .label { color:#8a8da0;font-size:12.5px;margin-left:8px; }
   .meta { margin-left:auto;color:#8a8da0;font-size:13px;white-space:nowrap; }
   .hash { color:#8a8da0;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
   footer { text-align:center;color:#8a8da0;font-size:12px;padding:0 18px 40px; }
@@ -48,7 +51,7 @@
       <h2>Windows <small>Windows</small></h2>
       <ul class="files">
         <li class="file">
-          <a href="windows/windows-release.zip" download>windows-release.zip</a>
+          <span class="name"><a href="windows/windows-release.zip" download>windows-release.zip</a><span class="label">解壓後執行 NexusChat.exe</span></span>
           <span class="meta">13.5 MB</span>
           <span class="hash" title="SHA-256">70bf9103c330fe6c…</span>
         </li>
@@ -58,7 +61,7 @@
       <h2>macOS <small>macOS</small></h2>
       <ul class="files">
         <li class="file">
-          <a href="macos/macos-release.zip" download>macos-release.zip</a>
+          <span class="name"><a href="macos/macos-release.zip" download>macos-release.zip</a><span class="label">解壓後開啟 NexusChat.app</span></span>
           <span class="meta">20.8 MB</span>
           <span class="hash" title="SHA-256">7307274f8a65a891…</span>
         </li>
@@ -68,15 +71,46 @@
       <h2>Linux <small>Linux</small></h2>
       <ul class="files">
         <li class="file">
-          <a href="linux/linux-bundle.tar.gz" download>linux-bundle.tar.gz</a>
+          <span class="name"><a href="linux/linux-bundle.tar.gz" download>linux-bundle.tar.gz</a><span class="label">解壓後執行 nexuschat</span></span>
           <span class="meta">11.1 MB</span>
           <span class="hash" title="SHA-256">74d2764310b208be…</span>
         </li>
       </ul>
     </section>
+    <section class="platform">
+      <h2>Android <small>Android</small></h2>
+      <p class="note">手機一般下載 flutter-apk/app-release.apk（通用，適用所有機型）；想縮小體積可改用對應 ABI 的版本，bundle/ 內的 AAB 供 Google Play 上架使用。</p>
+      <ul class="files">
+        <li class="file">
+          <span class="name"><a href="android/flutter-apk/app-arm64-v8a-release.apk" download>flutter-apk/app-arm64-v8a-release.apk</a><span class="label">arm64-v8a（多數現代手機）</span></span>
+          <span class="meta">21.4 MB</span>
+          <span class="hash" title="SHA-256">b16469d67a9fe5ff…</span>
+        </li>
+        <li class="file">
+          <span class="name"><a href="android/flutter-apk/app-armeabi-v7a-release.apk" download>flutter-apk/app-armeabi-v7a-release.apk</a><span class="label">armeabi-v7a（較舊手機）</span></span>
+          <span class="meta">19.7 MB</span>
+          <span class="hash" title="SHA-256">7867f6a1506ea7ce…</span>
+        </li>
+        <li class="file">
+          <span class="name"><a href="android/flutter-apk/app-release.apk" download>flutter-apk/app-release.apk</a><span class="label">通用 APK（所有 ABI）</span></span>
+          <span class="meta">62.3 MB</span>
+          <span class="hash" title="SHA-256">69874e854cab4fd8…</span>
+        </li>
+        <li class="file">
+          <span class="name"><a href="android/flutter-apk/app-x86_64-release.apk" download>flutter-apk/app-x86_64-release.apk</a><span class="label">x86_64（模擬器）</span></span>
+          <span class="meta">22.9 MB</span>
+          <span class="hash" title="SHA-256">d4fd95f95f983b49…</span>
+        </li>
+        <li class="file">
+          <span class="name"><a href="android/bundle/release/app-release.aab" download>bundle/release/app-release.aab</a><span class="label">AAB（Google Play 上架用）</span></span>
+          <span class="meta">59.0 MB</span>
+          <span class="hash" title="SHA-256">9fc1d284060e69cf…</span>
+        </li>
+      </ul>
+    </section>
 </main>
 <footer>
-  版本 <code>1.0.0</code> · 建構 <code>e4f3dddd</code> · 2026-09-19 14:16 UTC<br>
+  版本 <code>1.0.0</code> · 建構 <code>ce08768b</code> · 2026-09-29 20:10 UTC<br>
   所有桌面與行動版本均為 CI 自動建構產物。
 </footer>
 </body>
