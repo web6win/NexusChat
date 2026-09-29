@@ -1,5 +1,7 @@
 # NexusChat
 
+[English](README_EN.md) | 繁體中文
+
 > 基於 **Waku** 的去中心化聊天：**DID** 身份、**以太坊**生態、端到端加密。
 > 一套 Flutter 程式碼，同時覆蓋 **H5 / 行動端（Android · iOS）/ 桌面端（Windows · macOS · Linux）**。
 > 私鑰與助記詞**永不以明文落地**：本地保險庫以你的密碼（PBKDF2 + AES-256-GCM）加密存放。
@@ -19,7 +21,8 @@
 | 以太坊生態 | 餘額查詢、chain id、**ENS 正反解析**（EIP-137 namehash + registry / resolver 合約呼叫） |
 | 錢包 | ETH / **TRON** / **Besu** 三鏈切換（同一把金鑰派生），**已可簽章並送出轉帳**，附區塊瀏覽器連結 |
 | 訊息 | 文字、**圖片**（壓縮後傳）、**語音**（錄製 + 波形/播放） |
-| 介面 | 響應式三欄（桌面）/ 底部導覽（行動）、Material 3、**日間 / 夜間**主題 |
+| **掃碼** | **發現 → 掃一掃**：相機讀取 QR Code；網址直接用外部瀏覽器開啟，`did:ethr` / `0x` 地址 / ENS 可一鍵加入聯絡人 |
+| 介面 | 響應式五欄導覽（聊天 / 聯絡人 / 錢包 / 發現 / 設定）、Material 3、**日間 / 夜間**主題 |
 | 多語 | 繁體中文、简体中文、English、Español（可跟隨系統） |
 | 儲存 | Hive（原生走檔案系統，Web 走 IndexedDB），所有資料留在裝置上 |
 
@@ -66,6 +69,25 @@ dart run tool/smoke.dart       # 核心邏輯冒煙測試（不依賴 flutter_te
 
 頁面另設定 `referrer=no-referrer`，避免把帶 DID 的路徑外洩給第三方資源。
 部署時建議由伺服器再補 `X-Frame-Options`、`X-Content-Type-Options` 等標頭。
+
+### 2.2 發現 → 掃一掃
+
+底部導覽（桌面為左側欄）的**發現**頁提供相機掃碼。掃到的內容依序按下列規則分派：
+
+| 掃到的內容 | 行為 |
+| --- | --- |
+| 網址（`http(s)://…`，或 `example.com/path` 這類網域） | **直接用外部瀏覽器開啟**，成功後自動返回發現頁；開啟失敗則提示並恢復掃描 |
+| `did:ethr:0x…` / `0x…` 地址 / `xxx.eth` | 彈出結果面板：可**加入聯絡人**（加入後直接開啟該 DID 的對話）或複製 |
+| 其他文字 | 顯示內容並可複製 |
+
+身份類內容刻意優先於網址判斷，否則 `name.eth` 會被當成一般網域送進瀏覽器。
+
+- 相機後端由 [`mobile_scanner`](https://pub.dev/packages/mobile_scanner) 提供，
+  支援 **Android / iOS / macOS / 瀏覽器**；**Windows 與 Linux 沒有相機後端**，
+  掃碼頁會顯示不支援提示而不會崩潰。
+- 相機權限：Android 已宣告 `CAMERA`；iOS / macOS 已在 `Info.plist` 寫入
+  `NSCameraUsageDescription`（macOS 另需 Camera entitlement）。
+- 瀏覽器必須在 **HTTPS 或 localhost** 下才能取得相機（localhost 視為安全上下文）。
 
 ---
 
@@ -294,6 +316,7 @@ lib/
     ├── chats/                 # 對話列表與聊天頁（文字 / 圖片 / 語音）
     ├── contacts/              # 聯絡人（同步中 / 已加密狀態）
     ├── wallet/                # 收款 QR、轉帳頁
+    ├── discover/              # 發現頁、掃一掃（相機掃碼與結果分派）
     └── settings/              # 設定頁、身份頁（匯出需密碼驗證）
 test/
 ├── vault_test.dart            # 保險庫：還原正確性、密文不含秘密、竄改與錯誤碼
@@ -323,6 +346,8 @@ dart run tool/e2e_waku.dart <nodeA> <nodeB>   # 真實節點端到端（14 項�
 - **多裝置**：`self` 副本與 store 已具備基礎，尚未做裝置間的金鑰同步與撤銷。
 - **ENS**：以 JSON-RPC 直接呼叫 registry / resolver；反向解析需要該地址已設定反向紀錄。
 - **多媒體大小**：圖片會先壓縮再上 Waku，未做分片；大檔（影片）尚未支援。
+- **掃碼**：僅 Android / iOS / macOS / 瀏覽器可用（mobile_scanner 的平台限制），
+  Windows 與 Linux 顯示「不支援掃碼」；尚未支援「從相簿圖片辨識 QR Code」。
 - **Web 安全邊界**：見 3.1 —— 瀏覽器內無法對抗同源腳本注入，請只從信任的來源開啟。
 
 ---
