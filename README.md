@@ -61,6 +61,8 @@ dart run tool/smoke.dart       # 核心邏輯冒煙測試（不依賴 flutter_te
   **少了它網頁會整片空白**）
 - `worker-src` 需含 `blob:`（Flutter web worker）
 - `font-src` 需含 `https://fonts.gstatic.com`
+- `script-src` 與 `worker-src` 需含 `https://cdn.jsdelivr.net/npm/zxing-wasm/`
+  （發現 → 掃一掃：瀏覽器沒有原生 `BarcodeDetector` 時，掃碼引擎從這裡載入）
 
 頁面另設定 `referrer=no-referrer`，避免把帶 DID 的路徑外洩給第三方資源。
 部署時建議由伺服器再補 `X-Frame-Options`、`X-Content-Type-Options` 等標頭。

@@ -48,7 +48,31 @@ abstract final class K {
   static const navChats = 'navChats';
   static const navContacts = 'navContacts';
   static const navWallet = 'navWallet';
+  static const navDiscover = 'navDiscover';
   static const navSettings = 'navSettings';
+
+  // ---------------------------------------------------------------- 發現
+  static const discoverTitle = 'discoverTitle';
+  static const discoverSubtitle = 'discoverSubtitle';
+  static const discoverTools = 'discoverTools';
+  static const discoverScan = 'discoverScan';
+  static const discoverScanDesc = 'discoverScanDesc';
+  static const scanTitle = 'scanTitle';
+  static const scanHint = 'scanHint';
+  static const scanTorch = 'scanTorch';
+  static const scanSwitchCamera = 'scanSwitchCamera';
+  static const scanUnsupportedTitle = 'scanUnsupportedTitle';
+  static const scanUnsupportedDesc = 'scanUnsupportedDesc';
+  static const scanPermissionTitle = 'scanPermissionTitle';
+  static const scanPermissionDesc = 'scanPermissionDesc';
+  static const scanCameraError = 'scanCameraError';
+  static const scanResultTitle = 'scanResultTitle';
+  static const scanResultDid = 'scanResultDid';
+  static const scanResultAddress = 'scanResultAddress';
+  static const scanResultEns = 'scanResultEns';
+  static const scanResultText = 'scanResultText';
+  static const scanAddContact = 'scanAddContact';
+  static const scanOpenFailed = 'scanOpenFailed';
 
   // ---------------------------------------------------------------- 引導頁
   static const onboardingTitle = 'onboardingTitle';
@@ -364,7 +388,29 @@ const Map<String, Map<String, String>> _bundles = {
     K.navChats: '聊天',
     K.navContacts: '聯絡人',
     K.navWallet: '錢包',
+    K.navDiscover: '發現',
     K.navSettings: '設定',
+    K.discoverTitle: '發現',
+    K.discoverSubtitle: '探索 NexusChat 的更多可能',
+    K.discoverTools: '工具',
+    K.discoverScan: '掃一掃',
+    K.discoverScanDesc: '掃描 QR Code，網址可直接開啟',
+    K.scanTitle: '掃一掃',
+    K.scanHint: '將 QR Code 放入框內，即可自動識別',
+    K.scanTorch: '手電筒',
+    K.scanSwitchCamera: '切換鏡頭',
+    K.scanUnsupportedTitle: '此裝置不支援掃碼',
+    K.scanUnsupportedDesc: '目前僅支援 Android、iOS、macOS 與瀏覽器，請改用行動裝置或網頁版。',
+    K.scanPermissionTitle: '需要相機權限',
+    K.scanPermissionDesc: '請在系統設定中允許 NexusChat 使用相機，才能使用掃一掃。',
+    K.scanCameraError: '相機無法啟動，請稍後再試。',
+    K.scanResultTitle: '掃描結果',
+    K.scanResultDid: 'NexusChat 身份（DID）',
+    K.scanResultAddress: '以太坊地址',
+    K.scanResultEns: 'ENS 名稱',
+    K.scanResultText: '文字內容',
+    K.scanAddContact: '加入聯絡人',
+    K.scanOpenFailed: '無法開啟此網址',
     K.onboardingTitle: '重新定義私密的對話',
     K.onboardingSubtitle: '沒有伺服器、沒有電話號碼，只有你的 DID 與一組助記詞。',
     K.onboardingCreate: '建立新身份',
@@ -651,7 +697,29 @@ const Map<String, Map<String, String>> _bundles = {
     K.navChats: '聊天',
     K.navContacts: '联系人',
     K.navWallet: '钱包',
+    K.navDiscover: '发现',
     K.navSettings: '设置',
+    K.discoverTitle: '发现',
+    K.discoverSubtitle: '探索 NexusChat 的更多可能',
+    K.discoverTools: '工具',
+    K.discoverScan: '扫一扫',
+    K.discoverScanDesc: '扫描二维码，网址可直接打开',
+    K.scanTitle: '扫一扫',
+    K.scanHint: '将二维码放入框内，即可自动识别',
+    K.scanTorch: '手电筒',
+    K.scanSwitchCamera: '切换镜头',
+    K.scanUnsupportedTitle: '此设备不支持扫码',
+    K.scanUnsupportedDesc: '目前仅支持 Android、iOS、macOS 与浏览器，请改用移动设备或网页版。',
+    K.scanPermissionTitle: '需要相机权限',
+    K.scanPermissionDesc: '请在系统设置中允许 NexusChat 使用相机，才能使用扫一扫。',
+    K.scanCameraError: '相机无法启动，请稍后再试。',
+    K.scanResultTitle: '扫描结果',
+    K.scanResultDid: 'NexusChat 身份（DID）',
+    K.scanResultAddress: '以太坊地址',
+    K.scanResultEns: 'ENS 名称',
+    K.scanResultText: '文字内容',
+    K.scanAddContact: '添加联系人',
+    K.scanOpenFailed: '无法打开此网址',
     K.onboardingTitle: '重新定义私密的对话',
     K.onboardingSubtitle: '没有服务器、没有手机号，只有你的 DID 与一组助记词。',
     K.onboardingCreate: '创建新身份',
@@ -939,7 +1007,31 @@ const Map<String, Map<String, String>> _bundles = {
     K.navChats: 'Chats',
     K.navContacts: 'Contacts',
     K.navWallet: 'Wallet',
+    K.navDiscover: 'Discover',
     K.navSettings: 'Settings',
+    K.discoverTitle: 'Discover',
+    K.discoverSubtitle: 'Explore more of NexusChat',
+    K.discoverTools: 'Tools',
+    K.discoverScan: 'Scan',
+    K.discoverScanDesc: 'Scan a QR code — links open right away',
+    K.scanTitle: 'Scan',
+    K.scanHint: 'Place the QR code inside the frame to detect it automatically',
+    K.scanTorch: 'Flashlight',
+    K.scanSwitchCamera: 'Switch camera',
+    K.scanUnsupportedTitle: 'Scanning is not supported here',
+    K.scanUnsupportedDesc:
+        'Only Android, iOS, macOS and the browser are supported. Please use a mobile device or the web build.',
+    K.scanPermissionTitle: 'Camera permission required',
+    K.scanPermissionDesc:
+        'Allow NexusChat to use the camera in system settings to scan QR codes.',
+    K.scanCameraError: 'The camera could not start, please try again.',
+    K.scanResultTitle: 'Scan result',
+    K.scanResultDid: 'NexusChat identity (DID)',
+    K.scanResultAddress: 'Ethereum address',
+    K.scanResultEns: 'ENS name',
+    K.scanResultText: 'Text',
+    K.scanAddContact: 'Add contact',
+    K.scanOpenFailed: 'Could not open this link',
     K.onboardingTitle: 'Private conversations, reimagined',
     K.onboardingSubtitle:
         'No server, no phone number. Just your DID and one recovery phrase.',
@@ -1251,7 +1343,32 @@ const Map<String, Map<String, String>> _bundles = {
     K.navChats: 'Chats',
     K.navContacts: 'Contactos',
     K.navWallet: 'Cartera',
+    K.navDiscover: 'Descubrir',
     K.navSettings: 'Ajustes',
+    K.discoverTitle: 'Descubrir',
+    K.discoverSubtitle: 'Explora más de NexusChat',
+    K.discoverTools: 'Herramientas',
+    K.discoverScan: 'Escanear',
+    K.discoverScanDesc: 'Escanea un código QR; los enlaces se abren al instante',
+    K.scanTitle: 'Escanear',
+    K.scanHint:
+        'Coloca el código QR dentro del marco para detectarlo automáticamente',
+    K.scanTorch: 'Linterna',
+    K.scanSwitchCamera: 'Cambiar cámara',
+    K.scanUnsupportedTitle: 'Escaneo no disponible aquí',
+    K.scanUnsupportedDesc:
+        'Solo se admiten Android, iOS, macOS y el navegador. Usa un dispositivo móvil o la versión web.',
+    K.scanPermissionTitle: 'Permiso de cámara necesario',
+    K.scanPermissionDesc:
+        'Permite que NexusChat use la cámara en los ajustes del sistema para escanear códigos QR.',
+    K.scanCameraError: 'No se pudo iniciar la cámara, inténtalo de nuevo.',
+    K.scanResultTitle: 'Resultado del escaneo',
+    K.scanResultDid: 'Identidad de NexusChat (DID)',
+    K.scanResultAddress: 'Dirección Ethereum',
+    K.scanResultEns: 'Nombre ENS',
+    K.scanResultText: 'Texto',
+    K.scanAddContact: 'Añadir contacto',
+    K.scanOpenFailed: 'No se pudo abrir este enlace',
     K.onboardingTitle: 'Conversaciones privadas, reinventadas',
     K.onboardingSubtitle:
         'Sin servidor, sin número de teléfono. Solo tu DID y una frase de recuperación.',
@@ -1595,7 +1712,30 @@ class Strings {
   String get navChats => get(K.navChats);
   String get navContacts => get(K.navContacts);
   String get navWallet => get(K.navWallet);
+  String get navDiscover => get(K.navDiscover);
   String get navSettings => get(K.navSettings);
+
+  String get discoverTitle => get(K.discoverTitle);
+  String get discoverSubtitle => get(K.discoverSubtitle);
+  String get discoverTools => get(K.discoverTools);
+  String get discoverScan => get(K.discoverScan);
+  String get discoverScanDesc => get(K.discoverScanDesc);
+  String get scanTitle => get(K.scanTitle);
+  String get scanHint => get(K.scanHint);
+  String get scanTorch => get(K.scanTorch);
+  String get scanSwitchCamera => get(K.scanSwitchCamera);
+  String get scanUnsupportedTitle => get(K.scanUnsupportedTitle);
+  String get scanUnsupportedDesc => get(K.scanUnsupportedDesc);
+  String get scanPermissionTitle => get(K.scanPermissionTitle);
+  String get scanPermissionDesc => get(K.scanPermissionDesc);
+  String get scanCameraError => get(K.scanCameraError);
+  String get scanResultTitle => get(K.scanResultTitle);
+  String get scanResultDid => get(K.scanResultDid);
+  String get scanResultAddress => get(K.scanResultAddress);
+  String get scanResultEns => get(K.scanResultEns);
+  String get scanResultText => get(K.scanResultText);
+  String get scanAddContact => get(K.scanAddContact);
+  String get scanOpenFailed => get(K.scanOpenFailed);
 
   String get onboardingTitle => get(K.onboardingTitle);
   String get onboardingSubtitle => get(K.onboardingSubtitle);

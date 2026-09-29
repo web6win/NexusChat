@@ -4,6 +4,8 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>NexusChat 需要相機權限才能使用「掃一掃」。</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>NexusChat 需要麥克風權限才能傳送語音訊息。</string>
 	<key>NSPhotoLibraryUsageDescription</key>

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/contacts/contacts_page.dart';
+import '../features/discover/discover_page.dart';
+import '../features/discover/scan_page.dart';
 import '../features/lock/lock_page.dart';
 import '../features/onboarding/create_identity_page.dart';
 import '../features/onboarding/restore_page.dart';
@@ -92,6 +94,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (BuildContext context, GoRouterState state) =>
             const VaultUnavailablePage(),
       ),
+      // 掃一掃放在根導覽：全螢幕取景，不被底部導覽與殼層版面干擾。
+      GoRoute(
+        path: '/scan',
+        builder: (BuildContext context, GoRouterState state) =>
+            const ScanPage(),
+      ),
       StatefulShellRoute.indexedStack(
         builder:
             (BuildContext context, GoRouterState state, StatefulNavigationShell shell) =>
@@ -130,6 +138,16 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           StatefulShellBranch(
+            navigatorKey: _discoverKey,
+            routes: <RouteBase>[
+              GoRoute(
+                path: '/discover',
+                builder: (BuildContext context, GoRouterState state) =>
+                    const DiscoverPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
             navigatorKey: _settingsKey,
             routes: <RouteBase>[
               GoRoute(
@@ -156,6 +174,7 @@ final GlobalKey<NavigatorState> _rootKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _chatsKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _contactsKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _walletKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> _discoverKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _settingsKey = GlobalKey<NavigatorState>();
 
 /// 讓外部（例如身份刪除）能跳回引導頁。
