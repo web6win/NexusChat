@@ -38,11 +38,15 @@
 
     connect-src 保留為 *：RPC 與 Waku 節點由使用者自行設定，無法預先列舉。
     部署時建議由伺服器再補上 X-Frame-Options / X-Content-Type-Options 等標頭。
+
+    發現 → 掃一掃在瀏覽器沒有原生 BarcodeDetector 時（Firefox、舊版 Safari），
+    會由 mobile_scanner 從 jsDelivr 載入 zxing-wasm 做辨識；上面兩處
+    https://cdn.jsdelivr.net/npm/zxing-wasm/ 就是為它開的，移除後那些瀏覽器會掃不出來。
   -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://www.gstatic.com/flutter-canvaskit/;
-    worker-src 'self' blob:;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://www.gstatic.com/flutter-canvaskit/ https://cdn.jsdelivr.net/npm/zxing-wasm/;
+    worker-src 'self' blob: https://cdn.jsdelivr.net/npm/zxing-wasm/;
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: blob:;
     font-src 'self' data: https://fonts.gstatic.com;
