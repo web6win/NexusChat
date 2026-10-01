@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/app_settings.dart' show AppSettings, ThemePreference;
 import '../../data/models/chain.dart';
 import '../../data/models/security_settings.dart';
+import '../wallet/chain_selector.dart';
 import '../../data/security/vault.dart';
 import '../../data/waku/node_probe.dart' show NodeStatus;
 import '../../shared/feedback.dart';
@@ -25,9 +26,8 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
+  /// 「目前所選鏈」的 RPC 端點輸入框：切換鏈時由 [_syncRpcField] 帶入該鏈的值。
   late final TextEditingController _rpcUrl;
-  late final TextEditingController _tronRpcUrl;
-  late final TextEditingController _besuRpcUrl;
   bool _resyncing = false;
   bool _probing = false;
 
@@ -35,17 +35,31 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   void initState() {
     super.initState();
     final settings = ref.read(settingsProvider);
-    _rpcUrl = TextEditingController(text: settings.rpcUrl);
-    _tronRpcUrl = TextEditingController(text: settings.tronRpcUrl);
-    _besuRpcUrl = TextEditingController(text: settings.besuRpcUrl);
+    _rpcUrl = TextEditingController(text: settings.rpcFor(settings.chain));
+  }
+
+  /// 換鏈後把輸入框換成該鏈的端點，避免把 A 鏈的端點存到 B 鏈上。
+  void _syncRpcField() {
+    final settings = ref.read(settingsProvider);
+    _rpcUrl.text = settings.rpcFor(settings.chain);
   }
 
   @override
   void dispose() {
     _rpcUrl.dispose();
-    _tronRpcUrl.dispose();
-    _besuRpcUrl.dispose();
     super.dispose();
+  }
+
+  /// 儲存「目前所選鏈」的 RPC 端點；留空表示還原成該鏈的預設值。
+  Future<void> _saveRpc() async {
+    final value = _rpcUrl.text.trim();
+    await ref
+        .read(settingsProvider.notifier)
+        .setRpcFor(ref.read(settingsProvider).chain, value);
+    if (!mounted) return;
+    // 留空時會還原成預設端點，把結果回填給輸入框。
+    setState(_syncRpcField);
+    ref.invalidate(walletInfoProvider);
   }
 
   /// 重新探測所有節點的連線狀態。
@@ -693,41 +707,36 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: ThemeOptionCard(
-                            label: s.chainEthereum,
-                            icon: Icons.diamond_outlined,
-                            selected: settings.chain == ChainType.ethereum,
-                            onTap: () => ref
-                                .read(settingsProvider.notifier)
-                                .setChain(ChainType.ethereum),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: ThemeOptionCard(
-                            label: s.chainTron,
-                            icon: Icons.offline_bolt_rounded,
-                            selected: settings.chain == ChainType.tron,
-                            onTap: () => ref
-                                .read(settingsProvider.notifier)
-                                .setChain(ChainType.tron),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: ThemeOptionCard(
-                            label: s.chainBesu,
-                            icon: Icons.hub_outlined,
-                            selected: settings.chain == ChainType.besu,
-                            onTap: () => ref
-                                .read(settingsProvider.notifier)
-                                .setChain(ChainType.besu),
-                          ),
-                        ),
-                      ],
+                    // 六條鏈一行三張卡，換行自動排列 —— 之後再加鏈也不用改版面。
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        const spacing = 10.0;
+                        final width = (constraints.maxWidth - spacing * 2) / 3;
+                        return Wrap(
+                          spacing: spacing,
+                          runSpacing: spacing,
+                          children: <Widget>[
+                            for (final c in ChainType.values)
+                              SizedBox(
+                                width: width,
+                                child: ThemeOptionCard(
+                                  label: ChainSelector.labelOf(s, c),
+                                  icon: ChainSelector.iconOf(c),
+                                  selected: settings.chain == c,
+                                  onTap: () async {
+                                    await ref
+                                        .read(settingsProvider.notifier)
+                                        .setChain(c);
+                                    if (!mounted) return;
+                                    // 換鏈後輸入框要跟著換成該鏈的端點。
+                                    setState(_syncRpcField);
+                                    ref.invalidate(walletInfoProvider);
+                                  },
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -751,42 +760,24 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 child: Column(
                   children: <Widget>[
                     TextField(
-                      controller: switch (settings.chain) {
-                        ChainType.ethereum => _rpcUrl,
-                        ChainType.tron => _tronRpcUrl,
-                        ChainType.besu => _besuRpcUrl,
-                      },
+                      controller: _rpcUrl,
                       autocorrect: false,
                       enableSuggestions: false,
-                      onSubmitted: (value) =>
-                          ref.read(settingsProvider.notifier).setRpcFor(
-                                settings.chain,
-                                value.trim(),
-                              ),
+                      onSubmitted: (_) => _saveRpc(),
                       decoration: InputDecoration(
-                        labelText: switch (settings.chain) {
-                          ChainType.ethereum => s.walletRpcUrl,
-                          ChainType.tron => s.walletTronRpc,
-                          ChainType.besu => s.walletBesuRpc,
-                        },
+                        // 標題帶上鏈名：端點是「哪一條鏈的」必須一眼看得出來。
+                        labelText:
+                            '${ChainSelector.labelOf(s, settings.chain)} · '
+                            '${s.walletRpcUrl}',
                         prefixIcon: const Icon(Icons.cable_rounded),
+                        helperText: s.walletRpcUrlHint,
                       ),
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: () async {
-                          final value = switch (settings.chain) {
-                            ChainType.ethereum => _rpcUrl.text.trim(),
-                            ChainType.tron => _tronRpcUrl.text.trim(),
-                            ChainType.besu => _besuRpcUrl.text.trim(),
-                          };
-                          await ref
-                              .read(settingsProvider.notifier)
-                              .setRpcFor(settings.chain, value);
-                          ref.invalidate(walletInfoProvider);
-                        },
+                        onPressed: _saveRpc,
                         icon: const Icon(Icons.save_rounded, size: 18),
                         label: Text(s.save),
                       ),

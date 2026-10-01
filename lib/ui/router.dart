@@ -13,7 +13,9 @@ import '../features/chats/chats_page.dart';
 import '../features/security/migrate_page.dart';
 import '../features/settings/identity_page.dart';
 import '../features/settings/settings_page.dart';
+import '../features/wallet/send_page.dart';
 import '../features/wallet/wallet_page.dart';
+import '../data/models/chain.dart';
 import '../state/controllers.dart';
 import 'shell.dart';
 
@@ -97,8 +99,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       // 掃一掃放在根導覽：全螢幕取景，不被底部導覽與殼層版面干擾。
       GoRoute(
         path: '/scan',
-        builder: (BuildContext context, GoRouterState state) =>
-            const ScanPage(),
+        builder: (BuildContext context, GoRouterState state) => ScanPage(
+          // 轉帳頁呼叫時只挑收款地址；一般掃碼則走完整的結果處理。
+          pickAddress: state.uri.queryParameters['pick'] == '1',
+          chain: state.uri.queryParameters['chain'] == null
+              ? null
+              : ChainType.fromId(state.uri.queryParameters['chain']),
+        ),
+      ),
+      // 轉帳頁：可由錢包頁進入，也可由掃碼結果直接帶地址與金額進來。
+      GoRoute(
+        path: '/send',
+        builder: (BuildContext context, GoRouterState state) => SendPage(
+          chain: state.uri.queryParameters['chain'] == null
+              ? null
+              : ChainType.fromId(state.uri.queryParameters['chain']),
+          initialAddress: state.uri.queryParameters['address'],
+        ),
       ),
       StatefulShellRoute.indexedStack(
         builder:

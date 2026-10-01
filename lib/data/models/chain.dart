@@ -5,16 +5,26 @@
 /// 同一把 secp256k1 私鑰會同時派生出以太坊 0x 地址與 TRON 的 T 地址
 /// （兩者的 20 位元組主體完全相同，只是編碼方式不同），因此切換鏈
 /// 不需要第二組助記詞或第二把金鑰。
+///
+/// 所有 EVM 鏈（以太坊 / Base / Arbitrum / BSC / Besu）共用同一個 0x 地址
+/// 與同一套 JSON-RPC，新增一條鏈只需要 [ChainConfig._map] 加一項，
+/// 不必動金鑰或交易邏輯。
 enum ChainType {
   ethereum,
+  base,
+  arbitrum,
+  bsc,
   tron,
 
   /// Besu 聯盟鏈（WEB6）。EVM 相容，沿用 0x 地址與 JSON-RPC。
   besu;
 
-  /// 設定/Provider 用的穩定字串。
+  /// 設定/Provider 用的穩定字串，同時也是收款 QR Code 的 URI scheme。
   String get id => switch (this) {
         ChainType.ethereum => 'ethereum',
+        ChainType.base => 'base',
+        ChainType.arbitrum => 'arbitrum',
+        ChainType.bsc => 'bsc',
         ChainType.tron => 'tron',
         ChainType.besu => 'besu',
       };
@@ -23,6 +33,9 @@ enum ChainType {
   bool get isEvm => this != ChainType.tron;
 
   static ChainType fromId(String? id) => switch (id) {
+        'base' => ChainType.base,
+        'arbitrum' => ChainType.arbitrum,
+        'bsc' => ChainType.bsc,
         'tron' => ChainType.tron,
         'besu' => ChainType.besu,
         _ => ChainType.ethereum,
@@ -36,11 +49,12 @@ class ChainConfig {
     required this.explorerHost,
     required this.defaultRpc,
     required this.supportsEns,
+    this.expectedChainId,
     this.displayDecimals = 6,
     this.explorerScheme = 'https',
   });
 
-  /// 原生代幣符號（ETH / TRX）。
+  /// 原生代幣符號（ETH / BNB / TRX）。
   final String symbol;
 
   /// 區塊瀏覽器主機（用於「在瀏覽器檢視」）。
@@ -61,13 +75,50 @@ class ChainConfig {
   /// 餘額顯示小數位數。
   final int displayDecimals;
 
+  /// 這條鏈「應該」回報的 chainId（`eth_chainId`）。
+  ///
+  /// EVM 鏈的 RPC 端點長得都一樣，填錯端點（例如把 Base 的 RPC 貼到
+  /// 以太坊）時餘額仍查得到、交易也送得出去 —— 只是送到錯的網路上。
+  /// 拿這個值與節點實際回報的 chainId 比對，就能在轉帳前擋下來。
+  /// 非 EVM 鏈（TRON）與聯盟鏈（chainId 不固定）為 null，表示不比對。
+  final int? expectedChainId;
+
+  /// [chainId] 是否與本鏈不符（端點可能被填錯）。
+  bool isWrongChain(int? chainId) =>
+      expectedChainId != null && chainId != null && chainId != expectedChainId;
+
   static const Map<ChainType, ChainConfig> _map = <ChainType, ChainConfig>{
     ChainType.ethereum: ChainConfig(
       symbol: 'ETH',
       explorerHost: 'etherscan.io',
       defaultRpc: 'https://ethereum-rpc.publicnode.com',
       supportsEns: true,
+      expectedChainId: 1,
       displayDecimals: 6,
+    ),
+    ChainType.base: ChainConfig(
+      symbol: 'ETH',
+      explorerHost: 'basescan.org',
+      defaultRpc: 'https://mainnet.base.org',
+      supportsEns: false,
+      expectedChainId: 8453,
+      displayDecimals: 6,
+    ),
+    ChainType.arbitrum: ChainConfig(
+      symbol: 'ETH',
+      explorerHost: 'arbiscan.io',
+      defaultRpc: 'https://arb1.arbitrum.io/rpc',
+      supportsEns: false,
+      expectedChainId: 42161,
+      displayDecimals: 6,
+    ),
+    ChainType.bsc: ChainConfig(
+      symbol: 'BNB',
+      explorerHost: 'bscscan.com',
+      defaultRpc: 'https://bsc-dataseed.binance.org',
+      supportsEns: false,
+      expectedChainId: 56,
+      displayDecimals: 4,
     ),
     ChainType.tron: ChainConfig(
       symbol: 'TRX',
@@ -77,7 +128,7 @@ class ChainConfig {
       displayDecimals: 2,
     ),
     // Besu 聯盟鏈（WEB6）：EVM 相容，原生代幣沿用 18 位小數的 ETH 計價。
-    // 聯盟鏈通常不接 ENS，故關閉。
+    // 聯盟鏈通常不接 ENS，故關閉；chainId 由部署決定，因此不做比對。
     ChainType.besu: ChainConfig(
       symbol: 'ETH',
       explorerHost: 'scan.web6.win',

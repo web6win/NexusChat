@@ -349,6 +349,40 @@ class _IdentityPageState extends ConsumerState<IdentityPage> {
                           ],
                         ),
                       ),
+                    // 有密碼短語時一定要跟著備份：少了它，助記詞會還原成
+                    // 另一個身份，而且完全不會有任何錯誤提示。
+                    if (_revealed && identity.hasPassphrase) ...<Widget>[
+                      const SizedBox(height: 14),
+                      Text(
+                        s.identityPassphrase,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.55),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(13),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(alpha: 0.09),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(
+                            color: AppColors.warning.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: SelectableText(
+                          identity.passphrase,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                     if (_revealed && mnemonicWords.isNotEmpty) ...<Widget>[
                       const SizedBox(height: 14),
                       _AutoHideNotice(secondsLeft: _hideLeft),

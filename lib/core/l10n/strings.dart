@@ -73,6 +73,10 @@ abstract final class K {
   static const scanResultText = 'scanResultText';
   static const scanAddContact = 'scanAddContact';
   static const scanOpenFailed = 'scanOpenFailed';
+  static const scanPayAction = 'scanPayAction';
+  static const scanResultPayment = 'scanResultPayment';
+  static const scanPickHint = 'scanPickHint';
+  static const scanPickInvalid = 'scanPickInvalid';
 
   // ---------------------------------------------------------------- 引導頁
   static const onboardingTitle = 'onboardingTitle';
@@ -137,6 +141,14 @@ abstract final class K {
   static const changePasswordFailed = 'changePasswordFailed';
   static const currentPassword = 'currentPassword';
   static const autoHideIn = 'autoHideIn';
+  // BIP39 密碼短語（第 13 / 25 個詞）
+  static const passphraseAdvanced = 'passphraseAdvanced';
+  static const passphraseLabel = 'passphraseLabel';
+  static const passphraseHint = 'passphraseHint';
+  static const passphraseConfirmLabel = 'passphraseConfirmLabel';
+  static const passphraseDesc = 'passphraseDesc';
+  static const passphraseMismatch = 'passphraseMismatch';
+  static const identityPassphrase = 'identityPassphrase';
   static const createFailed = 'createFailed';
   static const restoreFailed = 'restoreFailed';
   static const importFailed = 'importFailed';
@@ -242,6 +254,9 @@ abstract final class K {
   static const walletTronRpc = 'walletTronRpc';
   static const walletBesuRpc = 'walletBesuRpc';
   static const chainEthereum = 'chainEthereum';
+  static const chainBase = 'chainBase';
+  static const chainArbitrum = 'chainArbitrum';
+  static const chainBsc = 'chainBsc';
   static const chainTron = 'chainTron';
   static const chainBesu = 'chainBesu';
   static const chainSelect = 'chainSelect';
@@ -266,6 +281,13 @@ abstract final class K {
   static const walletErrNetwork = 'walletErrNetwork';
   static const walletReceiveDesc = 'walletReceiveDesc';
   static const walletUseMax = 'walletUseMax';
+  static const walletSendNetwork = 'walletSendNetwork';
+  static const walletSendNetworkNotice = 'walletSendNetworkNotice';
+  static const walletSwitchNetwork = 'walletSwitchNetwork';
+  static const walletErrChainMismatch = 'walletErrChainMismatch';
+  static const walletScanAddress = 'walletScanAddress';
+  static const walletRpcMismatch = 'walletRpcMismatch';
+  static const walletRpcUrlHint = 'walletRpcUrlHint';
 
   // ------------------------------------------------------------------ 多媒體
   static const chatImage = 'chatImage';
@@ -411,6 +433,10 @@ const Map<String, Map<String, String>> _bundles = {
     K.scanResultText: '文字內容',
     K.scanAddContact: '加入聯絡人',
     K.scanOpenFailed: '無法開啟此網址',
+    K.scanPayAction: '轉帳給它',
+    K.scanResultPayment: '付款請求',
+    K.scanPickHint: '將鏡頭對準收款方的 QR Code',
+    K.scanPickInvalid: '這不是有效的收款地址',
     K.onboardingTitle: '重新定義私密的對話',
     K.onboardingSubtitle: '沒有伺服器、沒有電話號碼，只有你的 DID 與一組助記詞。',
     K.onboardingCreate: '建立新身份',
@@ -469,6 +495,14 @@ const Map<String, Map<String, String>> _bundles = {
     K.changePasswordFailed: '修改密碼失敗',
     K.currentPassword: '目前密碼',
     K.autoHideIn: '將於 %1\$s 秒後自動隱藏',
+    K.passphraseAdvanced: '進階：BIP39 密碼短語',
+    K.passphraseLabel: '密碼短語（選填）',
+    K.passphraseHint: '留空表示不使用',
+    K.passphraseConfirmLabel: '確認密碼短語',
+    K.passphraseDesc: '助記詞加上密碼短語才會得到這個身份：短語區分大小寫與空白，'
+        '打錯不會出現錯誤，只會還原成另一個錢包。必須與助記詞分開保管。',
+    K.passphraseMismatch: '兩次輸入的密碼短語不一致',
+    K.identityPassphrase: 'BIP39 密碼短語',
     K.createFailed: '建立身份失敗',
     K.restoreFailed: '還原身份失敗',
     K.importFailed: '匯入身份失敗',
@@ -564,6 +598,9 @@ const Map<String, Map<String, String>> _bundles = {
     K.walletTronRpc: 'TRON RPC 端點',
     K.walletBesuRpc: 'WEB6 RPC 端點',
     K.chainEthereum: '以太坊',
+    K.chainBase: 'Base',
+    K.chainArbitrum: 'Arbitrum',
+    K.chainBsc: 'BNB 鏈',
     K.chainTron: '波場',
     K.chainBesu: 'WEB6',
     K.walletReceive: '收款',
@@ -587,6 +624,14 @@ const Map<String, Map<String, String>> _bundles = {
     K.walletErrNetwork: '網路錯誤，請稍後再試',
     K.walletReceiveDesc: '將此地址或 QR Code 分享給對方即可收款',
     K.walletUseMax: '全部',
+    K.walletSendNetwork: '轉帳網路',
+    // raw 字串：`$` 不做插值，參數佔位符才能照原樣保留。
+    K.walletSendNetworkNotice: r'正在 %1$s 轉帳，請確認收款地址屬於同一條鏈。',
+    K.walletSwitchNetwork: '切換網路',
+    K.walletErrChainMismatch: '收款地址不屬於目前的網路',
+    K.walletScanAddress: '掃描收款地址',
+    K.walletRpcMismatch: 'RPC 回傳的網路與目前選擇不符，請檢查端點設定',
+    K.walletRpcUrlHint: '留空則使用預設端點',
     K.chatImage: '圖片',
     K.chatVoice: '語音訊息',
     K.chatSendImage: '傳送圖片',
@@ -720,6 +765,10 @@ const Map<String, Map<String, String>> _bundles = {
     K.scanResultText: '文字内容',
     K.scanAddContact: '添加联系人',
     K.scanOpenFailed: '无法打开此网址',
+    K.scanPayAction: '向它转账',
+    K.scanResultPayment: '付款请求',
+    K.scanPickHint: '将镜头对准收款方的二维码',
+    K.scanPickInvalid: '这不是有效的收款地址',
     K.onboardingTitle: '重新定义私密的对话',
     K.onboardingSubtitle: '没有服务器、没有手机号，只有你的 DID 与一组助记词。',
     K.onboardingCreate: '创建新身份',
@@ -778,6 +827,14 @@ const Map<String, Map<String, String>> _bundles = {
     K.changePasswordFailed: '修改密码失败',
     K.currentPassword: '当前密码',
     K.autoHideIn: '将于 %1\$s 秒后自动隐藏',
+    K.passphraseAdvanced: '高级：BIP39 密码短语',
+    K.passphraseLabel: '密码短语（选填）',
+    K.passphraseHint: '留空表示不使用',
+    K.passphraseConfirmLabel: '确认密码短语',
+    K.passphraseDesc: '助记词加上密码短语才会得到这个身份：短语区分大小写与空格，'
+        '打错不会报错，只会还原成另一个钱包。必须与助记词分开保管。',
+    K.passphraseMismatch: '两次输入的密码短语不一致',
+    K.identityPassphrase: 'BIP39 密码短语',
     K.createFailed: '创建身份失败',
     K.restoreFailed: '恢复身份失败',
     K.importFailed: '导入身份失败',
@@ -873,6 +930,9 @@ const Map<String, Map<String, String>> _bundles = {
     K.walletTronRpc: 'TRON RPC 端点',
     K.walletBesuRpc: 'WEB6 RPC 端点',
     K.chainEthereum: '以太坊',
+    K.chainBase: 'Base',
+    K.chainArbitrum: 'Arbitrum',
+    K.chainBsc: 'BNB 链',
     K.chainTron: '波场',
     K.chainBesu: 'WEB6',
     K.walletReceive: '收款',
@@ -896,6 +956,13 @@ const Map<String, Map<String, String>> _bundles = {
     K.walletErrNetwork: '网络错误，请稍后再试',
     K.walletReceiveDesc: '将此地址或二维码分享给对方即可收款',
     K.walletUseMax: '全部',
+    K.walletSendNetwork: '转账网络',
+    K.walletSendNetworkNotice: r'正在 %1$s 转账，请确认收款地址属于同一条链。',
+    K.walletSwitchNetwork: '切换网络',
+    K.walletErrChainMismatch: '收款地址不属于当前的网络',
+    K.walletScanAddress: '扫描收款地址',
+    K.walletRpcMismatch: 'RPC 返回的网络与当前选择不符，请检查端点设置',
+    K.walletRpcUrlHint: '留空则使用默认端点',
     K.chatImage: '图片',
     K.chatVoice: '语音消息',
     K.chatSendImage: '发送图片',
@@ -1032,6 +1099,10 @@ const Map<String, Map<String, String>> _bundles = {
     K.scanResultText: 'Text',
     K.scanAddContact: 'Add contact',
     K.scanOpenFailed: 'Could not open this link',
+    K.scanPayAction: 'Send to it',
+    K.scanResultPayment: 'Payment request',
+    K.scanPickHint: 'Point the camera at the recipient QR code',
+    K.scanPickInvalid: 'This is not a valid recipient address',
     K.onboardingTitle: 'Private conversations, reimagined',
     K.onboardingSubtitle:
         'No server, no phone number. Just your DID and one recovery phrase.',
@@ -1102,6 +1173,16 @@ const Map<String, Map<String, String>> _bundles = {
     K.changePasswordFailed: 'Could not change the password',
     K.currentPassword: 'Current password',
     K.autoHideIn: 'Hiding automatically in %1\$ss',
+    K.passphraseAdvanced: 'Advanced: BIP39 passphrase',
+    K.passphraseLabel: 'Passphrase (optional)',
+    K.passphraseHint: 'Leave empty to not use one',
+    K.passphraseConfirmLabel: 'Confirm passphrase',
+    K.passphraseDesc:
+        'The mnemonic and the passphrase together produce this identity. The '
+        'passphrase is case-sensitive and a typo will not raise an error — it '
+        'simply restores a different wallet. Store it separately from the mnemonic.',
+    K.passphraseMismatch: 'The two passphrases do not match',
+    K.identityPassphrase: 'BIP39 passphrase',
     K.createFailed: 'Could not create the identity',
     K.restoreFailed: 'Could not restore the identity',
     K.importFailed: 'Could not import the identity',
@@ -1206,6 +1287,9 @@ const Map<String, Map<String, String>> _bundles = {
     K.walletTronRpc: 'TRON RPC endpoint',
     K.walletBesuRpc: 'WEB6 RPC endpoint',
     K.chainEthereum: 'Ethereum',
+    K.chainBase: 'Base',
+    K.chainArbitrum: 'Arbitrum',
+    K.chainBsc: 'BNB Chain',
     K.chainTron: 'TRON',
     K.chainBesu: 'WEB6',
     K.walletReceive: 'Receive',
@@ -1229,6 +1313,15 @@ const Map<String, Map<String, String>> _bundles = {
     K.walletErrNetwork: 'Network error, please try again later',
     K.walletReceiveDesc: 'Share this address or QR code to receive funds',
     K.walletUseMax: 'Max',
+    K.walletSendNetwork: 'Transfer network',
+    K.walletSendNetworkNotice:
+        r'Sending on %1$s. Make sure the recipient address belongs to this network.',
+    K.walletSwitchNetwork: 'Switch network',
+    K.walletErrChainMismatch: 'This address does not belong to the current network',
+    K.walletScanAddress: 'Scan a recipient address',
+    K.walletRpcMismatch:
+        'The RPC endpoint reports a different network than the one selected',
+    K.walletRpcUrlHint: 'Leave empty to use the default endpoint',
     K.chatImage: 'Photo',
     K.chatVoice: 'Voice message',
     K.chatSendImage: 'Send photo',
@@ -1369,6 +1462,10 @@ const Map<String, Map<String, String>> _bundles = {
     K.scanResultText: 'Texto',
     K.scanAddContact: 'Añadir contacto',
     K.scanOpenFailed: 'No se pudo abrir este enlace',
+    K.scanPayAction: 'Enviar a esta dirección',
+    K.scanResultPayment: 'Solicitud de pago',
+    K.scanPickHint: 'Apunta la cámara al código QR del destinatario',
+    K.scanPickInvalid: 'Esta no es una dirección de destino válida',
     K.onboardingTitle: 'Conversaciones privadas, reinventadas',
     K.onboardingSubtitle:
         'Sin servidor, sin número de teléfono. Solo tu DID y una frase de recuperación.',
@@ -1440,6 +1537,16 @@ const Map<String, Map<String, String>> _bundles = {
     K.passwordChanged: 'Contraseña actualizada',
     K.changePasswordFailed: 'No se pudo cambiar la contraseña',
     K.currentPassword: 'Contraseña actual',
+    K.passphraseAdvanced: 'Avanzado: frase de contraseña BIP39',
+    K.passphraseLabel: 'Frase de contraseña (opcional)',
+    K.passphraseHint: 'Déjalo vacío para no usar una',
+    K.passphraseConfirmLabel: 'Confirmar frase de contraseña',
+    K.passphraseDesc:
+        'El mnemotécnico y la frase de contraseña producen juntos esta identidad. '
+        'La frase distingue mayúsculas y un error no mostrará ningún aviso: '
+        'simplemente restaurará otra cartera. Guárdala por separado del mnemotécnico.',
+    K.passphraseMismatch: 'Las dos frases de contraseña no coinciden',
+    K.identityPassphrase: 'Frase de contraseña BIP39',
     K.autoHideIn: 'Se ocultará en %1\$s s',
     K.createFailed: 'No se pudo crear la identidad',
     K.restoreFailed: 'No se pudo restaurar la identidad',
@@ -1547,6 +1654,9 @@ const Map<String, Map<String, String>> _bundles = {
     K.walletTronRpc: 'Endpoint RPC TRON',
     K.walletBesuRpc: 'Endpoint RPC WEB6',
     K.chainEthereum: 'Ethereum',
+    K.chainBase: 'Base',
+    K.chainArbitrum: 'Arbitrum',
+    K.chainBsc: 'BNB Chain',
     K.chainTron: 'TRON',
     K.chainBesu: 'WEB6',
     K.walletReceive: 'Recibir',
@@ -1570,6 +1680,15 @@ const Map<String, Map<String, String>> _bundles = {
     K.walletErrNetwork: 'Error de red, inténtalo más tarde',
     K.walletReceiveDesc: 'Comparte esta dirección o el código QR para recibir fondos',
     K.walletUseMax: 'Máx',
+    K.walletSendNetwork: 'Red de transferencia',
+    K.walletSendNetworkNotice:
+        r'Enviando en %1$s. Comprueba que la dirección pertenezca a esta red.',
+    K.walletSwitchNetwork: 'Cambiar de red',
+    K.walletErrChainMismatch: 'Esta dirección no pertenece a la red actual',
+    K.walletScanAddress: 'Escanear dirección de destino',
+    K.walletRpcMismatch:
+        'El endpoint RPC informa de una red distinta a la seleccionada',
+    K.walletRpcUrlHint: 'Déjalo vacío para usar el endpoint predeterminado',
     K.chatImage: 'Foto',
     K.chatVoice: 'Mensaje de voz',
     K.chatSendImage: 'Enviar foto',
@@ -1736,6 +1855,10 @@ class Strings {
   String get scanResultText => get(K.scanResultText);
   String get scanAddContact => get(K.scanAddContact);
   String get scanOpenFailed => get(K.scanOpenFailed);
+  String get scanPayAction => get(K.scanPayAction);
+  String get scanResultPayment => get(K.scanResultPayment);
+  String get scanPickHint => get(K.scanPickHint);
+  String get scanPickInvalid => get(K.scanPickInvalid);
 
   String get onboardingTitle => get(K.onboardingTitle);
   String get onboardingSubtitle => get(K.onboardingSubtitle);
@@ -1798,6 +1921,13 @@ class Strings {
   String get passwordChanged => get(K.passwordChanged);
   String get changePasswordFailed => get(K.changePasswordFailed);
   String get currentPassword => get(K.currentPassword);
+  String get passphraseAdvanced => get(K.passphraseAdvanced);
+  String get passphraseLabel => get(K.passphraseLabel);
+  String get passphraseHint => get(K.passphraseHint);
+  String get passphraseConfirmLabel => get(K.passphraseConfirmLabel);
+  String get passphraseDesc => get(K.passphraseDesc);
+  String get passphraseMismatch => get(K.passphraseMismatch);
+  String get identityPassphrase => get(K.identityPassphrase);
   String get createFailed => get(K.createFailed);
   String get restoreFailed => get(K.restoreFailed);
   String get importFailed => get(K.importFailed);
@@ -1913,6 +2043,9 @@ class Strings {
   String get walletTronRpc => get(K.walletTronRpc);
   String get walletBesuRpc => get(K.walletBesuRpc);
   String get chainEthereum => get(K.chainEthereum);
+  String get chainBase => get(K.chainBase);
+  String get chainArbitrum => get(K.chainArbitrum);
+  String get chainBsc => get(K.chainBsc);
   String get chainTron => get(K.chainTron);
   String get chainBesu => get(K.chainBesu);
   String get walletReceive => get(K.walletReceive);
@@ -1937,6 +2070,14 @@ class Strings {
   String get walletReceiveDesc => get(K.walletReceiveDesc);
   String get walletUseMax => get(K.walletUseMax);
   String get chainSelect => get(K.chainSelect);
+  String get walletSendNetwork => get(K.walletSendNetwork);
+  String walletSendNetworkNotice(String chain) =>
+      format(K.walletSendNetworkNotice, [chain]);
+  String get walletSwitchNetwork => get(K.walletSwitchNetwork);
+  String get walletErrChainMismatch => get(K.walletErrChainMismatch);
+  String get walletScanAddress => get(K.walletScanAddress);
+  String get walletRpcMismatch => get(K.walletRpcMismatch);
+  String get walletRpcUrlHint => get(K.walletRpcUrlHint);
 
   String get chatImage => get(K.chatImage);
   String get chatVoice => get(K.chatVoice);

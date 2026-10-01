@@ -108,19 +108,29 @@ class Core {
   // ------------------------------------------------------------ 建立 / 還原
 
   /// 建立全新身份（12 個助記詞）並以 [password] 加密保存。
-  Future<AppIdentity> createIdentity({required String password}) async {
-    final identity = await AppIdentity.generate();
+  ///
+  /// [passphrase] 為 BIP39 密碼短語（可選）。
+  Future<AppIdentity> createIdentity({
+    required String password,
+    String passphrase = '',
+  }) async {
+    final identity = await AppIdentity.generate(passphrase: passphrase);
     await _persist(identity, password);
     await _attach(identity);
     return identity;
   }
 
   /// 由助記詞還原身份並以 [password] 加密保存。
+  ///
+  /// [passphrase] 為當初建立時使用的 BIP39 密碼短語；打錯不會報錯，
+  /// 只會還原出**另一個**身份，因此呼叫端應先讓使用者核對地址。
   Future<AppIdentity> restoreIdentity(
     String mnemonic, {
     required String password,
+    String passphrase = '',
   }) async {
-    final identity = await AppIdentity.fromMnemonic(mnemonic);
+    final identity =
+        await AppIdentity.fromMnemonic(mnemonic, passphrase: passphrase);
     await _persist(identity, password);
     await _attach(identity);
     return identity;

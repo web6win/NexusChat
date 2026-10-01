@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -28,10 +30,14 @@ class _RestorePageState extends ConsumerState<RestorePage> {
   final TextEditingController _controller = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
+  final TextEditingController _passphraseController = TextEditingController();
+  final TextEditingController _confirmPassphraseController =
+      TextEditingController();
 
   _ImportMode _mode = _ImportMode.mnemonic;
   String? _error;
   String? _passwordError;
+  String? _passphraseError;
   bool _busy = false;
 
   /// 私鑰模式下即時預覽解出的地址，讓使用者確認匯入的是哪個帳戶。
@@ -40,11 +46,17 @@ class _RestorePageState extends ConsumerState<RestorePage> {
   /// 私鑰輸入框是否為明文顯示。
   bool _obscure = true;
 
+  /// 助記詞模式的地址預覽計時器：派生要做 PBKDF2，輸入時節流一下。
+  Timer? _previewTimer;
+
   @override
   void dispose() {
+    _previewTimer?.cancel();
     _controller.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
+    _passphraseController.dispose();
+    _confirmPassphraseController.dispose();
     super.dispose();
   }
 
@@ -55,14 +67,46 @@ class _RestorePageState extends ConsumerState<RestorePage> {
       _controller.clear();
       _error = null;
       _previewAddress = null;
+      _passphraseError = null;
       _obscure = true;
     });
+  }
+
+  /// 助記詞模式：預覽「助記詞 + 目前短語」會導出的地址。
+  ///
+  /// 短語打錯不會有任何錯誤訊息，只會還原出另一個錢包 —— 地址預覽是唯一
+  /// 能在匯入前發現的機會。
+  void _schedulePreview() {
+    _previewTimer?.cancel();
+    _previewTimer = Timer(const Duration(milliseconds: 400), _derivePreview);
+  }
+
+  Future<void> _derivePreview() async {
+    final text = _controller.text.trim();
+    if (_mode != _ImportMode.mnemonic || text.isEmpty) {
+      if (!mounted) return;
+      setState(() => _previewAddress = null);
+      return;
+    }
+    try {
+      final identity = await AppIdentity.fromMnemonic(
+        text,
+        passphrase: _passphraseController.text,
+      );
+      if (!mounted) return;
+      setState(() => _previewAddress = Did.eip55(identity.address));
+    } catch (_) {
+      // 助記詞還沒打完（或打錯）時只是沒有預覽，不必打擾使用者。
+      if (!mounted) return;
+      setState(() => _previewAddress = null);
+    }
   }
 
   /// 私鑰模式的即時驗證：邊輸入邊顯示對應地址或錯誤。
   void _onChanged(String value) {
     if (_mode != _ImportMode.privateKey) {
       if (_error != null) setState(() => _error = null);
+      _schedulePreview();
       return;
     }
     final text = value.trim();
@@ -103,17 +147,29 @@ class _RestorePageState extends ConsumerState<RestorePage> {
       setState(() => _passwordError = passwordCode);
       return;
     }
+    // 短語只在助記詞模式有意義，且打錯不會報錯 —— 要求輸入兩次。
+    final passphrase = _passphraseController.text;
+    if (_mode == _ImportMode.mnemonic &&
+        passphrase != _confirmPassphraseController.text) {
+      setState(() => _passphraseError = context.s.passphraseMismatch);
+      return;
+    }
 
     setState(() {
       _busy = true;
       _error = null;
       _passwordError = null;
+      _passphraseError = null;
     });
 
     final notifier = ref.read(sessionProvider.notifier);
     final password = _passwordController.text;
     final failure = _mode == _ImportMode.mnemonic
-        ? await notifier.restoreIdentity(_controller.text, password: password)
+        ? await notifier.restoreIdentity(
+            _controller.text,
+            password: password,
+            passphrase: passphrase,
+          )
         : await notifier.importPrivateKey(_controller.text, password: password);
     if (!mounted) return;
 
@@ -220,6 +276,17 @@ class _RestorePageState extends ConsumerState<RestorePage> {
                   if (isPrivateKey && _previewAddress != null) ...<Widget>[
                     const SizedBox(height: 14),
                     _PreviewCard(address: _previewAddress!),
+                  ],
+                  // ----------------------------------- 助記詞的 BIP39 短語
+                  if (!isPrivateKey) ...<Widget>[
+                    const SizedBox(height: 6),
+                    PassphraseFields(
+                      controller: _passphraseController,
+                      confirmController: _confirmPassphraseController,
+                      errorText: _passphraseError,
+                      onPreview: (_) => _schedulePreview(),
+                      previewAddress: _previewAddress,
+                    ),
                   ],
                   const SizedBox(height: 26),
                   // ------------------------------------- 保險庫密碼

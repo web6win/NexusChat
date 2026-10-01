@@ -46,11 +46,8 @@ class AppSettings {
     this.transport = TransportKind.nwakuRest,
     this.nodeUrls = builtinNodeUrls,
     this.activeNodeUrl = defaultActiveNodeUrl,
-    this.rpcUrl = 'https://ethereum-rpc.publicnode.com',
+    this.rpcOverrides = const <String, String>{},
     this.chain = ChainType.ethereum,
-    this.chainName = 'Ethereum Mainnet',
-    this.tronRpcUrl = 'https://api.trongrid.io',
-    this.besuRpcUrl = 'https://chain.web6.win',
     this.nickname = '',
     this.onboarded = false,
     this.lastSyncMs = 0,
@@ -113,19 +110,15 @@ class AppSettings {
     return value;
   }
 
-  /// 以太坊 JSON-RPC 端點（查餘額、ENS）。
-  final String rpcUrl;
+  /// 使用者自訂的 RPC / API 端點，鍵為 [ChainType.id]。
+  ///
+  /// 用 map 而不是「每條鏈一個欄位」，新增鏈時才不用一路改
+  /// `copyWith` / `toJson` / `fromJson`；沒設定的鏈就用
+  /// [ChainConfig.defaultRpc]。
+  final Map<String, String> rpcOverrides;
 
   /// 錢包目前顯示的區塊鏈（僅影響錢包頁，不影響聊天身份 did:ethr）。
   final ChainType chain;
-
-  final String chainName;
-
-  /// TRON API 端點（TronGrid 或相容全節點）。
-  final String tronRpcUrl;
-
-  /// Besu 聯盟鏈（WEB6）的 JSON-RPC 端點。
-  final String besuRpcUrl;
 
   final String nickname;
 
@@ -134,12 +127,11 @@ class AppSettings {
   /// 上次同步的時間戳（毫秒），用於增量拉取。
   final int lastSyncMs;
 
-  /// 目前選定鏈所使用的 RPC / API 端點。
-  String rpcFor(ChainType chain) => switch (chain) {
-        ChainType.ethereum => rpcUrl,
-        ChainType.tron => tronRpcUrl,
-        ChainType.besu => besuRpcUrl,
-      };
+  /// 目前選定鏈所使用的 RPC / API 端點：使用者自訂值，否則用鏈的預設值。
+  String rpcFor(ChainType chain) {
+    final own = rpcOverrides[chain.id]?.trim() ?? '';
+    return own.isEmpty ? ChainConfig.of(chain).defaultRpc : own;
+  }
 
   AppSettings copyWith({
     ThemePreference? theme,
@@ -147,11 +139,8 @@ class AppSettings {
     TransportKind? transport,
     List<String>? nodeUrls,
     String? activeNodeUrl,
-    String? rpcUrl,
+    Map<String, String>? rpcOverrides,
     ChainType? chain,
-    String? chainName,
-    String? tronRpcUrl,
-    String? besuRpcUrl,
     String? nickname,
     bool? onboarded,
     int? lastSyncMs,
@@ -162,15 +151,24 @@ class AppSettings {
       transport: transport ?? this.transport,
       nodeUrls: nodeUrls ?? this.nodeUrls,
       activeNodeUrl: activeNodeUrl ?? this.activeNodeUrl,
-      rpcUrl: rpcUrl ?? this.rpcUrl,
+      rpcOverrides: rpcOverrides ?? this.rpcOverrides,
       chain: chain ?? this.chain,
-      chainName: chainName ?? this.chainName,
-      tronRpcUrl: tronRpcUrl ?? this.tronRpcUrl,
-      besuRpcUrl: besuRpcUrl ?? this.besuRpcUrl,
       nickname: nickname ?? this.nickname,
       onboarded: onboarded ?? this.onboarded,
       lastSyncMs: lastSyncMs ?? this.lastSyncMs,
     );
+  }
+
+  /// 複寫單一鏈的端點；[url] 為空表示還原成預設值。
+  AppSettings withRpc(ChainType chain, String url) {
+    final next = Map<String, String>.from(rpcOverrides);
+    final value = url.trim();
+    if (value.isEmpty) {
+      next.remove(chain.id);
+    } else {
+      next[chain.id] = value;
+    }
+    return copyWith(rpcOverrides: next);
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -179,11 +177,8 @@ class AppSettings {
         'transport': transport.value,
         'nodeUrls': nodeUrls,
         'activeNodeUrl': activeNodeUrl,
-        'rpcUrl': rpcUrl,
+        'rpcOverrides': rpcOverrides,
         'chain': chain.id,
-        'chainName': chainName,
-        'tronRpcUrl': tronRpcUrl,
-        'besuRpcUrl': besuRpcUrl,
         'nickname': nickname,
         'onboarded': onboarded,
         'lastSyncMs': lastSyncMs,
@@ -226,6 +221,31 @@ class AppSettings {
     return urls.isEmpty ? defaultActiveNodeUrl : urls.first;
   }
 
+  /// 讀出使用者自訂的 RPC / API 端點。
+  ///
+  /// 舊版把端點存在 `rpcUrl` / `tronRpcUrl` / `besuRpcUrl` 三個欄位，這裡
+  /// 一併搬進 [rpcOverrides]，使用者的設定不會因為升級而消失。
+  static Map<String, String> _readRpcOverrides(Map<dynamic, dynamic> json) {
+    final result = <String, String>{};
+
+    void put(String key, String? value) {
+      final text = (value ?? '').trim();
+      if (text.isEmpty) return;
+      result[key] = text;
+    }
+
+    final raw = json['rpcOverrides'];
+    if (raw is Map) {
+      for (final entry in raw.entries) {
+        put('${entry.key}', entry.value as String?);
+      }
+    }
+    put(ChainType.ethereum.id, json['rpcUrl'] as String?);
+    put(ChainType.tron.id, json['tronRpcUrl'] as String?);
+    put(ChainType.besu.id, json['besuRpcUrl'] as String?);
+    return result;
+  }
+
   static AppSettings fromJson(Map<dynamic, dynamic>? json) {
     if (json == null) return const AppSettings();
     final nodeUrls = _readNodeUrls(json);
@@ -235,14 +255,8 @@ class AppSettings {
       transport: TransportKind.fromValue(json['transport'] as String?),
       nodeUrls: nodeUrls,
       activeNodeUrl: _readActiveNode(json, nodeUrls),
-      rpcUrl: (json['rpcUrl'] as String?) ??
-          'https://ethereum-rpc.publicnode.com',
+      rpcOverrides: _readRpcOverrides(json),
       chain: ChainType.fromId(json['chain'] as String?),
-      chainName: (json['chainName'] as String?) ?? 'Ethereum Mainnet',
-      tronRpcUrl:
-          (json['tronRpcUrl'] as String?) ?? 'https://api.trongrid.io',
-      besuRpcUrl:
-          (json['besuRpcUrl'] as String?) ?? 'https://chain.web6.win',
       nickname: (json['nickname'] as String?) ?? '',
       onboarded: (json['onboarded'] as bool?) ?? false,
       lastSyncMs: (json['lastSyncMs'] as int?) ?? 0,

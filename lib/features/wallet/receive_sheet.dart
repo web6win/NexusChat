@@ -8,11 +8,13 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/chain.dart';
 import '../../shared/feedback.dart';
 import '../../state/controllers.dart';
+import 'chain_selector.dart';
 
 /// 收款面板：顯示目前所選鏈的地址 + QR Code，並支援複製。
 ///
-/// 地址即帳戶地址本身（EVM 為 EIP-55 的 0x…，TRON 為 Base58Check 的 T…），
-/// 因此 QR 內容就是純地址字串，任何錢包都能掃。
+/// QR 內容是帶 scheme 的支付 URI（`ethereum:0x…` / `tron:T…` /
+/// `besu:0x…`），而不是純地址 —— 掃的一方才能確定「這筆該走哪一條鏈」，
+/// 不會拿著 TRON 的地址跑去以太坊轉帳。
 class ReceiveSheet extends ConsumerWidget {
   const ReceiveSheet({required this.address, super.key});
 
@@ -65,7 +67,8 @@ class ReceiveSheet extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(AppRadius.xl),
                   ),
                   child: QrImageView(
-                    data: address,
+                    // scheme 用 [ChainType.id]，與 PaymentUri 的解析互為反向操作。
+                    data: '${chain.id}:$address',
                     version: QrVersions.auto,
                     size: 210,
                     backgroundColor: Colors.white,
@@ -136,15 +139,8 @@ class ReceiveSheet extends ConsumerWidget {
     );
   }
 
-  static IconData _icon(ChainType c) => switch (c) {
-        ChainType.ethereum => Icons.diamond_outlined,
-        ChainType.tron => Icons.offline_bolt_rounded,
-        ChainType.besu => Icons.hub_outlined,
-      };
+  static IconData _icon(ChainType c) => ChainSelector.iconOf(c);
 
-  static String _chainLabel(Strings s, ChainType c) => switch (c) {
-        ChainType.ethereum => s.chainEthereum,
-        ChainType.tron => s.chainTron,
-        ChainType.besu => s.chainBesu,
-      };
+  static String _chainLabel(Strings s, ChainType c) =>
+      ChainSelector.labelOf(s, c);
 }

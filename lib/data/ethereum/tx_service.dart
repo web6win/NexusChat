@@ -55,7 +55,11 @@ abstract final class TxService {
     http.Client? client,
   }) {
     switch (chain) {
+      // 所有 EVM 鏈走同一條路徑：同一把私鑰、同一個 0x 地址、同一套 JSON-RPC。
       case ChainType.ethereum:
+      case ChainType.base:
+      case ChainType.arbitrum:
+      case ChainType.bsc:
       case ChainType.besu:
         return sendEvm(
           rpcUrl: rpcUrl,

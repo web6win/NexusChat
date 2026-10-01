@@ -117,25 +117,13 @@ class SettingsController extends Notifier<AppSettings> {
     await ref.read(chatControllerProvider.notifier).sync();
   }
 
-  Future<void> setRpcUrl(String url) => _persist(state.copyWith(rpcUrl: url));
-
   /// 切換錢包顯示的區塊鏈（僅影響錢包頁，不影響聊天身份 did:ethr）。
   Future<void> setChain(ChainType chain) =>
       _persist(state.copyWith(chain: chain));
 
-  Future<void> setTronRpcUrl(String url) =>
-      _persist(state.copyWith(tronRpcUrl: url));
-
-  /// Besu 聯盟鏈（WEB6）的 JSON-RPC 端點。
-  Future<void> setBesuRpcUrl(String url) =>
-      _persist(state.copyWith(besuRpcUrl: url));
-
-  /// 依鏈設定對應的 RPC 端點。
-  Future<void> setRpcFor(ChainType chain, String url) => switch (chain) {
-        ChainType.ethereum => setRpcUrl(url),
-        ChainType.tron => setTronRpcUrl(url),
-        ChainType.besu => setBesuRpcUrl(url),
-      };
+  /// 依鏈設定對應的 RPC / API 端點；留空則還原成該鏈的預設值。
+  Future<void> setRpcFor(ChainType chain, String url) =>
+      _persist(state.withRpc(chain, url));
 
   Future<void> setNickname(String nickname) =>
       _persist(state.copyWith(nickname: nickname));
@@ -227,11 +215,19 @@ class SessionController extends Notifier<SessionState> {
 
   /// 建立身份並立即以 [password] 加密保存。
   ///
+  /// [passphrase] 為 BIP39 密碼短語（可選，留空表示不使用）。
+  ///
   /// 回傳錯誤代碼（`create-failed`）或 `null` 表示成功。
-  Future<String?> createIdentity({required String password}) async {
+  Future<String?> createIdentity({
+    required String password,
+    String passphrase = '',
+  }) async {
     state = state.copyWith(busy: true, clearError: true);
     try {
-      final identity = await _core.createIdentity(password: password);
+      final identity = await _core.createIdentity(
+        password: password,
+        passphrase: passphrase,
+      );
       await _afterIdentity(identity, nickname: '');
       return null;
     } catch (_) {
@@ -241,14 +237,21 @@ class SessionController extends Notifier<SessionState> {
   }
 
   /// 由助記詞還原身份；錯誤代碼 `invalid-mnemonic` / `restore-failed`。
+  ///
+  /// [passphrase] 為 BIP39 密碼短語。注意它沒有「對錯」可言：任何字串都能
+  /// 派生出一組身份，所以打錯只會得到另一個錢包，不會拋錯。
   Future<String?> restoreIdentity(
     String mnemonic, {
     required String password,
+    String passphrase = '',
   }) async {
     state = state.copyWith(busy: true, clearError: true);
     try {
-      final identity =
-          await _core.restoreIdentity(mnemonic, password: password);
+      final identity = await _core.restoreIdentity(
+        mnemonic,
+        password: password,
+        passphrase: passphrase,
+      );
       await _afterIdentity(
         identity,
         nickname: ref.read(settingsProvider).nickname,
@@ -503,7 +506,10 @@ class ContactsController extends Notifier<List<Contact>> {
       did = Did.fromAddress(value);
     } else if (Did.isEnsName(value)) {
       ens = value.toLowerCase();
-      final service = EthereumService(rpcUrl: ref.read(settingsProvider).rpcUrl);
+      // ENS 只在以太坊主網存在，因此固定用以太坊的端點解析。
+      final service = EthereumService(
+        rpcUrl: ref.read(settingsProvider).rpcFor(ChainType.ethereum),
+      );
       try {
         resolvedAddress = await service.resolveEns(ens);
       } finally {
@@ -1138,33 +1144,29 @@ final walletInfoProvider = FutureProvider.autoDispose<ChainAccountInfo>((
     );
   }
 
-  switch (settings.chain) {
-    case ChainType.ethereum:
-      final service = EthereumService(rpcUrl: settings.rpcUrl);
-      try {
-        return await service.summary(identity.address);
-      } finally {
-        service.dispose();
-      }
-    case ChainType.tron:
-      final service = TronService(apiUrl: settings.tronRpcUrl);
-      try {
-        return await service.summary(identity.tronAddress);
-      } finally {
-        service.dispose();
-      }
-    case ChainType.besu:
-      // Besu 聯盟鏈 EVM 相容，沿用 JSON-RPC 查詢；關閉 ENS 以免多打無用的 RPC。
-      final service = EthereumService(
-        rpcUrl: settings.besuRpcUrl,
-        chain: ChainType.besu,
-        enableEns: false,
-      );
-      try {
-        return await service.summary(identity.address);
-      } finally {
-        service.dispose();
-      }
+  final chain = settings.chain;
+  final endpoint = settings.rpcFor(chain);
+
+  if (chain == ChainType.tron) {
+    final service = TronService(apiUrl: endpoint);
+    try {
+      return await service.summary(identity.tronAddress);
+    } finally {
+      service.dispose();
+    }
+  }
+
+  // 其餘鏈（以太坊 / Base / Arbitrum / BSC / Besu）都是 EVM：同一個 0x
+  // 地址、同一套 JSON-RPC，差別只在 ENS —— 以太坊主網以外不查。
+  final service = EthereumService(
+    rpcUrl: endpoint,
+    chain: chain,
+    enableEns: ChainConfig.of(chain).supportsEns,
+  );
+  try {
+    return await service.summary(identity.address);
+  } finally {
+    service.dispose();
   }
 });
 

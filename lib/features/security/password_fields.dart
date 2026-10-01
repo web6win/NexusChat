@@ -202,6 +202,93 @@ class _PasswordSetupFieldsState extends State<PasswordSetupFields> {
   }
 }
 
+/// BIP39 密碼短語（第 13 / 25 個詞）的輸入組。
+///
+/// 預設收在展開面板裡：這是進階功能，多數人不需要，不該占用主流程的版面。
+/// 短語沒有「強度」可言（任何字串都合法），但**打錯不會有任何錯誤提示** ——
+/// 只會還原出另一個身份，所以一定要輸入兩次並顯示警告。
+class PassphraseFields extends StatelessWidget {
+  const PassphraseFields({
+    required this.controller,
+    required this.confirmController,
+    this.errorText,
+    this.onPreview,
+    this.previewAddress,
+    super.key,
+  });
+
+  final TextEditingController controller;
+  final TextEditingController confirmController;
+  final String? errorText;
+
+  /// 輸入變動時的回呼（讓呼叫端更新地址預覽）。
+  final ValueChanged<String>? onPreview;
+
+  /// 由「助記詞 + 目前短語」派生出的地址；還原時用它核對短語有沒有打錯。
+  final String? previewAddress;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final theme = Theme.of(context);
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      title: Text(
+        s.passphraseAdvanced,
+        style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+      ),
+      children: <Widget>[
+        const SizedBox(height: 4),
+        Text(
+          s.passphraseDesc,
+          style: TextStyle(
+            fontSize: 12,
+            height: 1.5,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+        ),
+        const SizedBox(height: 14),
+        PasswordInput(
+          controller: controller,
+          label: s.passphraseLabel,
+          hintText: s.passphraseHint,
+          onChanged: onPreview,
+        ),
+        const SizedBox(height: 14),
+        PasswordInput(
+          controller: confirmController,
+          label: s.passphraseConfirmLabel,
+          hintText: s.passphraseHint,
+          errorText: errorText,
+        ),
+        if (previewAddress != null) ...<Widget>[
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Icon(Icons.account_circle_outlined,
+                  size: 16, color: AppColors.brand),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  previewAddress!,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
 /// 檢查「新密碼 + 確認」是否可提交。
 ///
 /// 回傳錯誤代碼，或 `null` 表示合法。

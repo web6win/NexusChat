@@ -28,6 +28,7 @@ class AppIdentity {
     required this.ethPublicHex,
     required this.encSeedHex,
     required this.encPublicKeyB64,
+    this.passphrase = '',
     required this.createdAt,
   });
 
@@ -56,22 +57,37 @@ class AppIdentity {
   /// X25519 公鑰（Base64），會發布到 Waku 供他人加密訊息給自己。
   final String encPublicKeyB64;
 
+  /// BIP39 密碼短語（第 13 / 25 個詞），可為空。
+  ///
+  /// 助記詞 + 密碼短語共同決定 BIP39 種子：**同一組助記詞配上不同短語，
+  /// 會得到完全不同的身份**。它與助記詞同等重要，必須一起備份；
+  /// 這裡視為秘密材料，只寫進保險庫的密文裡。
+  final String passphrase;
+
   final DateTime createdAt;
 
   /// 熵強度 128 → 12 個助記詞。
-  static Future<AppIdentity> generate({int strength = 128}) {
+  static Future<AppIdentity> generate({
+    int strength = 128,
+    String passphrase = '',
+  }) {
     final mnemonic = bip39.generateMnemonic(strength: strength);
-    return fromMnemonic(mnemonic);
+    return fromMnemonic(mnemonic, passphrase: passphrase);
   }
 
   /// 由助記詞重建身份；助記詞無效時拋出 [FormatException]。
-  static Future<AppIdentity> fromMnemonic(String mnemonic) async {
+  ///
+  /// [passphrase] 為 BIP39 的可選密碼短語（區分大小寫與空白）。
+  static Future<AppIdentity> fromMnemonic(
+    String mnemonic, {
+    String passphrase = '',
+  }) async {
     final normalized = mnemonic.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
     if (!bip39.validateMnemonic(normalized)) {
       throw const FormatException('invalid bip39 mnemonic');
     }
 
-    final seed = bip39.mnemonicToSeed(normalized);
+    final seed = bip39.mnemonicToSeed(normalized, passphrase: passphrase);
     final root = bip32.BIP32.fromSeed(seed);
 
     final ethNode = root.derivePath("m/44'/60'/0'/0/0");
@@ -96,6 +112,7 @@ class AppIdentity {
       ethPublicHex: Hex.encode(privateKeyToPublic(ethKey.privateKeyInt)),
       encSeedHex: Hex.encode(encSeed),
       encPublicKeyB64: B64.encode(encPub.bytes),
+      passphrase: passphrase,
       createdAt: DateTime.now().toUtc(),
     );
   }
@@ -126,6 +143,8 @@ class AppIdentity {
       ethPublicHex: Hex.encode(privateKeyToPublic(key.privateKeyInt)),
       encSeedHex: Hex.encode(encSeed),
       encPublicKeyB64: B64.encode(encPub.bytes),
+      // 私鑰匯入沒有助記詞，自然也沒有密碼短語。
+      passphrase: '',
       createdAt: DateTime.now().toUtc(),
     );
   }
@@ -195,6 +214,8 @@ class AppIdentity {
         'ethPublicHex': ethPublicHex,
         'encSeedHex': encSeedHex,
         'encPublicKeyB64': encPublicKeyB64,
+        // 秘密材料：只會出現在保險庫的密文裡，絕不進公開提示。
+        'passphrase': passphrase,
         'createdAt': createdAt.toIso8601String(),
       };
 
@@ -215,6 +236,8 @@ class AppIdentity {
       ethPublicHex: ethPublicHex,
       encSeedHex: json['encSeedHex'] as String,
       encPublicKeyB64: json['encPublicKeyB64'] as String,
+      // 舊版密文沒有這個欄位，視為未使用密碼短語。
+      passphrase: (json['passphrase'] ?? '') as String,
       createdAt: created is String
           ? DateTime.tryParse(created) ?? DateTime.now().toUtc()
           : DateTime.now().toUtc(),
@@ -223,6 +246,12 @@ class AppIdentity {
 
   /// 是否具備可備份的助記詞（私鑰匯入的身份沒有）。
   bool get hasMnemonic => mnemonic.isNotEmpty;
+
+  /// 是否使用 BIP39 密碼短語。
+  ///
+  /// 只有助記詞身份才可能帶短語；備份時必須連同短語一起保存，
+  /// 少了它，助記詞會還原出**另一個**身份。
+  bool get hasPassphrase => hasMnemonic && passphrase.isNotEmpty;
 
   /// 是否持有可簽章 / 解密的秘密材料。
   ///

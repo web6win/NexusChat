@@ -29,9 +29,13 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
+  final TextEditingController _passphraseController = TextEditingController();
+  final TextEditingController _confirmPassphraseController =
+      TextEditingController();
   int _verifyIndex = 0;
   String? _error;
   String? _passwordError;
+  String? _passphraseError;
   bool _busy = false;
 
   @override
@@ -55,6 +59,8 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
     _nameController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
+    _passphraseController.dispose();
+    _confirmPassphraseController.dispose();
     super.dispose();
   }
 
@@ -87,8 +93,15 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
       setState(() => _passwordError = code);
       return;
     }
+    // 短語打錯不會有任何錯誤，只能在這裡要求輸入兩次。
+    final passphrase = _passphraseController.text;
+    if (passphrase != _confirmPassphraseController.text) {
+      setState(() => _passphraseError = context.s.passphraseMismatch);
+      return;
+    }
     setState(() {
       _passwordError = null;
+      _passphraseError = null;
       _step = 3;
     });
   }
@@ -103,6 +116,8 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
       final failure = await ref.read(sessionProvider.notifier).restoreIdentity(
             _mnemonic,
             password: _passwordController.text,
+            // 助記詞配上短語才等於這個身份；建立後就固定下來。
+            passphrase: _passphraseController.text,
           );
       if (failure != null) {
         if (!mounted) return;
@@ -178,7 +193,11 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
                       key: const ValueKey('security'),
                       passwordController: _passwordController,
                       confirmController: _confirmController,
+                      passphraseController: _passphraseController,
+                      confirmPassphraseController:
+                          _confirmPassphraseController,
                       errorCode: _passwordError,
+                      passphraseError: _passphraseError,
                       onNext: _setPassword,
                     ),
                   _ => _ProfileStep(
@@ -398,14 +417,20 @@ class _SecurityStep extends StatelessWidget {
   const _SecurityStep({
     required this.passwordController,
     required this.confirmController,
+    required this.passphraseController,
+    required this.confirmPassphraseController,
     required this.errorCode,
+    required this.passphraseError,
     required this.onNext,
     super.key,
   });
 
   final TextEditingController passwordController;
   final TextEditingController confirmController;
+  final TextEditingController passphraseController;
+  final TextEditingController confirmPassphraseController;
   final String? errorCode;
+  final String? passphraseError;
   final VoidCallback onNext;
 
   @override
@@ -473,6 +498,12 @@ class _SecurityStep extends StatelessWidget {
           confirmController: confirmController,
           autofocus: true,
           passwordError: errorText,
+        ),
+        const SizedBox(height: 8),
+        PassphraseFields(
+          controller: passphraseController,
+          confirmController: confirmPassphraseController,
+          errorText: passphraseError,
         ),
         const SizedBox(height: 24),
         FilledButton(onPressed: onNext, child: Text(s.next)),

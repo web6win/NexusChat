@@ -8,21 +8,33 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/l10n/strings.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/format.dart';
 import '../../data/crypto/did.dart';
+import '../../data/ethereum/payment_uri.dart';
+import '../../data/models/chain.dart';
+import '../../features/wallet/chain_selector.dart';
 import '../../shared/feedback.dart';
 import '../../state/controllers.dart';
 
 /// 掃一掃：以相機讀取 QR Code。
 ///
 /// 結果處理規則（依序判斷）：
-/// 1. DID / 0x 地址 / ENS 名稱 → 詢問是否加入聯絡人，加入後直接開啟對話。
-/// 2. 網址（`http(s)://…` 或以網域開頭的字串）→ 直接以外部瀏覽器開啟。
-/// 3. 其他文字 → 顯示內容並可複製。
+/// 1. 付款請求（`ethereum:0x…?value=…` / `tron:T…?amount=…`）→ 可直接轉帳。
+/// 2. DID / 0x 地址 / ENS 名稱 → 加入聯絡人、轉帳或複製。
+/// 3. 網址（`http(s)://…` 或以網域開頭的字串）→ 直接以外部瀏覽器開啟。
+/// 4. 其他文字 → 顯示內容並可複製。
 ///
 /// 相機後端由 mobile_scanner 提供，僅支援 Android / iOS / macOS / 瀏覽器；
 /// 其餘平台（Windows、Linux）改為顯示不支援提示，而不是讓畫面壞掉。
 class ScanPage extends ConsumerStatefulWidget {
-  const ScanPage({super.key});
+  const ScanPage({this.pickAddress = false, this.chain, super.key});
+
+  /// 挑選模式：只把「收款地址 / 付款請求」回傳給上一頁（轉帳頁用），
+  /// 不做加入聯絡人等其他動作。
+  final bool pickAddress;
+
+  /// 期望的鏈；掃到的內容若明顯屬於別條鏈，仍會回傳，由轉帳頁提示並切換。
+  final ChainType? chain;
 
   @override
   ConsumerState<ScanPage> createState() => _ScanPageState();
@@ -82,6 +94,17 @@ class _ScanPageState extends ConsumerState<ScanPage> {
   }
 
   Future<void> _handle(String value) async {
+    // 挑選模式（轉帳頁呼叫）：只收「可以當收款對象」的內容。
+    if (widget.pickAddress) {
+      await _pickAddress(value);
+      return;
+    }
+    // 付款請求優先：`ethereum:0x…?value=…` 同時帶地址與金額，比純地址明確。
+    final payment = PaymentUri.parse(value);
+    if (payment != null) {
+      await _showPaymentSheet(payment, value);
+      return;
+    }
     // 身份類內容優先於網址判斷，否則 `name.eth` 會被當成一般網域開出去。
     if (_looksLikeIdentity(value)) {
       await _showIdentitySheet(value);
@@ -93,6 +116,46 @@ class _ScanPageState extends ConsumerState<ScanPage> {
       return;
     }
     await _showTextSheet(value);
+  }
+
+  /// 挑選模式：把掃到的內容原樣回傳，由轉帳頁解析地址 / 金額 / 鏈。
+  Future<void> _pickAddress(String value) async {
+    final request = PaymentUri.fromScan(value, chain: widget.chain) ??
+        PaymentUri.fromScan(value);
+    if (request == null) {
+      showAppSnack(context, context.s.scanPickInvalid, danger: true);
+      await _resume();
+      return;
+    }
+    if (!mounted) return;
+    Navigator.pop(context, value);
+  }
+
+  /// 帶著掃到的內容前往轉帳頁。
+  Future<void> _openSend(String value) async {
+    final router = GoRouter.of(context);
+    // DID 對轉帳沒有意義，換成地址；ENS 需要線上解析，維持原樣讓使用者處理。
+    final target = Did.isEthrDid(value) ? Did.toAddress(value) : value;
+    final chain = _sendChainFor(target);
+    final query = Uri(queryParameters: <String, String>{
+      'address': target,
+      // 只有能確定時才指定鏈；0x 地址在以太坊與 Besu 都合法，交給使用者
+      // 目前的選擇，不要在背後偷偷換網路。
+      if (chain != null) 'chain': chain.id,
+    }).query;
+    // push 而非 go：保留返回堆疊，轉帳頁才不會變成沒有上一頁的孤島。
+    router.push('/send?$query');
+  }
+
+  /// 掃到的內容屬於哪一條鏈；不確定時回傳 null（沿用設定）。
+  ChainType? _sendChainFor(String value) {
+    // 帶 scheme 的付款請求已經寫明是哪條鏈。
+    final uri = PaymentUri.parse(value);
+    if (uri != null) return uri.chain;
+    final bare = PaymentUri.fromAddress(value);
+    if (bare == null) return null;
+    // T 開頭只可能是 TRON；0x 則可能是任一條 EVM 鏈。
+    return bare.chain == ChainType.tron ? ChainType.tron : null;
   }
 
   /// 掃到網址：直接以外部瀏覽器開啟；成功就關閉掃碼頁，失敗則回到掃描狀態。
@@ -113,29 +176,82 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     await _resume();
   }
 
-  /// 掃到 NexusChat 身份（DID / 地址 / ENS）：提供加入聯絡人與複製。
+  /// 掃到 NexusChat 身份（DID / 地址 / ENS）：加入聯絡人、轉帳或複製。
   Future<void> _showIdentitySheet(String value) async {
     final s = context.s;
     final action = await _showResultSheet(
       title: s.scanResultTitle,
       label: _kindLabel(s, value),
       value: value,
-      isIdentity: true,
+      actions: <_SheetAction>[
+        _SheetAction(
+          id: 'contact',
+          icon: Icons.person_add_alt_1_rounded,
+          label: s.scanAddContact,
+        ),
+        _SheetAction(
+          id: 'send',
+          icon: Icons.send_rounded,
+          label: s.scanPayAction,
+        ),
+        _SheetAction(id: 'copy', icon: Icons.copy_rounded, label: s.copy),
+      ],
     );
     if (!mounted) return;
-    if (action == null) {
-      await _resume();
-      return;
-    }
 
-    if (action == 'contact') {
-      await _addContactAndOpenChat(value);
-      return;
+    switch (action) {
+      case 'contact':
+        await _addContactAndOpenChat(value);
+        return;
+      case 'send':
+        await _openSend(value);
+        return;
+      case 'copy':
+        await Clipboard.setData(ClipboardData(text: value));
+        if (!mounted) return;
+        showAppSnack(context, s.copied);
+        await _resume();
+        return;
+      default:
+        await _resume();
     }
+  }
 
-    await Clipboard.setData(ClipboardData(text: value));
+  /// 掃到付款請求（帶 scheme 的支付 URI）：顯示鏈別與金額，可直接轉帳。
+  Future<void> _showPaymentSheet(PaymentRequest request, String raw) async {
+    final s = context.s;
+    final config = ChainConfig.of(request.chain);
+    final amount = request.amount;
+    final summary = amount == null
+        ? '${ChainSelector.labelOf(s, request.chain)}\n${request.address}'
+        : '${ChainSelector.labelOf(s, request.chain)}\n${request.address}\n'
+            '${Formatters.amount(amount, config.displayDecimals)} '
+            '${config.symbol}';
+
+    final action = await _showResultSheet(
+      title: s.scanResultTitle,
+      label: s.scanResultPayment,
+      value: summary,
+      actions: <_SheetAction>[
+        _SheetAction(
+          id: 'send',
+          icon: Icons.send_rounded,
+          label: s.scanPayAction,
+        ),
+        _SheetAction(id: 'copy', icon: Icons.copy_rounded, label: s.copy),
+      ],
+    );
     if (!mounted) return;
-    showAppSnack(context, s.copied);
+
+    if (action == 'send') {
+      await _openSend(raw);
+      return;
+    }
+    if (action == 'copy') {
+      await Clipboard.setData(ClipboardData(text: raw));
+      if (!mounted) return;
+      showAppSnack(context, s.copied);
+    }
     await _resume();
   }
 
@@ -146,7 +262,9 @@ class _ScanPageState extends ConsumerState<ScanPage> {
       title: s.scanResultTitle,
       label: s.scanResultText,
       value: value,
-      isIdentity: false,
+      actions: <_SheetAction>[
+        _SheetAction(id: 'copy', icon: Icons.copy_rounded, label: s.copy),
+      ],
     );
     if (!mounted) return;
     if (action == 'copy') {
@@ -157,12 +275,12 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     await _resume();
   }
 
-  /// 共用的掃描結果面板。回傳 'contact' / 'copy'，取消則回傳 null。
+  /// 共用的掃描結果面板。回傳動作的 id，取消則回傳 null。
   Future<String?> _showResultSheet({
     required String title,
     required String label,
     required String value,
-    required bool isIdentity,
+    required List<_SheetAction> actions,
   }) {
     final theme = Theme.of(context);
     return showModalBottomSheet<String>(
@@ -217,24 +335,21 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                if (!isIdentity) ...<Widget>[
-                  FilledButton.icon(
-                    onPressed: () => Navigator.pop(sheetContext, 'copy'),
-                    icon: const Icon(Icons.copy_rounded),
-                    label: Text(s.copy),
-                  ),
-                ] else ...<Widget>[
-                  FilledButton.icon(
-                    onPressed: () => Navigator.pop(sheetContext, 'contact'),
-                    icon: const Icon(Icons.person_add_alt_1_rounded),
-                    label: Text(s.scanAddContact),
-                  ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    onPressed: () => Navigator.pop(sheetContext, 'copy'),
-                    icon: const Icon(Icons.copy_rounded),
-                    label: Text(s.copy),
-                  ),
+                // 第一個動作是主要動作（實心），其餘為次要（描邊）。
+                for (var i = 0; i < actions.length; i++) ...<Widget>[
+                  if (i == 0)
+                    FilledButton.icon(
+                      onPressed: () => Navigator.pop(sheetContext, actions[i].id),
+                      icon: Icon(actions[i].icon),
+                      label: Text(actions[i].label),
+                    )
+                  else
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(sheetContext, actions[i].id),
+                      icon: Icon(actions[i].icon),
+                      label: Text(actions[i].label),
+                    ),
+                  if (i < actions.length - 1) const SizedBox(height: 10),
                 ],
                 const SizedBox(height: 6),
                 TextButton(
@@ -386,7 +501,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                     ),
                     Expanded(
                       child: Text(
-                        s.scanTitle,
+                        widget.pickAddress ? s.walletScanAddress : s.scanTitle,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.white,
@@ -425,7 +540,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                 child: Column(
                   children: <Widget>[
                     Text(
-                      s.scanHint,
+                      widget.pickAddress ? s.scanPickHint : s.scanHint,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white,
@@ -517,6 +632,19 @@ class _ScanPageState extends ConsumerState<ScanPage> {
       ),
     );
   }
+}
+
+/// 掃描結果面板上的一個動作（加入聯絡人 / 轉帳 / 複製）。
+class _SheetAction {
+  const _SheetAction({
+    required this.id,
+    required this.icon,
+    required this.label,
+  });
+
+  final String id;
+  final IconData icon;
+  final String label;
 }
 
 /// 取景遮罩：取景框以外壓暗，並在框線上加一圈強調色。
