@@ -81,12 +81,15 @@ class _LockPageState extends ConsumerState<LockPage> {
       return;
     }
 
-    _failures++;
+    // 只有認證標籤不符才是「密碼錯」；其餘（本地資料毀損等）要給不同文案，
+    // 也不該計入冷卻 —— 否則使用者會為了不是自己的錯而一直被罰等。
+    final wrongPassword = code == 'bad-password';
+    if (wrongPassword) _failures++;
     setState(() {
       _busy = false;
-      _error = context.s.unlockWrong;
+      _error = wrongPassword ? context.s.unlockWrong : context.s.errorGeneric;
     });
-    _startCooldown();
+    if (wrongPassword) _startCooldown();
   }
 
   Future<void> _forgotPassword() async {

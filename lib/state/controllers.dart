@@ -313,18 +313,16 @@ class SessionController extends Notifier<SessionState> {
   /// 以密碼解鎖。回傳錯誤代碼或 `null`。
   ///
   /// 錯誤代碼：`bad-password`（密碼錯或密文毀損）、`unlock-failed`。
+  ///
+  /// 「解密成功」就等於「解鎖成功」：之後的連線、金鑰廣播與同步都是副作用，
+  /// 必須與解鎖結果脫鉤。否則節點連不上時會被回報成密碼錯誤 ——
+  /// 使用者輸入的密碼明明正確，卻永遠卡在鎖屏。
   Future<String?> unlock(String password) async {
     state = state.copyWith(busy: true, clearError: true);
+
+    AppIdentity identity;
     try {
-      final identity = await _core.unlock(password);
-      await _afterIdentity(
-        identity,
-        nickname: ref.read(settingsProvider).nickname,
-      );
-      // 通知路由重新評估：解鎖後才允許離開鎖屏。
-      sessionVersion.value++;
-      _restartIdleTimer();
-      return null;
+      identity = await _core.unlock(password);
     } on VaultException catch (error) {
       state = state.copyWith(busy: false, error: error.code);
       return error.code;
@@ -332,6 +330,21 @@ class SessionController extends Notifier<SessionState> {
       state = state.copyWith(busy: false, error: 'unlock-failed');
       return 'unlock-failed';
     }
+
+    try {
+      await _afterIdentity(
+        identity,
+        nickname: ref.read(settingsProvider).nickname,
+      );
+    } catch (error, stackTrace) {
+      // 連線類失敗不推翻已成立的解鎖；下一輪同步會自己補回來。
+      debugPrint('post-unlock setup failed: $error\n$stackTrace');
+      state = SessionState(identity: identity);
+    }
+    // 通知路由重新評估：解鎖後才允許離開鎖屏。
+    sessionVersion.value++;
+    _restartIdleTimer();
+    return null;
   }
 
   /// 立即鎖定：清空秘密、斷開連線、回到鎖屏。
@@ -388,17 +401,30 @@ class SessionController extends Notifier<SessionState> {
     _idleTimer = null;
   }
 
+  /// 綁定新身份：建立連線、廣播金鑰包並開始同步。
+  ///
+  /// 只有「建立連線」與「寫入狀態」是必要的；廣播與同步仰賴節點，
+  /// 節點不可用時只記錄，不讓它回頭推翻建立 / 解鎖的結果。
   Future<void> _afterIdentity(AppIdentity identity, {String? nickname}) async {
     await _core.applyTransport(
       ref.read(settingsProvider).resolvedActiveNodeUrl,
     );
-    if (nickname != null && nickname.isNotEmpty) {
-      await _core.publishKeyBundleIfReady(nickname);
-    }
     state = SessionState(identity: identity);
     ref.invalidate(contactsProvider);
     ref.invalidate(networkStatusProvider);
-    await ref.read(chatControllerProvider.notifier).sync();
+    if (nickname != null && nickname.isNotEmpty) {
+      await _bestEffort(() => _core.publishKeyBundleIfReady(nickname));
+    }
+    await _bestEffort(() => ref.read(chatControllerProvider.notifier).sync());
+  }
+
+  /// 執行需要網路的動作；失敗只記錄，不往上拋。
+  Future<void> _bestEffort(Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (error, stackTrace) {
+      debugPrint('network step failed: $error\n$stackTrace');
+    }
   }
 
   /// 擦除本機所有資料（身份、訊息、聯絡人）。
