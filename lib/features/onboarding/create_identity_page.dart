@@ -84,6 +84,20 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
     });
   }
 
+  /// 離開助記詞步驟前先確認短語兩次輸入一致。
+  ///
+  /// 短語打錯不會有任何錯誤訊息，只能靠「輸入兩次」擋下筆誤。
+  void _goToVerify() {
+    if (_passphraseController.text != _confirmPassphraseController.text) {
+      setState(() => _passphraseError = context.s.passphraseMismatch);
+      return;
+    }
+    setState(() {
+      _passphraseError = null;
+      _step = 1;
+    });
+  }
+
   void _setPassword() {
     final code = validateNewPassword(
       password: _passwordController.text,
@@ -93,15 +107,8 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
       setState(() => _passwordError = code);
       return;
     }
-    // 短語打錯不會有任何錯誤，只能在這裡要求輸入兩次。
-    final passphrase = _passphraseController.text;
-    if (passphrase != _confirmPassphraseController.text) {
-      setState(() => _passphraseError = context.s.passphraseMismatch);
-      return;
-    }
     setState(() {
       _passwordError = null;
-      _passphraseError = null;
       _step = 3;
     });
   }
@@ -180,7 +187,11 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
                       key: const ValueKey('mnemonic'),
                       mnemonic: _mnemonic,
                       onCopy: _copyMnemonic,
-                      onNext: () => setState(() => _step = 1),
+                      passphraseController: _passphraseController,
+                      confirmPassphraseController:
+                          _confirmPassphraseController,
+                      passphraseError: _passphraseError,
+                      onNext: _goToVerify,
                     ),
                   1 => _VerifyStep(
                       key: const ValueKey('verify'),
@@ -193,11 +204,7 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
                       key: const ValueKey('security'),
                       passwordController: _passwordController,
                       confirmController: _confirmController,
-                      passphraseController: _passphraseController,
-                      confirmPassphraseController:
-                          _confirmPassphraseController,
                       errorCode: _passwordError,
-                      passphraseError: _passphraseError,
                       onNext: _setPassword,
                     ),
                   _ => _ProfileStep(
@@ -216,16 +223,26 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
   }
 }
 
+/// 第一步：助記詞 + （選填）BIP39 密碼短語。
+///
+/// 短語放在助記詞旁邊是有理由的：兩者共同決定身份，備份時本來就该一起抄，
+/// 拆到後面使用者很容易只備份一半。
 class _MnemonicStep extends StatelessWidget {
   const _MnemonicStep({
     required this.mnemonic,
     required this.onCopy,
+    required this.passphraseController,
+    required this.confirmPassphraseController,
+    required this.passphraseError,
     required this.onNext,
     super.key,
   });
 
   final String mnemonic;
   final VoidCallback onCopy;
+  final TextEditingController passphraseController;
+  final TextEditingController confirmPassphraseController;
+  final String? passphraseError;
   final VoidCallback onNext;
 
   @override
@@ -267,50 +284,62 @@ class _MnemonicStep extends StatelessWidget {
                   padding: EdgeInsets.all(28),
                   child: Center(child: CircularProgressIndicator()),
                 )
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: <Widget>[
-                    for (var i = 0; i < words.length; i++)
-                      Container(
-                        width: (MediaQuery.sizeOf(context).width - 96) / 3,
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(11),
-                          border: Border.all(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.08),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            Text(
-                              '${i + 1}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    // 每行固定 3 個：寬度要用**實際可用寬度**來算，不能拿
+                    // MediaQuery 的螢幕寬度 —— 桌機上內容會被 maxWidth 收窄，
+                    // 兩者不相等，照螢幕寬算會擠成每行 2 個。
+                    const int perRow = 3;
+                    const double spacing = 8;
+                    final itemWidth =
+                        (constraints.maxWidth - spacing * (perRow - 1)) /
+                            perRow;
+                    return Wrap(
+                      spacing: spacing,
+                      runSpacing: spacing,
+                      children: <Widget>[
+                        for (var i = 0; i < words.length; i++)
+                          Container(
+                            width: itemWidth,
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface,
+                              borderRadius: BorderRadius.circular(11),
+                              border: Border.all(
                                 color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.35),
+                                    .withValues(alpha: 0.08),
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: Text(
-                                words[i],
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'monospace',
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: <Widget>[
+                                Text(
+                                  '${i + 1}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.35),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    words[i],
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                  ],
+                          ),
+                      ],
+                    );
+                  },
                 ),
         ),
         const SizedBox(height: 14),
@@ -332,7 +361,14 @@ class _MnemonicStep extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 22),
+        // ------------------------------------------ 選填的 BIP39 密碼短語
+        const SizedBox(height: 8),
+        PassphraseFields(
+          controller: passphraseController,
+          confirmController: confirmPassphraseController,
+          errorText: passphraseError,
+        ),
+        const SizedBox(height: 14),
         Row(
           children: <Widget>[
             Expanded(
@@ -417,20 +453,14 @@ class _SecurityStep extends StatelessWidget {
   const _SecurityStep({
     required this.passwordController,
     required this.confirmController,
-    required this.passphraseController,
-    required this.confirmPassphraseController,
     required this.errorCode,
-    required this.passphraseError,
     required this.onNext,
     super.key,
   });
 
   final TextEditingController passwordController;
   final TextEditingController confirmController;
-  final TextEditingController passphraseController;
-  final TextEditingController confirmPassphraseController;
   final String? errorCode;
-  final String? passphraseError;
   final VoidCallback onNext;
 
   @override
@@ -498,12 +528,6 @@ class _SecurityStep extends StatelessWidget {
           confirmController: confirmController,
           autofocus: true,
           passwordError: errorText,
-        ),
-        const SizedBox(height: 8),
-        PassphraseFields(
-          controller: passphraseController,
-          confirmController: confirmPassphraseController,
-          errorText: passphraseError,
         ),
         const SizedBox(height: 24),
         FilledButton(onPressed: onNext, child: Text(s.next)),

@@ -204,16 +204,19 @@ class _PasswordSetupFieldsState extends State<PasswordSetupFields> {
 
 /// BIP39 密碼短語（第 13 / 25 個詞）的輸入組。
 ///
-/// 預設收在展開面板裡：這是進階功能，多數人不需要，不該占用主流程的版面。
+/// 這是進階功能，多數人用不到，預設收起以免占住版面；標題（含鑰匙圖示）
+/// 仍然固定顯示，需要的時候點一下就展開。
+///
 /// 短語沒有「強度」可言（任何字串都合法），但**打錯不會有任何錯誤提示** ——
 /// 只會還原出另一個身份，所以一定要輸入兩次並顯示警告。
-class PassphraseFields extends StatelessWidget {
+class PassphraseFields extends StatefulWidget {
   const PassphraseFields({
     required this.controller,
     required this.confirmController,
     this.errorText,
     this.onPreview,
     this.previewAddress,
+    this.initiallyExpanded = false,
     super.key,
   });
 
@@ -227,15 +230,51 @@ class PassphraseFields extends StatelessWidget {
   /// 由「助記詞 + 目前短語」派生出的地址；還原時用它核對短語有沒有打錯。
   final String? previewAddress;
 
+  /// 是否預設展開。
+  final bool initiallyExpanded;
+
+  @override
+  State<PassphraseFields> createState() => _PassphraseFieldsState();
+}
+
+class _PassphraseFieldsState extends State<PassphraseFields> {
+  final ExpansionTileController _tile = ExpansionTileController();
+
+  @override
+  void didUpdateWidget(PassphraseFields oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 錯誤藏在收起的面板裡就等於沒有提示 —— 出現錯誤時自動展開。
+    final appeared =
+        oldWidget.errorText == null && widget.errorText != null;
+    if (appeared) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _tile.expand();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = context.s;
     final theme = Theme.of(context);
     return ExpansionTile(
+      controller: _tile,
       tilePadding: EdgeInsets.zero,
-      title: Text(
-        s.passphraseAdvanced,
-        style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+      initiallyExpanded: widget.initiallyExpanded,
+      title: Row(
+        children: <Widget>[
+          Icon(Icons.key_rounded, size: 17, color: AppColors.brand),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              s.passphraseAdvanced,
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
       children: <Widget>[
         const SizedBox(height: 4),
@@ -249,19 +288,19 @@ class PassphraseFields extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         PasswordInput(
-          controller: controller,
+          controller: widget.controller,
           label: s.passphraseLabel,
           hintText: s.passphraseHint,
-          onChanged: onPreview,
+          onChanged: widget.onPreview,
         ),
         const SizedBox(height: 14),
         PasswordInput(
-          controller: confirmController,
+          controller: widget.confirmController,
           label: s.passphraseConfirmLabel,
           hintText: s.passphraseHint,
-          errorText: errorText,
+          errorText: widget.errorText,
         ),
-        if (previewAddress != null) ...<Widget>[
+        if (widget.previewAddress != null) ...<Widget>[
           const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,7 +310,7 @@ class PassphraseFields extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  previewAddress!,
+                  widget.previewAddress!,
                   style: const TextStyle(
                     fontSize: 12,
                     fontFamily: 'monospace',
