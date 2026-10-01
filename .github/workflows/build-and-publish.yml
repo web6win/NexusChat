@@ -23,6 +23,14 @@ on:
   push:
     branches: [main, master]
   workflow_dispatch:
+    inputs:
+      # 手動觸發時可選擇要遞增哪一級；預設只遞增 build number。
+      bump:
+        description: 'Version bump'
+        required: false
+        default: 'build'
+        type: choice
+        options: [build, patch, minor, major]
 
 concurrency:
   group: build-publish
@@ -38,11 +46,61 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
+  # 版本號：由單一作業計算一次，其餘建構作業共用，避免各平台拿到不同號碼。
+  #
+  # 遞增結果會寫回 pubspec.yaml 並提交（帶 [skip ci]，不會再度觸發 workflow），
+  # 因此每次推送 main 都會得到一個比上一版大的 build number —— 這是
+  # App Store / Play 送審的硬要求，也讓 App 內「設定 → 版本」顯示的號碼
+  # 永遠對應到實際成品。
+  # ---------------------------------------------------------------------------
+  version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.bump.outputs.name }}
+      build: ${{ steps.bump.outputs.build }}
+      full: ${{ steps.bump.outputs.full }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Bump version
+        id: bump
+        run: |
+          dart run tool/bump_version.dart --${{ github.event.inputs.bump || 'build' }}
+
+      - name: Commit bumped version
+        # 提交失敗不中斷建構：版本號已經算出來，只是沒有持久化。
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pubspec.yaml
+          git diff --staged --quiet && echo "version unchanged" || \
+            git commit -m "ci: bump version [skip ci]"
+          git pull --rebase --autostash origin "${{ github.ref_name }}" || true
+          git push || echo "push failed; continuing with computed version"
+
+  # ---------------------------------------------------------------------------
   # Web + Linux + Android 皆可在 ubuntu 上建構，合併為一個作業節省 runner 分鐘。
   # ---------------------------------------------------------------------------
   build-web-linux-android:
     name: Build Web / Linux / Android
+    needs: [version]
     runs-on: ubuntu-latest
+    env:
+      APP_VERSION_NAME: ${{ needs.version.outputs.name }}
+      APP_VERSION_BUILD: ${{ needs.version.outputs.build }}
+      # 所有平台都靠 dart-define 把版本號帶進 App（設定頁會顯示）。
+      DART_DEFINES: >-
+        --dart-define=APP_VERSION_NAME=${{ needs.version.outputs.name }}
+        --dart-define=APP_VERSION_BUILD=${{ needs.version.outputs.build }}
     steps:
       - uses: actions/checkout@v4
 
@@ -64,19 +122,19 @@ jobs:
         run: flutter pub get
 
       - name: Build Web (release, base-href /)
-        run: flutter build web --release --base-href "/"
+        run: flutter build web --release --base-href "/" $DART_DEFINES
 
       - name: Build Linux (release)
-        run: flutter build linux --release
+        run: flutter build linux --release $DART_DEFINES
 
       # Android 構建允許失敗（continue-on-error），避免單一平台出錯波及 Web / Linux 發佈；
       # 只要產出任一 APK/AAB，下載清單就會出現 Android 區塊。
       - name: Build Android (split-per-abi APK + universal APK + AAB)
         continue-on-error: true
         run: |
-          flutter build apk --release --split-per-abi
-          flutter build apk --release
-          flutter build appbundle --release
+          flutter build apk --release --split-per-abi --build-number "$APP_VERSION_BUILD" $DART_DEFINES
+          flutter build apk --release --build-number "$APP_VERSION_BUILD" $DART_DEFINES
+          flutter build appbundle --release --build-number "$APP_VERSION_BUILD" $DART_DEFINES
 
       - name: Package Linux bundle
         run: |
@@ -111,7 +169,12 @@ jobs:
   # ---------------------------------------------------------------------------
   build-windows:
     name: Build Windows
+    needs: [version]
     runs-on: windows-latest
+    env:
+      DART_DEFINES: >-
+        --dart-define=APP_VERSION_NAME=${{ needs.version.outputs.name }}
+        --dart-define=APP_VERSION_BUILD=${{ needs.version.outputs.build }}
     steps:
       - uses: actions/checkout@v4
 
@@ -125,7 +188,11 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows (release)
-        run: flutter build windows --release
+        shell: pwsh
+        # PowerShell 會把整個環境變數當成單一參數，必須先切成陣列再展開。
+        run: |
+          $defines = $env:DART_DEFINES -split ' ' | Where-Object { $_ }
+          flutter build windows --release $defines
 
       - name: Package Windows
         shell: pwsh
@@ -143,10 +210,16 @@ jobs:
   # ---------------------------------------------------------------------------
   build-macos-ios:
     name: Build macOS / iOS
+    needs: [version]
     runs-on: macos-latest
     # secrets 上下文無法直接用於 step 層級的 if:，故先在 job 層級 env 計算布林閘門。
     env:
       HAS_IOS_SIGNING: ${{ secrets.IOS_P12_BASE64 != '' }}
+      APP_VERSION_NAME: ${{ needs.version.outputs.name }}
+      APP_VERSION_BUILD: ${{ needs.version.outputs.build }}
+      DART_DEFINES: >-
+        --dart-define=APP_VERSION_NAME=${{ needs.version.outputs.name }}
+        --dart-define=APP_VERSION_BUILD=${{ needs.version.outputs.build }}
     steps:
       - uses: actions/checkout@v4
 
@@ -166,7 +239,7 @@ jobs:
         run: flutter pub get
 
       - name: Build macOS (release)
-        run: flutter build macos --release
+        run: flutter build macos --release --build-number "$APP_VERSION_BUILD" $DART_DEFINES
 
       - name: Package macOS app
         run: ditto -c -k --sequesterRsrc --keepParent build/macos/Build/Products/Release/NexusChat.app build/macos-release.zip
@@ -200,7 +273,7 @@ jobs:
 
       - name: Build iOS IPA
         if: ${{ env.HAS_IOS_SIGNING == 'true' }}
-        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+        run: flutter build ipa --release --build-number "$APP_VERSION_BUILD" --export-options-plist=ios/ExportOptions.plist $DART_DEFINES
 
       - name: Upload iOS artifact
         if: ${{ env.HAS_IOS_SIGNING == 'true' }}
@@ -219,7 +292,7 @@ jobs:
   # ---------------------------------------------------------------------------
   publish:
     name: Publish to GitHub Pages
-    needs: [build-web-linux-android, build-windows, build-macos-ios]
+    needs: [version, build-web-linux-android, build-windows, build-macos-ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write      # 提交 docs/ 回分支作為快照
@@ -257,7 +330,8 @@ jobs:
 
       - name: Generate download index (docs/download/index.html)
         run: |
-          APP_VERSION=$(grep -m1 '^version:' pubspec.yaml | sed -E 's/version: //; s/\+.*//')
+          # 版本號由 version 作業統一計算，各平台成品都屬同一版。
+          APP_VERSION="${{ needs.version.outputs.full }}"
           GIT_COMMIT="${{ github.sha }}"
           python3 tool/gen_download_index.py docs/download docs/download/index.html "$APP_VERSION" "$GIT_COMMIT"
 

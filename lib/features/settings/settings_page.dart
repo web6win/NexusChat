@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/l10n/app_locale.dart';
 import '../../core/l10n/strings.dart';
+import '../../core/version.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/app_settings.dart' show AppSettings, ThemePreference;
 import '../../data/models/chain.dart';
@@ -799,7 +800,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     SettingsTile(
                       icon: Icons.numbers_rounded,
                       title: s.settingsVersion,
-                      subtitle: '1.0.0',
+                      // 由 CI 以 --dart-define 注入，每次建置自動遞增。
+                      subtitle: AppVersion.display,
                       onTap: null,
                     ),
                   ],
