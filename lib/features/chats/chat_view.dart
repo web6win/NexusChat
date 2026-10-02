@@ -232,7 +232,14 @@ class _ChatViewState extends ConsumerState<ChatView> {
       if (xfile == null) return;
       final bytes = await xfile.readAsBytes();
       final compressed = compressImage(Uint8List.fromList(bytes));
-      if (compressed.length > 700 * 1024) {
+      if (compressed == null) {
+        // 無法解碼（例如 iPhone 的 HEIC）：原樣送出對方也解不開，
+        // 只會看到破圖，因此直接擋在這裡並提示改用 JPG / PNG。
+        _showError(context.s.chatImageUnsupported);
+        return;
+      }
+      // 用同一份預算檢查（kMaxMediaBytes），避免這裡放行、送出時卻被擋下。
+      if (compressed.length > kMaxMediaBytes) {
         _showError(context.s.chatMediaTooLarge);
         return;
       }
@@ -794,6 +801,58 @@ class _ChatViewState extends ConsumerState<ChatView> {
       '${time.year}-${time.month}-${time.day}';
 }
 
+/// 解碼已保存的媒體 Base64。
+///
+/// null、空字串，或內容不是合法 Base64 時一律回傳 null（視為「沒有媒體」）。
+/// 這樣呼叫端不必再各自處理例外，也不會把空字串餵給 `Image.memory` /
+/// 播放器造成塌陷或崩潰。
+Uint8List? _decodeMediaBytes(String? b64) {
+  if (b64 == null || b64.isEmpty) return null;
+  try {
+    final bytes = base64Decode(b64);
+    return bytes.isEmpty ? null : bytes;
+  } catch (_) {
+    return null;
+  }
+}
+
+/// 媒體無法顯示時的替代方塊（固定尺寸，避免氣泡塌成一個小點）。
+class _MediaUnavailable extends StatelessWidget {
+  const _MediaUnavailable({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.45);
+    return Container(
+      width: 180,
+      height: 120,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(Icons.broken_image_outlined, size: 26, color: muted),
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11.5, color: muted),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// 訊息氣泡：依種類渲染文字 / 圖片 / 語音。
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
@@ -903,13 +962,13 @@ class MessageBubble extends StatelessWidget {
   Widget _bubbleContent(bool outgoing, palette, Strings s) {
     switch (message.kind) {
       case MediaKind.image:
-        final bytes = message.mediaB64 == null
-            ? null
-            : base64Decode(message.mediaB64!);
+        final bytes = _decodeMediaBytes(message.mediaB64);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            if (bytes != null)
+            if (bytes == null)
+              _MediaUnavailable(label: s.chatImageUnavailable)
+            else
               ClipRRect(
                 borderRadius: BorderRadius.circular(14),
                 child: ConstrainedBox(
@@ -917,14 +976,20 @@ class MessageBubble extends StatelessWidget {
                     maxWidth: 240,
                     maxHeight: 280,
                   ),
-                  child: Image.memory(bytes, fit: BoxFit.cover),
+                  child: Image.memory(
+                    bytes,
+                    fit: BoxFit.cover,
+                    // 壞資料 / 不支援的格式：顯示明確的替代方塊。否則
+                    // RenderImage 在沒有可量測的圖時尺寸為 0，整個氣泡
+                    // 會塌成一個看不懂的小點。
+                    errorBuilder: (context, error, stackTrace) =>
+                        _MediaUnavailable(label: s.chatImageUnavailable),
+                  ),
                 ),
               ),
             if (message.text.isNotEmpty)
               Padding(
-                padding: bytes != null
-                    ? const EdgeInsets.only(top: 8, left: 4, right: 4)
-                    : EdgeInsets.zero,
+                padding: const EdgeInsets.only(top: 8, left: 4, right: 4),
                 child: Text(
                   message.text,
                   style: TextStyle(
@@ -939,11 +1004,8 @@ class MessageBubble extends StatelessWidget {
           ],
         );
       case MediaKind.audio:
-        final bytes = message.mediaB64 == null
-            ? Uint8List(0)
-            : base64Decode(message.mediaB64!);
         return _AudioBubble(
-          bytes: bytes,
+          bytes: _decodeMediaBytes(message.mediaB64) ?? Uint8List(0),
           mime: message.mediaMime ?? 'audio/mp4',
           durationMs: message.mediaDurationMs ?? 0,
           outgoing: outgoing,

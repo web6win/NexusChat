@@ -301,6 +301,8 @@ abstract final class K {
   static const chatMediaTooLarge = 'chatMediaTooLarge';
   static const chatPermissionMicrophone = 'chatPermissionMicrophone';
   static const chatPermissionPhotos = 'chatPermissionPhotos';
+  static const chatImageUnavailable = 'chatImageUnavailable';
+  static const chatImageUnsupported = 'chatImageUnsupported';
 
   // ------------------------------------------------------------------ 設定
   static const settingsTitle = 'settingsTitle';
@@ -644,6 +646,8 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatMediaTooLarge: '媒體過大，請選擇較小的圖片或縮短錄音長度。',
     K.chatPermissionMicrophone: '需要麥克風權限才能錄音。',
     K.chatPermissionPhotos: '需要相簿權限才能選取圖片。',
+    K.chatImageUnavailable: '圖片無法顯示',
+    K.chatImageUnsupported: '無法處理這張圖片，請改用 JPG 或 PNG。',
     K.settingsTitle: '設定',
     K.settingsAppearance: '外觀',
     K.settingsTheme: '主題',
@@ -976,6 +980,8 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatMediaTooLarge: '媒体过大，请选择较小的图片或缩短录音长度。',
     K.chatPermissionMicrophone: '需要麦克风权限才能录音。',
     K.chatPermissionPhotos: '需要相册权限才能选取图片。',
+    K.chatImageUnavailable: '图片无法显示',
+    K.chatImageUnsupported: '无法处理这张图片，请改用 JPG 或 PNG。',
     K.settingsTitle: '设置',
     K.settingsAppearance: '外观',
     K.settingsTheme: '主题',
@@ -1336,6 +1342,8 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatMediaTooLarge: 'Media is too large. Pick a smaller image or shorten the recording.',
     K.chatPermissionMicrophone: 'Microphone permission is required to record audio.',
     K.chatPermissionPhotos: 'Photo library permission is required to pick an image.',
+    K.chatImageUnavailable: 'Image unavailable',
+    K.chatImageUnsupported: 'Unsupported image. Please use JPG or PNG.',
     K.settingsTitle: 'Settings',
     K.settingsAppearance: 'Appearance',
     K.settingsTheme: 'Theme',
@@ -1704,6 +1712,8 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatMediaTooLarge: 'El archivo es demasiado grande. Elige una imagen más pequeña o acorta la grabación.',
     K.chatPermissionMicrophone: 'Se necesita permiso de micrófono para grabar audio.',
     K.chatPermissionPhotos: 'Se necesita permiso de la galería para elegir una imagen.',
+    K.chatImageUnavailable: 'Imagen no disponible',
+    K.chatImageUnsupported: 'Imagen no compatible. Usa JPG o PNG.',
     K.chainSelect: 'Seleccionar cadena',
     K.settingsTitle: 'Ajustes',
     K.settingsAppearance: 'Apariencia',
@@ -2095,6 +2105,8 @@ class Strings {
   String get chatMediaTooLarge => get(K.chatMediaTooLarge);
   String get chatPermissionMicrophone => get(K.chatPermissionMicrophone);
   String get chatPermissionPhotos => get(K.chatPermissionPhotos);
+  String get chatImageUnavailable => get(K.chatImageUnavailable);
+  String get chatImageUnsupported => get(K.chatImageUnsupported);
 
   String get settingsTitle => get(K.settingsTitle);
   String get settingsAppearance => get(K.settingsAppearance);

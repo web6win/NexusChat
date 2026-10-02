@@ -11,22 +11,22 @@
 
   <!-- 连线：中心节点通往六个外围节点 -->
   <g stroke="#FFFFFF" stroke-opacity=".55" stroke-width="26" stroke-linecap="round" fill="none">
-    <path d="M512 512V268"/>
-    <path d="M512 512l211-122"/>
-    <path d="M512 512l211 122"/>
-    <path d="M512 512v244"/>
-    <path d="M512 512L301 634"/>
-    <path d="M512 512L301 390"/>
+    <path d="M512 512V304"/>
+    <path d="M512 512l180-104"/>
+    <path d="M512 512l180 104"/>
+    <path d="M512 512v208"/>
+    <path d="M512 512L332 616"/>
+    <path d="M512 512L332 408"/>
   </g>
 
   <!-- 外围节点：四个圆点 + 两个圆角方（对话气泡的暗示） -->
   <g fill="#FFFFFF">
-    <rect x="470" y="226" width="84" height="84" rx="26"/>
-    <circle cx="723" cy="390" r="44"/>
-    <rect x="681" y="592" width="84" height="84" rx="26"/>
-    <circle cx="512" cy="756" r="44"/>
-    <circle cx="301" cy="634" r="44"/>
-    <circle cx="301" cy="390" r="44"/>
+    <rect x="470" y="262" width="84" height="84" rx="26"/>
+    <circle cx="692" cy="408" r="44"/>
+    <rect x="650" y="574" width="84" height="84" rx="26"/>
+    <circle cx="512" cy="720" r="44"/>
+    <circle cx="332" cy="616" r="44"/>
+    <circle cx="332" cy="408" r="44"/>
   </g>
 
   <!-- 中心：你自己（DID 身份） -->
