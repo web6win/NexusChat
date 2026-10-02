@@ -173,6 +173,13 @@ class WalletPage extends ConsumerWidget {
                   child: Column(
                     children: <Widget>[
                       SettingsTile(
+                        icon: Icons.toll_rounded,
+                        title: s.walletNativeToken,
+                        // 代幣全名 + 代號，例如 Contribution (CNT)。
+                        subtitle: '${config.name} (${config.symbol})',
+                        onTap: null,
+                      ),
+                      SettingsTile(
                         icon: Icons.cable_rounded,
                         title: s.walletRpcUrl,
                         subtitle: settings.rpcFor(chain),

@@ -288,6 +288,7 @@ abstract final class K {
   static const walletScanAddress = 'walletScanAddress';
   static const walletRpcMismatch = 'walletRpcMismatch';
   static const walletRpcUrlHint = 'walletRpcUrlHint';
+  static const walletNativeToken = 'walletNativeToken';
 
   // ------------------------------------------------------------------ 多媒體
   static const chatImage = 'chatImage';
@@ -632,6 +633,7 @@ const Map<String, Map<String, String>> _bundles = {
     K.walletScanAddress: '掃描收款地址',
     K.walletRpcMismatch: 'RPC 回傳的網路與目前選擇不符，請檢查端點設定',
     K.walletRpcUrlHint: '留空則使用預設端點',
+    K.walletNativeToken: '原生代幣',
     K.chatImage: '圖片',
     K.chatVoice: '語音訊息',
     K.chatSendImage: '傳送圖片',
@@ -963,6 +965,7 @@ const Map<String, Map<String, String>> _bundles = {
     K.walletScanAddress: '扫描收款地址',
     K.walletRpcMismatch: 'RPC 返回的网络与当前选择不符，请检查端点设置',
     K.walletRpcUrlHint: '留空则使用默认端点',
+    K.walletNativeToken: '原生代币',
     K.chatImage: '图片',
     K.chatVoice: '语音消息',
     K.chatSendImage: '发送图片',
@@ -1322,6 +1325,7 @@ const Map<String, Map<String, String>> _bundles = {
     K.walletRpcMismatch:
         'The RPC endpoint reports a different network than the one selected',
     K.walletRpcUrlHint: 'Leave empty to use the default endpoint',
+    K.walletNativeToken: 'Native token',
     K.chatImage: 'Photo',
     K.chatVoice: 'Voice message',
     K.chatSendImage: 'Send photo',
@@ -1689,6 +1693,7 @@ const Map<String, Map<String, String>> _bundles = {
     K.walletRpcMismatch:
         'El endpoint RPC informa de una red distinta a la seleccionada',
     K.walletRpcUrlHint: 'Déjalo vacío para usar el endpoint predeterminado',
+    K.walletNativeToken: 'Token nativo',
     K.chatImage: 'Foto',
     K.chatVoice: 'Mensaje de voz',
     K.chatSendImage: 'Enviar foto',
@@ -2078,6 +2083,7 @@ class Strings {
   String get walletScanAddress => get(K.walletScanAddress);
   String get walletRpcMismatch => get(K.walletRpcMismatch);
   String get walletRpcUrlHint => get(K.walletRpcUrlHint);
+  String get walletNativeToken => get(K.walletNativeToken);
 
   String get chatImage => get(K.chatImage);
   String get chatVoice => get(K.chatVoice);

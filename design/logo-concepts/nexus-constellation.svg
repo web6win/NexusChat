@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="NexusChat — Nexus constellation">
+  <defs>
+    <linearGradient id="nxBgA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6C5CE7"/>
+      <stop offset="1" stop-color="#8E7BFF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景：品牌渐变 squircle -->
+  <rect width="1024" height="1024" rx="228" fill="url(#nxBgA)"/>
+
+  <!-- 连线：中心节点通往六个外围节点 -->
+  <g stroke="#FFFFFF" stroke-opacity=".55" stroke-width="26" stroke-linecap="round" fill="none">
+    <path d="M512 512V268"/>
+    <path d="M512 512l211-122"/>
+    <path d="M512 512l211 122"/>
+    <path d="M512 512v244"/>
+    <path d="M512 512L301 634"/>
+    <path d="M512 512L301 390"/>
+  </g>
+
+  <!-- 外围节点：四个圆点 + 两个圆角方（对话气泡的暗示） -->
+  <g fill="#FFFFFF">
+    <rect x="470" y="226" width="84" height="84" rx="26"/>
+    <circle cx="723" cy="390" r="44"/>
+    <rect x="681" y="592" width="84" height="84" rx="26"/>
+    <circle cx="512" cy="756" r="44"/>
+    <circle cx="301" cy="634" r="44"/>
+    <circle cx="301" cy="390" r="44"/>
+  </g>
+
+  <!-- 中心：你自己（DID 身份） -->
+  <circle cx="512" cy="512" r="90" fill="#22D3EE"/>
+</svg>

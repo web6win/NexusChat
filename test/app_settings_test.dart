@@ -183,5 +183,27 @@ void main() {
       expect(ChainType.bsc.isEvm, isTrue);
       expect(ChainType.tron.isEvm, isFalse);
     });
+
+    test('預設鏈為 WEB6', () {
+      expect(AppSettings.defaultChain, ChainType.besu);
+      expect(const AppSettings().chain, ChainType.besu);
+      // 從沒記錄過鏈別 → 用預設值。
+      expect(AppSettings.fromJson(<String, dynamic>{}).chain, ChainType.besu);
+      // 已經選過的照舊，不因為預設值改了就被換掉。
+      expect(
+        AppSettings.fromJson(<String, dynamic>{'chain': 'ethereum'}).chain,
+        ChainType.ethereum,
+      );
+    });
+
+    test('WEB6 原生代幣為 Contribution（CNT）', () {
+      final config = ChainConfig.of(ChainType.besu);
+
+      expect(config.name, 'Contribution');
+      expect(config.symbol, 'CNT');
+      // 鏈上精度 18 位由 TxService.sendEvm 的 ×10^18 決定（EVM wei），
+      // 這裡的 displayDecimals 只是介面顯示位數。
+      expect(config.displayDecimals, 6);
+    });
   });
 }

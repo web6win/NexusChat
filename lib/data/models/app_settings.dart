@@ -40,6 +40,9 @@ enum ThemePreference {
 /// 全站設定，持久化於本地儲存。
 @immutable
 class AppSettings {
+  /// 預設的區塊鏈：WEB6 聯盟鏈（Contribution / CNT）。
+  static const ChainType defaultChain = ChainType.besu;
+
   const AppSettings({
     this.theme = ThemePreference.system,
     this.localeCode = '',
@@ -47,7 +50,7 @@ class AppSettings {
     this.nodeUrls = builtinNodeUrls,
     this.activeNodeUrl = defaultActiveNodeUrl,
     this.rpcOverrides = const <String, String>{},
-    this.chain = ChainType.ethereum,
+    this.chain = defaultChain,
     this.nickname = '',
     this.onboarded = false,
     this.lastSyncMs = 0,
@@ -256,7 +259,11 @@ class AppSettings {
       nodeUrls: nodeUrls,
       activeNodeUrl: _readActiveNode(json, nodeUrls),
       rpcOverrides: _readRpcOverrides(json),
-      chain: ChainType.fromId(json['chain'] as String?),
+      // 沒有記錄過鏈別時（首次安裝）用預設的 WEB6；已選過的則照舊，
+      // 不因為改了預設值就把老使用者換到別條鏈上。
+      chain: json.containsKey('chain')
+          ? ChainType.fromId(json['chain'] as String?)
+          : defaultChain,
       nickname: (json['nickname'] as String?) ?? '',
       onboarded: (json['onboarded'] as bool?) ?? false,
       lastSyncMs: (json['lastSyncMs'] as int?) ?? 0,

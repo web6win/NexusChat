@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="NexusChat — shield bubble with keyhole">
+  <defs>
+    <linearGradient id="nxBgB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6C5CE7"/>
+      <stop offset="1" stop-color="#8E7BFF"/>
+    </linearGradient>
+
+    <!-- 锁孔以负形挖出，露出背后的品牌渐变 -->
+    <mask id="nxKeyhole">
+      <rect width="1024" height="1024" fill="#FFFFFF"/>
+      <circle cx="512" cy="548" r="52" fill="#000000"/>
+      <path d="M484 578h56l18 104h-92z" fill="#000000"/>
+    </mask>
+  </defs>
+
+  <!-- 背景：品牌渐变 squircle -->
+  <rect width="1024" height="1024" rx="228" fill="url(#nxBgB)"/>
+
+  <!-- 主体：上缘是气泡的圆角，下缘收成盾牌尖 -->
+  <path d="M272 348q0-64 64-64h352q64 0 64 64v168q0 148-240 268-240-120-240-268z"
+        fill="#FFFFFF" mask="url(#nxKeyhole)"/>
+
+  <!-- 加密环：沿右上缘的一道青色弧 -->
+  <path d="M700 322q42 46 44 108" fill="none" stroke="#22D3EE" stroke-width="22" stroke-linecap="round"/>
+
+  <!-- 气泡小尾 -->
+  <circle cx="300" cy="676" r="26" fill="#FFFFFF"/>
+  <circle cx="262" cy="716" r="15" fill="#FFFFFF"/>
+</svg>

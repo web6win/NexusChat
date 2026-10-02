@@ -215,7 +215,8 @@ class _SendPageState extends ConsumerState<SendPage> {
               children: <Widget>[
                 _ConfirmRow(
                   label: s.walletSendNetwork,
-                  value: '$chainLabel · ${config.symbol}',
+                  // 全名 + 代號一起核對，避免把 CNT 看成 ETH 之類的誤會。
+                  value: '$chainLabel · ${config.name} (${config.symbol})',
                 ),
                 const SizedBox(height: 12),
                 _ConfirmRow(label: s.walletSendTo, value: parsed.address),

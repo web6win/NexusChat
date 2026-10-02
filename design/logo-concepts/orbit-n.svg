@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="NexusChat — letter N with orbit ring">
+  <defs>
+    <linearGradient id="nxBgC" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6C5CE7"/>
+      <stop offset="1" stop-color="#8E7BFF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景：品牌渐变 squircle -->
+  <rect width="1024" height="1024" rx="228" fill="url(#nxBgC)"/>
+
+  <!-- 轨道：链上身份 / 多链网络（画在 N 之下，被 N 覆盖处自然断开） -->
+  <ellipse cx="512" cy="512" rx="366" ry="150" fill="none"
+           stroke="#22D3EE" stroke-width="38"
+           transform="rotate(-20 512 512)"/>
+
+  <!-- 字标 N -->
+  <g fill="#FFFFFF">
+    <rect x="330" y="286" width="92" height="452" rx="16"/>
+    <rect x="602" y="286" width="92" height="452" rx="16"/>
+    <path d="M330 286h92l266 452h-92z"/>
+  </g>
+</svg>
