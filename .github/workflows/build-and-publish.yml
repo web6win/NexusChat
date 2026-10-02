@@ -341,6 +341,9 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs
           git commit -m "ci: snapshot docs/ [skip ci]" || echo "no changes to commit"
+          # 遠端可能已有新提交（如 version 作業推送的版本號），
+          # 先 rebase 再 push，避免 non-fast-forward 被拒絕。
+          git pull --rebase --autostash origin "${{ github.ref_name }}"
           git push
 
       - name: Upload Pages artifact
