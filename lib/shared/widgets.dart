@@ -412,7 +412,12 @@ class AddressChip extends StatelessWidget {
   }
 }
 
-/// 主題選擇卡片（用於設定的外觀區塊）。
+/// 主題選擇卡片（用於設定的外觀／區塊鏈區塊）。
+///
+/// 刻意**不**自帶 `Expanded`：`Expanded` 只能直接放在 `Row` / `Column` 的子項
+/// 位置，一旦被塞進 `SizedBox` 或 `Wrap` 就會因為找不到 Flex 祖先而讓整個
+/// 版面崩掉。這裡把「要佔多少寬度」交給呼叫方決定 —— 需要等寬時包
+/// `Expanded`，需要固定寬度時包 `SizedBox`。
 class ThemeOptionCard extends StatelessWidget {
   const ThemeOptionCard({
     required this.label,
@@ -430,43 +435,42 @@ class ThemeOptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.md),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          color: selected
+              ? AppColors.brand.withValues(alpha: 0.12)
+              : theme.colorScheme.onSurface.withValues(alpha: 0.04),
+          border: Border.all(
             color: selected
-                ? AppColors.brand.withValues(alpha: 0.12)
-                : theme.colorScheme.onSurface.withValues(alpha: 0.04),
-            border: Border.all(
-              color: selected
-                  ? AppColors.brand
-                  : theme.colorScheme.onSurface.withValues(alpha: 0.08),
-              width: selected ? 1.6 : 1,
+                ? AppColors.brand
+                : theme.colorScheme.onSurface.withValues(alpha: 0.08),
+            width: selected ? 1.6 : 1,
+          ),
+        ),
+        child: Column(
+          children: <Widget>[
+            Icon(
+              icon,
+              size: 22,
+              color: selected ? AppColors.brand : theme.colorScheme.onSurface,
             ),
-          ),
-          child: Column(
-            children: <Widget>[
-              Icon(
-                icon,
-                size: 22,
-                color: selected ? AppColors.brand : theme.colorScheme.onSurface,
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: selected ? AppColors.brand : null,
               ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: selected ? AppColors.brand : null,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

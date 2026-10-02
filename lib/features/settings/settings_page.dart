@@ -63,6 +63,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     ref.invalidate(walletInfoProvider);
   }
 
+  /// 區塊鏈選擇卡：切換後同步端點輸入框並重新拉取餘額。
+  Widget _chainCard(BuildContext context, ChainType current, ChainType chain) {
+    return ThemeOptionCard(
+      label: ChainSelector.labelOf(context.s, chain),
+      icon: ChainSelector.iconOf(chain),
+      selected: current == chain,
+      onTap: () async {
+        await ref.read(settingsProvider.notifier).setChain(chain);
+        if (!mounted) return;
+        // 換鏈後輸入框要跟著換成該鏈的端點。
+        setState(_syncRpcField);
+        ref.invalidate(walletInfoProvider);
+      },
+    );
+  }
+
   /// 重新探測所有節點的連線狀態。
   Future<void> _recheckNodes() async {
     setState(() => _probing = true);
@@ -708,37 +724,33 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    // 六條鏈一行三張卡，換行自動排列 —— 之後再加鏈也不用改版面。
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        const spacing = 10.0;
-                        final width = (constraints.maxWidth - spacing * 2) / 3;
-                        return Wrap(
-                          spacing: spacing,
-                          runSpacing: spacing,
-                          children: <Widget>[
-                            for (final c in ChainType.values)
-                              SizedBox(
-                                width: width,
-                                child: ThemeOptionCard(
-                                  label: ChainSelector.labelOf(s, c),
-                                  icon: ChainSelector.iconOf(c),
-                                  selected: settings.chain == c,
-                                  onTap: () async {
-                                    await ref
-                                        .read(settingsProvider.notifier)
-                                        .setChain(c);
-                                    if (!mounted) return;
-                                    // 換鏈後輸入框要跟著換成該鏈的端點。
-                                    setState(_syncRpcField);
-                                    ref.invalidate(walletInfoProvider);
-                                  },
-                                ),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
+                    // 每行三張卡；鏈變多時自動多排一行，不用改版面。
+                    // 用 IntrinsicHeight 讓同一行的卡片等高（鏈名長度不一）。
+                    for (var row = 0; row * 3 < ChainType.values.length; row++)
+                      Padding(
+                        padding: EdgeInsets.only(top: row == 0 ? 0 : 10),
+                        child: IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              for (var col = 0; col < 3; col++) ...<Widget>[
+                                if (col > 0) const SizedBox(width: 10),
+                                if (row * 3 + col < ChainType.values.length)
+                                  Expanded(
+                                    child: _chainCard(
+                                      context,
+                                      settings.chain,
+                                      ChainType.values[row * 3 + col],
+                                    ),
+                                  )
+                                else
+                                  // 最後一行不滿三張時補空位，維持左對齊。
+                                  const Expanded(child: SizedBox.shrink()),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 12),
                     Text(
                       s.walletChainDesc,
