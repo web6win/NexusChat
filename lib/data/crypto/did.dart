@@ -34,8 +34,24 @@ abstract final class Did {
   }
 
   /// 是否為 0x 開頭的 20 位元組地址。
+  ///
+  /// 混合大小寫時會一併驗證 EIP-55 校驗和：一旦出現大小寫混用，就代表
+  /// 這個地址自稱帶有校驗和，必須正確才算合法 —— 抄錯或被竄改的地址
+  /// 送出去就找不回來。全小寫或全大寫視為「未帶校驗和」，依慣例接受。
   static bool isAddress(String value) {
-    return _addressPattern.hasMatch(value.trim());
+    final v = value.trim();
+    if (!_addressPattern.hasMatch(v)) return false;
+    return hasValidChecksum(v);
+  }
+
+  /// EIP-55 校驗和是否合法（全小寫 / 全大寫視為未帶校驗和）。
+  static bool hasValidChecksum(String address) {
+    final v = address.trim();
+    if (!_addressPattern.hasMatch(v)) return false;
+    final body = v.substring(2);
+    if (body == body.toLowerCase() || body == body.toUpperCase()) return true;
+    // 校驗和形式的地址是唯一的：只要大小寫混用就必須等於 EIP-55 的結果。
+    return eip55(v) == v;
   }
 
   /// 是否為 ENS 名稱（xxx.eth）。

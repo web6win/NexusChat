@@ -24,21 +24,71 @@ class IdentityPage extends ConsumerStatefulWidget {
   ConsumerState<IdentityPage> createState() => _IdentityPageState();
 }
 
-class _IdentityPageState extends ConsumerState<IdentityPage> {
+class _IdentityPageState extends ConsumerState<IdentityPage>
+    with WidgetsBindingObserver {
   bool _revealed = false;
   Timer? _hideTimer;
   int _hideLeft = 0;
 
+  /// 複製敏感資料後負責清空剪貼簿的計時器。
+  ///
+  /// 刻意**不在 dispose 時取消**：即使使用者立刻離開頁面，留在剪貼簿裡的
+  /// 助記詞仍要清掉，那才是這個機制的用意。
+  Timer? _clipboardTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _hideTimer?.cancel();
     super.dispose();
+  }
+
+  /// 進入背景時立刻收起敏感內容。
+  ///
+  /// 系統會替背景中的 App 產生縮圖（工作切換器／多工畫面），助記詞若還
+  /// 顯示在畫面上，等於被寫進磁碟、也可能出現在螢幕錄影裡。
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.paused &&
+        state != AppLifecycleState.detached) {
+      return;
+    }
+    if (!_revealed) return;
+    _hideTimer?.cancel();
+    setState(() {
+      _revealed = false;
+      _hideLeft = 0;
+    });
   }
 
   Future<void> _copy(String value) async {
     await Clipboard.setData(ClipboardData(text: value));
     if (!mounted) return;
     showAppSnack(context, context.s.copied);
+  }
+
+  /// 複製**敏感資料**（助記詞 / 私鑰）並排定自動清空剪貼簿。
+  ///
+  /// 剪貼簿可能被雲端同步（跨裝置貼上）或被剪貼簿管理器長期留存，
+  /// 助記詞一旦留在裡面，風險等同於明文外洩。這裡在逾時後清空，且只清
+  /// 「內容仍然是剛才那份」的情況，避免把使用者新複製的東西一併清掉。
+  Future<void> _copySecret(String value) async {
+    await Clipboard.setData(ClipboardData(text: value));
+    if (!mounted) return;
+    showAppSnack(context, context.s.copied);
+    _clipboardTimer?.cancel();
+    _clipboardTimer = Timer(const Duration(seconds: 60), () async {
+      final current = await Clipboard.getData(Clipboard.kTextPlain);
+      if (current?.text == value) {
+        await Clipboard.setData(const ClipboardData(text: ''));
+      }
+    });
   }
 
   /// 切換敏感內容的顯示狀態。
@@ -265,7 +315,7 @@ class _IdentityPageState extends ConsumerState<IdentityPage> {
                             : '${identity.ethPrivateHex.substring(0, 12)}'
                                 '${'•' * 16}',
                         onTap: () => _revealed
-                            ? _copy(identity.ethPrivateHex)
+                            ? _copySecret(identity.ethPrivateHex)
                             : _toggleReveal(),
                       ),
                   ],
@@ -426,7 +476,7 @@ class _IdentityPageState extends ConsumerState<IdentityPage> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
-                          onPressed: () => _copy(identity.mnemonic),
+                          onPressed: () => _copySecret(identity.mnemonic),
                           icon: const Icon(Icons.copy_all_rounded, size: 18),
                           label: Text(s.copy),
                         ),

@@ -204,6 +204,16 @@ class _SendPageState extends ConsumerState<SendPage> {
     final config = ChainConfig.of(chain);
     final chainLabel = ChainSelector.labelOf(s, chain);
 
+    // RPC 端點與所選鏈不符（例如把 Base 的 RPC 貼到以太坊）時硬性阻斷：
+    // 這種情況下餘額查得到、交易也送得出去，只是會送到錯的網路上。
+    // 因此不能只靠畫面上的紅字警告，這裡直接不給送。
+    // chainId 尚未查到（離線）時無法判定，維持放行以免誤傷。
+    final chainId = ref.read(walletInfoProvider).value?.chainId;
+    if (config.isWrongChain(chainId)) {
+      _showSnack(s.walletRpcMismatch, danger: true);
+      return;
+    }
+
     // 二次確認：鏈上交易不可撤回，先讓使用者核對網路、地址與金額。
     final confirmed = await showDialog<bool>(
           context: context,

@@ -10,6 +10,7 @@ import 'package:web3dart/crypto.dart'
 import 'package:web3dart/web3dart.dart' show padUint8ListTo32;
 
 import '../lib/data/crypto/tron_address.dart';
+import '../lib/data/ethereum/tx_service.dart';
 
 /// TRON 簽章流程的離線驗證（不需連網）。
 ///
@@ -76,6 +77,45 @@ void main() {
       isNot(bytesToHex(expected)),
       reason: '確認兩者語意不同：TRON 必須用原始 secp256k1 sign',
     );
+  });
+
+  test('打包後的簽章是 65 位元組、v 為 0/1 且為 low-S', () {
+    final privateKey = hexToBytes(privateHex);
+    final expected = privateKeyToPublic(BigInt.parse(privateHex, radix: 16));
+
+    // 曲線階 N 與 low-S 的界線。
+    final n = BigInt.parse(
+      'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141',
+      radix: 16,
+    );
+
+    // 跑多組 raw_data，確保 low-S 規約在「需要翻轉」與「不需要」兩種情況
+    // 都能還原出同一把公鑰 —— 只測一組很可能剛好落在不需要規約的那半邊。
+    for (var seed = 0; seed < 24; seed++) {
+      final rawData = Uint8List.fromList(
+        List<int>.generate(32, (i) => (i * 31 + seed * 7 + 1) & 0xFF),
+      );
+      final txId = Uint8List.fromList(sha256.convert(rawData).bytes);
+      final signature = sign(txId, privateKey);
+      final packed = hexToBytes(TxService.packSignature(signature));
+
+      expect(packed.length, 65, reason: 'TRON 簽章為 r‖s‖v 共 65 位元組');
+
+      final v = packed[64];
+      expect(v == 0 || v == 1, isTrue,
+          reason: 'TRON 的第 65 位元組只接受恢復識別碼，不能是 27/28（得到 $v）');
+
+      // 以打包後的 r‖s 與恢復識別碼還原公鑰：必須是簽章者本人。
+      final r = BigInt.parse(bytesToHex(packed.sublist(0, 32)), radix: 16);
+      final s = BigInt.parse(bytesToHex(packed.sublist(32, 64)), radix: 16);
+      expect(s <= (n >> 1), isTrue, reason: 'java-tron 拒收 high-S 簽章');
+      expect(s > BigInt.zero, isTrue);
+
+      // ecRecover 吃的是 27/28 慣例，故還原時加回 27。
+      final recovered = ecRecover(txId, MsgSignature(r, s, v + 27));
+      expect(bytesToHex(recovered), bytesToHex(expected),
+          reason: '規約後仍須還原出簽章者公鑰（第 $seed 組）');
+    }
   });
 
   test('createtransaction payload 使用 hex 地址且 visible=false', () {

@@ -1114,12 +1114,19 @@ class ChatController extends Notifier<ChatState> {
   }
 
   /// 廣播自己的金鑰包。
+  ///
+  /// 離線或節點不可用時只記錄、不拋錯：金鑰包會在之後的同步輪詢中自動補發，
+  /// 絕不能因此擋住進入主介面或發送訊息。
   Future<void> publishKeys() async {
     final waku = _core.waku;
     if (waku == null) return;
-    await waku.publishKeyBundle(
-      nickname: ref.read(settingsProvider).nickname,
-    );
+    try {
+      await waku.publishKeyBundle(
+        nickname: ref.read(settingsProvider).nickname,
+      );
+    } catch (error, stackTrace) {
+      debugPrint('publishKeys failed: $error\n$stackTrace');
+    }
   }
 }
 

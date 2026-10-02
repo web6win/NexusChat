@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
@@ -140,7 +142,8 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
         await ref.read(settingsProvider.notifier).setNickname(name);
       }
       await ref.read(settingsProvider.notifier).setOnboarded(true);
-      await ref.read(chatControllerProvider.notifier).publishKeys();
+      // 後台發布金鑰包；離線也不阻塞進入主介面，連上網後會自動補發。
+      unawaited(ref.read(chatControllerProvider.notifier).publishKeys());
       if (!mounted) return;
       context.go('/chats');
     } finally {

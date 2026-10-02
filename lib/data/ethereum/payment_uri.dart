@@ -22,7 +22,9 @@ class PaymentRequest {
   /// 金額，人類可讀單位（ETH / TRX）。URI 未帶金額則為 null。
   final double? amount;
 
-  /// EIP-681 的 `@chainId`（`ethereum:0x…@1`），僅供提示與比對。
+  /// EIP-681 的 `@chainId`（`ethereum:0x…@1`）。
+  ///
+  /// 解析時會與 scheme 指出的鏈比對，兩者矛盾就整包拒絕（見 [PaymentUri.parse]）。
   final int? requestChainId;
 }
 
@@ -76,6 +78,14 @@ abstract final class PaymentUri {
 
     if (!TxService.isValidAddress(chain, address)) return null;
 
+    // scheme 與 `@chainId` 必須互相一致。兩者矛盾時無從判斷這筆該走哪條鏈
+    // （例如 `ethereum:0x…@8453`），寧可整包拒絕，也不要讓使用者在錯的
+    // 網路上送出。chainId 由部署決定的鏈（Besu / TRON）為 null，無法比對。
+    final expectedChainId = ChainConfig.of(chain).expectedChainId;
+    if (chainId != null && expectedChainId != null && chainId != expectedChainId) {
+      return null;
+    }
+
     final params = _query(query);
     // 代幣轉帳不在支援範圍內。
     if (params.containsKey('function') || params.containsKey('uint256')) {
@@ -120,20 +130,30 @@ abstract final class PaymentUri {
     }
   }
 
-  /// 金額換算：EVM 的 `value` 以 wei 為單位，TRON 的 `amount` 以 sun
-  /// 為單位；部分產生器直接寫人類可讀數字，這裡以數量級判斷。
+  /// 金額換算：EVM 的 `value` 以 wei 為單位，TRON 的 `amount` 以 sun 為單位。
   ///
-  /// 門檻取 1 gwei（1e9 wei）/ 0.001 TRX（1e3 sun）—— 低於門檻的轉帳
-  /// 金額實務上不存在，視為已經是人類可讀單位。
+  /// 單位的判定依據是**字面形式**，不是數量級。舊實作拿「是否大於 1 gwei」
+  /// 來猜，會把 `value=5` 這種合法的 wei 值誤讀成 5 顆幣（放大 1e18 倍），
+  /// 是實實在在的資金風險。規範上 ERC-681 的 `value` 就是整數 wei，因此：
+  ///
+  /// - **含小數點** → 人類可讀單位（規範不允許，但實務上常見且語意明確）；
+  /// - **其餘**（十進位整數、科學記號、`0x` 十六進位）→ wei / sun，依規範。
   static double? _amount(ChainType chain, String? raw) {
     final text = raw?.trim() ?? '';
     if (text.isEmpty) return null;
     final lower = text.toLowerCase();
+
+    // 人類可讀：本身就是幣的數量，不再換算。
+    if (text.contains('.')) {
+      final value = double.tryParse(text);
+      return (value == null || value <= 0) ? null : value;
+    }
+
+    // 整數（含科學記號與十六進位）→ 最小單位。
     final value = lower.startsWith('0x')
         ? BigInt.tryParse(lower.substring(2), radix: 16)?.toDouble()
-        : double.tryParse(text);
+        : BigInt.tryParse(text)?.toDouble() ?? double.tryParse(text);
     if (value == null || value <= 0) return null;
-    if (chain == ChainType.tron) return value >= 1e3 ? value / 1e6 : value;
-    return value >= 1e9 ? value / 1e18 : value;
+    return chain == ChainType.tron ? value / 1e6 : value / 1e18;
   }
 }

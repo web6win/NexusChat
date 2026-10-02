@@ -219,7 +219,7 @@ abstract final class TxService {
         sha256.convert(hexToBytes(rawHex)).bytes,
       );
       final signature = sign(txId, credentials.privateKey);
-      transaction['signature'] = <String>[_packSignature(signature)];
+      transaction['signature'] = <String>[packSignature(signature)];
 
       // 4) 廣播。
       final broadcast = await httpClient
@@ -245,17 +245,42 @@ abstract final class TxService {
     }
   }
 
+  /// secp256k1 曲線階 N。
+  static final BigInt _curveOrder = BigInt.parse(
+    'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141',
+    radix: 16,
+  );
+
+  /// low-S 規約的界線（`N >> 1`）。
+  static final BigInt _halfCurveOrder = _curveOrder >> 1;
+
   /// 把簽章打包成 TRON 要求的 `r‖s‖v` 65 位元組 hex。
   ///
-  /// TRON 的 v 就是 secp256k1 的 recovery id（0/1），不是 EIP-155 的 chainId
-  /// 變體，因此這裡直接使用 `sign()` 回傳的 `v`（已是 27/28 偏移）。
-  static String _packSignature(MsgSignature signature) {
+  /// 這裡有兩個必須處理的差異，否則節點會直接拒絕廣播：
+  ///
+  /// 1. **v 的語意**：`sign()` 走以太坊慣例，回傳 27/28；TRON 的第 65 位元組
+  ///    只接受恢復識別碼（0/1），因此要先減掉 27。
+  /// 2. **low-S**：java-tron 會驗證簽章是否為 canonical（`s <= N/2`），
+  ///    high-S 一律拒收。取 `N - s` 時恢復識別碼必須同時反轉（0↔1），
+  ///    否則會還原出另一個公鑰，被節點判成「簽章與 owner 不符」。
+  static String packSignature(MsgSignature signature) {
+    final recoveryId = signature.v >= 27 ? signature.v - 27 : signature.v;
+    // 理論上恆為 0/1；若上游語意改變，寧可當成網路錯誤也不要寫出壞簽章。
+    if (recoveryId < 0 || recoveryId > 1) throw const TxException('network');
+
+    var s = signature.s;
+    var v = recoveryId;
+    if (s > _halfCurveOrder) {
+      s = _curveOrder - s;
+      v = 1 - v;
+    }
+
     final r = padUint8ListTo32(unsignedIntToBytes(signature.r));
-    final s = padUint8ListTo32(unsignedIntToBytes(signature.s));
+    final sBytes = padUint8ListTo32(unsignedIntToBytes(s));
     final out = Uint8List(65)
       ..setRange(0, 32, r)
-      ..setRange(32, 64, s)
-      ..[64] = signature.v;
+      ..setRange(32, 64, sBytes)
+      ..[64] = v;
     return bytesToHex(out);
   }
 

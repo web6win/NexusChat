@@ -184,8 +184,8 @@ class _RestorePageState extends ConsumerState<RestorePage> {
     }
 
     setState(() => _busy = false);
-    // 匯入後立刻發布金鑰包，讓聯絡人能以新身份互換訊息金鑰。
-    await ref.read(chatControllerProvider.notifier).publishKeys();
+    // 匯入後在背景發布金鑰包；離線也不阻塞進入主介面，連上網後會自動補發。
+    unawaited(ref.read(chatControllerProvider.notifier).publishKeys());
     if (!mounted) return;
     context.go('/chats');
   }
