@@ -1,455 +1,91 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/l10n/app_locale.dart';
 import '../../core/l10n/strings.dart';
-import '../../core/version.dart';
-import '../../core/update/update_check.dart';
-import '../../core/update/update_dialog.dart';
-import '../../core/theme/app_theme.dart';
-import '../../data/models/app_settings.dart' show AppSettings, ThemePreference;
-import '../../data/models/chain.dart';
-import '../../data/models/security_settings.dart';
-import '../wallet/chain_selector.dart';
-import '../../data/security/vault.dart';
-import '../../data/waku/node_probe.dart' show NodeStatus;
-import '../../shared/feedback.dart';
 import '../../shared/layout.dart';
 import '../../shared/widgets.dart';
-import '../../state/controllers.dart';
-import '../security/password_fields.dart';
 
-/// 設定頁：外觀、語言、網路、身份與進階選項。
-class SettingsPage extends ConsumerStatefulWidget {
+/// 設定首頁：以分組目錄的方式列出各設定分頁，點擊進入對應的子頁面，
+/// 避免把所有選項都堆在同一個頁面。
+class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
-
-  @override
-  ConsumerState<SettingsPage> createState() => _SettingsPageState();
-}
-
-class _SettingsPageState extends ConsumerState<SettingsPage> {
-  /// 「目前所選鏈」的 RPC 端點輸入框：切換鏈時由 [_syncRpcField] 帶入該鏈的值。
-  late final TextEditingController _rpcUrl;
-  bool _resyncing = false;
-  bool _probing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final settings = ref.read(settingsProvider);
-    _rpcUrl = TextEditingController(text: settings.rpcFor(settings.chain));
-  }
-
-  /// 換鏈後把輸入框換成該鏈的端點，避免把 A 鏈的端點存到 B 鏈上。
-  void _syncRpcField() {
-    final settings = ref.read(settingsProvider);
-    _rpcUrl.text = settings.rpcFor(settings.chain);
-  }
-
-  @override
-  void dispose() {
-    _rpcUrl.dispose();
-    super.dispose();
-  }
-
-  /// 「檢查更新」那一列的副標：依目前檢查狀態顯示版本 / 檢查中 / 最新 / 失敗。
-  String _updateSubtitle(Strings s, UpdateState st) {
-    switch (st.status) {
-      case UpdateStatus.idle:
-        return AppVersion.display;
-      case UpdateStatus.checking:
-        return s.updateChecking;
-      case UpdateStatus.available:
-        final remote = st.remote;
-        return remote != null
-            ? s.updateVersionLine(remote.version, remote.buildNumber)
-            : s.updateAvailableTitle;
-      case UpdateStatus.upToDate:
-        return s.updateLatest;
-      case UpdateStatus.error:
-        return s.updateFailed;
-    }
-  }
-
-  /// 儲存「目前所選鏈」的 RPC 端點；留空表示還原成該鏈的預設值。
-  Future<void> _saveRpc() async {
-    final value = _rpcUrl.text.trim();
-    await ref
-        .read(settingsProvider.notifier)
-        .setRpcFor(ref.read(settingsProvider).chain, value);
-    if (!mounted) return;
-    // 留空時會還原成預設端點，把結果回填給輸入框。
-    setState(_syncRpcField);
-    ref.invalidate(walletInfoProvider);
-  }
-
-  /// 區塊鏈選擇卡：切換後同步端點輸入框並重新拉取餘額。
-  Widget _chainCard(BuildContext context, ChainType current, ChainType chain) {
-    return ThemeOptionCard(
-      label: ChainSelector.labelOf(context.s, chain),
-      icon: ChainSelector.iconOf(chain),
-      selected: current == chain,
-      onTap: () async {
-        await ref.read(settingsProvider.notifier).setChain(chain);
-        if (!mounted) return;
-        // 換鏈後輸入框要跟著換成該鏈的端點。
-        setState(_syncRpcField);
-        ref.invalidate(walletInfoProvider);
-      },
-    );
-  }
-
-  /// 重新探測所有節點的連線狀態。
-  Future<void> _recheckNodes() async {
-    setState(() => _probing = true);
-    ref.invalidate(nodeStatusProvider);
-    try {
-      await ref.read(nodeStatusProvider.future);
-      ref.invalidate(networkStatusProvider);
-    } catch (_) {
-      // 探測失敗只反映在清單狀態上，這裡不再額外提示。
-    } finally {
-      if (mounted) setState(() => _probing = false);
-    }
-  }
-
-  /// 新增自訂節點。
-  Future<void> _addNode() async {
-    final s = context.s;
-    final controller = TextEditingController();
-    String? error;
-
-    final added = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(s.settingsNodeAddTitle),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            autocorrect: false,
-            enableSuggestions: false,
-            decoration: InputDecoration(
-              labelText: s.settingsWakuNode,
-              hintText: s.settingsNodeAddHint,
-              errorText: error,
-              prefixIcon: const Icon(Icons.hub_rounded),
-            ),
-            onChanged: (_) {
-              if (error != null) setDialogState(() => error = null);
-            },
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(s.cancel),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final code = await ref
-                    .read(settingsProvider.notifier)
-                    .addNode(controller.text);
-                if (!context.mounted) return;
-                if (code != null) {
-                  setDialogState(() {
-                    error = code == 'duplicate'
-                        ? s.settingsNodeDuplicate
-                        : s.settingsNodeInvalid;
-                  });
-                  return;
-                }
-                Navigator.pop(context, true);
-              },
-              child: Text(s.save),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    controller.dispose();
-    if (added != true || !mounted) return;
-    await _recheckNodes();
-    if (!mounted) return;
-    showAppSnack(context, s.settingsNodeAdded);
-  }
-
-  /// 移除自訂節點（內建節點不可移除）。
-  Future<void> _removeNode(String url) async {
-    final s = context.s;
-    final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(s.settingsNodeRemove),
-            content: Text(s.settingsNodeRemoveConfirm(url)),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(s.cancel),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(
-                  s.delete,
-                  style: const TextStyle(color: AppColors.danger),
-                ),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-    if (!confirmed || !mounted) return;
-    await ref.read(settingsProvider.notifier).removeNode(url);
-    await _recheckNodes();
-  }
-
-  /// 從節點 store 重新補拉最近錯過的訊息與金鑰包。
-  Future<void> _resync() async {
-    setState(() => _resyncing = true);
-    try {
-      await ref.read(chatControllerProvider.notifier).resyncHistory();
-      await ref.read(contactsProvider.notifier).refreshKeys();
-    } finally {
-      if (mounted) setState(() => _resyncing = false);
-    }
-    if (!mounted) return;
-    showAppSnack(context, context.s.settingsResyncDone);
-  }
-
-  /// 以私鑰取代目前身份：先警告後輸入，成功則提示並要求重新發布金鑰。
-  ///
-  /// 換身份會讓 DID 改變，舊對話不會消失但對方需要重新認識新 DID，因此這裡
-  /// 明確告知使用者。
-  ///
-  /// 這個方法只使用 [State.context]（不接收 context 參數），讓 `mounted`
-  /// 守衛與實際使用的 context 保持一致。
-  Future<void> _confirmImportPrivateKey() async {
-    final s = context.s;
-    final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(s.importPrivateKeyTitle),
-            content: Text(s.importPrivateKeyWarn),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text(s.cancel),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(s.next),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-    if (!confirmed || !mounted) return;
-
-    final controller = TextEditingController();
-    final passwordController = TextEditingController();
-    final confirmController = TextEditingController();
-    var obscure = true;
-    String? error;
-    String? passwordError;
-    var busy = false;
-
-    // 用 StatefulBuilder 讓對話框內部能自行 setState（輸入驗證 / 載入狀態）。
-    final imported = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          Future<void> submit() async {
-            // 新的身份必須有密碼保護 —— 否則等於又把私鑰明文寫回本地儲存。
-            final passwordCode = validateNewPassword(
-              password: passwordController.text,
-              confirm: confirmController.text,
-            );
-            if (passwordCode != null) {
-              setDialogState(() => passwordError = passwordCode);
-              return;
-            }
-            setDialogState(() {
-              busy = true;
-              error = null;
-              passwordError = null;
-            });
-            final failure = await ref
-                .read(sessionProvider.notifier)
-                .importPrivateKey(
-                  controller.text,
-                  password: passwordController.text,
-                );
-            if (!context.mounted) return;
-            if (failure != null) {
-              setDialogState(() {
-                busy = false;
-                error = failure == 'invalid-private-key'
-                    ? s.importPrivateKeyInvalid
-                    : s.importFailed;
-              });
-              return;
-            }
-            Navigator.pop(context, true);
-          }
-
-          return AlertDialog(
-            title: Text(s.importPrivateKeyLabel),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                TextField(
-                  controller: controller,
-                  autofocus: true,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  obscureText: obscure,
-                  style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 13.5,
-                  ),
-                  onChanged: (_) {
-                    if (error != null) setDialogState(() => error = null);
-                  },
-                  decoration: InputDecoration(
-                    hintText: s.importPrivateKeyHint,
-                    errorText: error,
-                    suffixIcon: IconButton(
-                      tooltip: obscure ? s.reveal : s.hide,
-                      onPressed: () =>
-                          setDialogState(() => obscure = !obscure),
-                      icon: Icon(
-                        obscure
-                            ? Icons.visibility_rounded
-                            : Icons.visibility_off_rounded,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                PasswordSetupFields(
-                  passwordController: passwordController,
-                  confirmController: confirmController,
-                  passwordError: passwordError == null
-                      ? null
-                      : passwordErrorText(context, passwordError),
-                ),
-              ],
-            ),
-            actions: <Widget>[
-              TextButton(
-                onPressed: busy ? null : () => Navigator.pop(context, false),
-                child: Text(s.cancel),
-              ),
-              FilledButton(
-                onPressed: busy ? null : submit,
-                child: busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(s.importAction),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    controller.dispose();
-    passwordController.dispose();
-    confirmController.dispose();
-    if (imported != true || !mounted) return;
-
-    // 新身份的金鑰包需重新發布，否則聯絡人無法加密訊息給自己。
-    await ref.read(chatControllerProvider.notifier).publishKeys();
-    if (!mounted) return;
-    showAppSnack(context, s.restoreSuccess);
-    ref.invalidate(contactsProvider);
-    ref.invalidate(networkStatusProvider);
-  }
-
-  /// 選擇閒置多久後自動鎖定。
-  Future<void> _pickAutoLock(int current) async {
-    final s = context.s;
-    final selected = await showModalBottomSheet<int>(
-      context: context,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
-              child: Text(
-                s.securityAutoLock,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-            for (final minutes in SecuritySettings.autoLockOptions)
-              ListTile(
-                title: Text(
-                  minutes <= 0
-                      ? s.securityAutoLockNever
-                      : s.securityAutoLockMinutes('$minutes'),
-                ),
-                trailing: minutes == current
-                    ? const Icon(Icons.check_rounded, color: AppColors.brand)
-                    : null,
-                onTap: () => Navigator.pop(sheetContext, minutes),
-              ),
-            const SizedBox(height: 10),
-          ],
-        ),
-      ),
-    );
-    if (selected == null || !mounted) return;
-    await ref.read(securityProvider.notifier).setAutoLockMinutes(selected);
-  }
-
-  /// 修改保險庫密碼（需先驗證目前密碼）。
-  Future<void> _changePassword() async {
-    final s = context.s;
-    final request = await showDialog<_PasswordChangeRequest>(
-      context: context,
-      builder: (dialogContext) => const _ChangePasswordDialog(),
-    );
-    if (request == null || !mounted) return;
-
-    try {
-      await ref.read(coreProvider).changePassword(
-            currentPassword: request.current,
-            newPassword: request.next,
-          );
-      if (!mounted) return;
-      showAppSnack(context, s.passwordChanged);
-    } on VaultException catch (error) {
-      if (!mounted) return;
-      showAppSnack(
-        context,
-        error.code == 'bad-password'
-            ? s.passwordWrong
-            : s.changePasswordFailed,
-        danger: true,
-      );
-    } catch (_) {
-      if (!mounted) return;
-      showAppSnack(context, s.changePasswordFailed, danger: true);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    final settings = ref.watch(settingsProvider);
-    final locale = ref.watch(localeProvider);
-    final security = ref.watch(securityProvider);
+
+    // 每個分類：標題、說明（更具體的中文副標）、圖示、目標路由、是否危險項。
+    final categories = <_Category>[
+      _Category(
+        title: s.settingsAppearance,
+        subtitle: s.settingsSubAppearance,
+        icon: Icons.palette_rounded,
+        route: '/settings/appearance',
+      ),
+      _Category(
+        title: s.securitySection,
+        subtitle: s.settingsSubSecurity,
+        icon: Icons.shield_outlined,
+        route: '/settings/security',
+      ),
+      _Category(
+        title: s.settingsNetwork,
+        subtitle: s.settingsSubNetwork,
+        icon: Icons.hub_rounded,
+        route: '/settings/network',
+      ),
+      _Category(
+        title: s.walletChain,
+        subtitle: s.settingsSubBlockchain,
+        icon: Icons.account_balance_wallet_outlined,
+        route: '/settings/blockchain',
+      ),
+      _Category(
+        title: s.identityTitle,
+        subtitle: s.settingsSubIdentity,
+        icon: Icons.fingerprint_rounded,
+        route: '/settings/identity',
+      ),
+      _Category(
+        title: s.importPrivateKeyTitle,
+        subtitle: s.settingsSubImportKey,
+        icon: Icons.key_rounded,
+        route: '/settings/import-key',
+      ),
+      _Category(
+        title: s.settingsAbout,
+        subtitle: s.settingsSubAbout,
+        icon: Icons.info_outline_rounded,
+        route: '/settings/about',
+      ),
+      _Category(
+        title: s.settingsDelete,
+        subtitle: s.settingsSubDanger,
+        icon: Icons.warning_amber_rounded,
+        route: '/settings/danger',
+        danger: true,
+      ),
+    ];
+
+    // 依主題將分類歸到四個群組。
+    final groups = <_Group>[
+      _Group(s.settingsGroupGeneral, <_Category>[
+        categories[0], // 外觀與語言
+        categories[6], // 關於
+      ]),
+      _Group(s.settingsGroupAccount, <_Category>[
+        categories[4], // 身份
+        categories[5], // 匯入私鑰
+        categories[1], // 安全
+      ]),
+      _Group(s.settingsGroupConnection, <_Category>[
+        categories[2], // 網路
+        categories[3], // 區塊鏈
+      ]),
+      _Group(s.settingsGroupDanger, <_Category>[
+        categories[7], // 危險操作
+      ]),
+    ];
 
     return Scaffold(
       body: SafeArea(
@@ -462,447 +98,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 title: s.settingsTitle,
                 padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
               ),
-              // ------------------------------------------------------- 外觀
-              SectionCard(
-                title: s.settingsAppearance,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: ThemeOptionCard(
-                            label: s.settingsThemeLight,
-                            icon: Icons.light_mode_rounded,
-                            selected: settings.theme == ThemePreference.light,
-                            onTap: () => ref
-                                .read(settingsProvider.notifier)
-                                .setTheme(ThemePreference.light),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: ThemeOptionCard(
-                            label: s.settingsThemeDark,
-                            icon: Icons.dark_mode_rounded,
-                            selected: settings.theme == ThemePreference.dark,
-                            onTap: () => ref
-                                .read(settingsProvider.notifier)
-                                .setTheme(ThemePreference.dark),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: ThemeOptionCard(
-                            label: s.settingsThemeSystem,
-                            icon: Icons.brightness_auto_rounded,
-                            selected: settings.theme == ThemePreference.system,
-                            onTap: () => ref
-                                .read(settingsProvider.notifier)
-                                .setTheme(ThemePreference.system),
-                          ),
-                        ),
-                      ],
+              for (final group in groups) ...<Widget>[
+                _GroupHeader(title: group.title),
+                for (final c in group.items) ...<Widget>[
+                  SectionCard(
+                    child: SettingsTile(
+                      icon: c.icon,
+                      title: c.title,
+                      subtitle: c.subtitle,
+                      danger: c.danger,
+                      onTap: () => context.push(c.route),
                     ),
-                  ],
-                ),
-              ),
-              // ------------------------------------------------------- 安全
-              SectionCard(
-                title: s.securitySection,
-                child: Column(
-                  children: <Widget>[
-                    SettingsTile(
-                      icon: Icons.lock_rounded,
-                      title: s.securityLockNow,
-                      subtitle: s.securityLockNowDesc,
-                      onTap: () => ref.read(sessionProvider.notifier).lock(),
-                    ),
-                    SettingsTile(
-                      icon: Icons.timer_outlined,
-                      title: s.securityAutoLock,
-                      subtitle: security.autoLockMinutes <= 0
-                          ? s.securityAutoLockNever
-                          : s.securityAutoLockMinutes(
-                              '${security.autoLockMinutes}',
-                            ),
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => _pickAutoLock(security.autoLockMinutes),
-                    ),
-                    SettingsTile(
-                      icon: Icons.visibility_off_outlined,
-                      title: s.securityHideSecrets,
-                      subtitle: s.securityHideSecretsDesc,
-                      trailing: DropdownButton<int>(
-                        value: security.hideSecretsAfterSeconds,
-                        underline: const SizedBox.shrink(),
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        items: <DropdownMenuItem<int>>[
-                          for (final seconds in <int>[15, 30, 60, 120])
-                            DropdownMenuItem<int>(
-                              value: seconds,
-                              child: Text('$seconds s'),
-                            ),
-                        ],
-                        onChanged: (value) {
-                          if (value == null) return;
-                          ref
-                              .read(securityProvider.notifier)
-                              .setHideSecretsAfterSeconds(value);
-                        },
-                      ),
-                    ),
-                    SettingsTile(
-                      icon: Icons.login_rounded,
-                      title: s.securityLockOnHide,
-                      subtitle: s.securityLockOnHideDesc,
-                      trailing: Switch(
-                        value: security.lockOnHide,
-                        onChanged: (value) => ref
-                            .read(securityProvider.notifier)
-                            .setLockOnHide(value),
-                      ),
-                      onTap: () => ref
-                          .read(securityProvider.notifier)
-                          .setLockOnHide(!security.lockOnHide),
-                    ),
-                    SettingsTile(
-                      icon: Icons.password_rounded,
-                      title: s.securityChangePassword,
-                      subtitle: s.securityChangePasswordDesc,
-                      onTap: _changePassword,
-                    ),
-                  ],
-                ),
-              ),
-              // ------------------------------------------------------- 語言
-              SectionCard(
-                title: s.settingsLanguage,
-                child: Column(
-                  children: <Widget>[
-                    SettingsTile(
-                      icon: Icons.translate_rounded,
-                      title: s.settingsThemeSystem,
-                      subtitle: s.settingsLanguage,
-                      trailing: locale == null
-                          ? const Icon(Icons.check_rounded,
-                              color: AppColors.brand)
-                          : null,
-                      onTap: () =>
-                          ref.read(settingsProvider.notifier).setLocaleCode(''),
-                    ),
-                    for (final item in AppLocale.values)
-                      SettingsTile(
-                        icon: Icons.language_rounded,
-                        title: item.nativeName,
-                        subtitle: item.englishName,
-                        trailing: locale == item
-                            ? const Icon(Icons.check_rounded,
-                                color: AppColors.brand)
-                            : null,
-                        onTap: () => ref
-                            .read(settingsProvider.notifier)
-                            .setLocaleCode(item.code),
-                      ),
-                  ],
-                ),
-              ),
-              // ------------------------------------------------------- 網路
-              SectionCard(
-                title: s.settingsNetwork,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: Text(
-                            s.settingsWakuNode,
-                            style: const TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        TextButton.icon(
-                          onPressed: _addNode,
-                          icon: const Icon(Icons.add_rounded, size: 18),
-                          label: Text(s.settingsNodeAdd),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      s.settingsNodesDesc,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        height: 1.45,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.55),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    // 節點清單：點選可切換「使用中」的節點；內建節點不可移除。
-                    for (final url in settings.nodeUrls) ...<Widget>[
-                      _NodeTile(
-                        key: ValueKey<String>(url),
-                        url: url,
-                        active: url == settings.activeNodeUrl,
-                        onSelect: () => ref
-                            .read(settingsProvider.notifier)
-                            .setActiveNode(url),
-                        onRemove: AppSettings.isBuiltinNode(url)
-                            ? null
-                            : () => _removeNode(url),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                    const SizedBox(height: 4),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: _probing ? null : _recheckNodes,
-                        icon: _probing
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.network_check_rounded, size: 18),
-                        label: Text(s.settingsWakuTest),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: _resyncing ? null : _resync,
-                        icon: _resyncing
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.sync_rounded, size: 18),
-                        label: Text(s.settingsResync),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      s.settingsResyncDesc,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.55),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // ------------------------------------------------------- 身份
-              SectionCard(
-                title: s.identityTitle,
-                child: Column(
-                  children: <Widget>[
-                    SettingsTile(
-                      icon: Icons.fingerprint_rounded,
-                      title: s.identityDid,
-                      subtitle: settings.nickname.isEmpty
-                          ? s.settingsBackup
-                          : settings.nickname,
-                      onTap: () => context.push('/settings/identity'),
-                    ),
-                    SettingsTile(
-                      icon: Icons.key_rounded,
-                      title: s.settingsPublishKeys,
-                      subtitle: 'Waku /nexuschat/1/keys/json',
-                      onTap: () async {
-                        await ref
-                            .read(chatControllerProvider.notifier)
-                            .publishKeys();
-                        if (!context.mounted) return;
-                        showAppSnack(context, s.settingsKeysPublished);
-                      },
-                    ),
-                    SettingsTile(
-                      icon: Icons.download_rounded,
-                      title: s.importPrivateKeyTitle,
-                      subtitle: s.importPrivateKeySubtitle,
-                      onTap: _confirmImportPrivateKey,
-                    ),
-                  ],
-                ),
-              ),
-              // ------------------------------------------------------- 區塊鏈
-              SectionCard(
-                title: s.walletChain,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    // 每行三張卡；鏈變多時自動多排一行，不用改版面。
-                    // 用 IntrinsicHeight 讓同一行的卡片等高（鏈名長度不一）。
-                    for (var row = 0; row * 3 < ChainType.values.length; row++)
-                      Padding(
-                        padding: EdgeInsets.only(top: row == 0 ? 0 : 10),
-                        child: IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: <Widget>[
-                              for (var col = 0; col < 3; col++) ...<Widget>[
-                                if (col > 0) const SizedBox(width: 10),
-                                if (row * 3 + col < ChainType.values.length)
-                                  Expanded(
-                                    child: _chainCard(
-                                      context,
-                                      settings.chain,
-                                      ChainType.values[row * 3 + col],
-                                    ),
-                                  )
-                                else
-                                  // 最後一行不滿三張時補空位，維持左對齊。
-                                  const Expanded(child: SizedBox.shrink()),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 12),
-                    Text(
-                      s.walletChainDesc,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        height: 1.45,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.55),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // ------------------------------------------------------- 進階
-              SectionCard(
-                title: s.settingsAdvanced,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: <Widget>[
-                    TextField(
-                      controller: _rpcUrl,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      onSubmitted: (_) => _saveRpc(),
-                      decoration: InputDecoration(
-                        // 標題帶上鏈名：端點是「哪一條鏈的」必須一眼看得出來。
-                        labelText:
-                            '${ChainSelector.labelOf(s, settings.chain)} · '
-                            '${s.walletRpcUrl}',
-                        prefixIcon: const Icon(Icons.cable_rounded),
-                        helperText: s.walletRpcUrlHint,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: _saveRpc,
-                        icon: const Icon(Icons.save_rounded, size: 18),
-                        label: Text(s.save),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // ------------------------------------------------------- 關於
-              SectionCard(
-                title: s.settingsAbout,
-                child: Column(
-                  children: <Widget>[
-                    const SettingsTile(
-                      icon: Icons.info_outline_rounded,
-                      title: 'NexusChat',
-                      subtitle: 'Waku · did:ethr · AES-256-GCM',
-                      onTap: null,
-                    ),
-                    SettingsTile(
-                      icon: Icons.numbers_rounded,
-                      title: s.settingsVersion,
-                      // 由 CI 以 --dart-define 注入，每次建置自動遞增。
-                      subtitle: AppVersion.display,
-                      onTap: null,
-                    ),
-                    SettingsTile(
-                      icon: Icons.system_update_rounded,
-                      title: s.updateCheck,
-                      subtitle: _updateSubtitle(s, ref.watch(updateCheckProvider)),
-                      trailing: ref.watch(updateCheckProvider).status ==
-                              UpdateStatus.checking
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : null,
-                      onTap: () async {
-                        await ref
-                            .read(updateCheckProvider.notifier)
-                            .check();
-                        if (!mounted) return;
-                        final st = ref.read(updateCheckProvider);
-                        if (st.status == UpdateStatus.available) {
-                          showUpdateDialog(context, ref);
-                        } else if (st.status == UpdateStatus.upToDate) {
-                          showAppSnack(context, s.updateLatest);
-                        } else if (st.status == UpdateStatus.error) {
-                          showAppSnack(context, s.updateFailed);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              // ----------------------------------------------------- 危險區
-              SectionCard(
-                title: s.identityRisk,
-                child: SettingsTile(
-                  icon: Icons.delete_forever_rounded,
-                  title: s.settingsDelete,
-                  danger: true,
-                  onTap: () async {
-                    final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: Text(s.settingsDelete),
-                            content: Text(s.settingsDeleteConfirm),
-                            actions: <Widget>[
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: Text(s.cancel),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                child: Text(
-                                  s.delete,
-                                  style: const TextStyle(color: AppColors.danger),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ) ??
-                        false;
-                    if (confirmed) {
-                      await ref.read(sessionProvider.notifier).wipeIdentity();
-                      if (context.mounted) context.go('/welcome');
-                    }
-                  },
-                ),
-              ),
+                  ),
+                ],
+                const SizedBox(height: 10),
+              ],
             ],
           ),
         ),
@@ -911,236 +121,49 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 }
 
-/// 修改密碼對話框的結果。
-class _PasswordChangeRequest {
-  const _PasswordChangeRequest({required this.current, required this.next});
+/// 設定首頁的一個分類入口。
+class _Category {
+  const _Category({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.route,
+    this.danger = false,
+  });
 
-  final String current;
-  final String next;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final String route;
+  final bool danger;
 }
 
-/// 修改保險庫密碼：驗證目前密碼 → 設定新密碼。
-class _ChangePasswordDialog extends StatefulWidget {
-  const _ChangePasswordDialog();
+/// 設定首頁的一個分組（例如「通用」「連線」「帳號」「危險區」）。
+class _Group {
+  const _Group(this.title, this.items);
 
-  @override
-  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+  final String title;
+  final List<_Category> items;
 }
 
-class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
-  final TextEditingController _current = TextEditingController();
-  final TextEditingController _next = TextEditingController();
-  final TextEditingController _confirm = TextEditingController();
-  String? _error;
+/// 分組標題：小號、半透明、字距略寬，作為目錄的分段提示。
+class _GroupHeader extends StatelessWidget {
+  const _GroupHeader({required this.title});
 
-  @override
-  void dispose() {
-    _current.dispose();
-    _next.dispose();
-    _confirm.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final code = validateNewPassword(
-      password: _next.text,
-      confirm: _confirm.text,
-    );
-    if (code != null) {
-      setState(() => _error = code);
-      return;
-    }
-    Navigator.pop(
-      context,
-      _PasswordChangeRequest(current: _current.text, next: _next.text),
-    );
-  }
+  final String title;
 
   @override
   Widget build(BuildContext context) {
-    final s = context.s;
-    return AlertDialog(
-      title: Text(s.securityChangePassword),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            PasswordInput(
-              controller: _current,
-              autofocus: true,
-              label: s.currentPassword,
-            ),
-            const SizedBox(height: 20),
-            PasswordSetupFields(
-              passwordController: _next,
-              confirmController: _confirm,
-              passwordError:
-                  _error == null ? null : passwordErrorText(context, _error),
-            ),
-          ],
-        ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(s.cancel),
-        ),
-        FilledButton(onPressed: _submit, child: Text(s.confirm)),
-      ],
-    );
-  }
-}
-
-/// 單一 Waku 節點的列表項：位址、連線狀態、是否使用中，以及（自訂節點的）移除按鈕。
-///
-/// 一次只連線一台節點，所以點選列表項就會切換實際連線的對象。
-class _NodeTile extends ConsumerWidget {
-  const _NodeTile({
-    super.key,
-    required this.url,
-    required this.active,
-    required this.onSelect,
-    required this.onRemove,
-  });
-
-  final String url;
-
-  /// 是否為目前使用中的節點。
-  final bool active;
-
-  /// 點選列表項時切換使用中的節點。
-  final VoidCallback onSelect;
-
-  /// 僅自訂節點會提供；內建節點傳入 null 表示不可移除。
-  final VoidCallback? onRemove;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = context.s;
     final theme = Theme.of(context);
-    final statuses = ref.watch(nodeStatusProvider);
-    final builtin = AppSettings.isBuiltinNode(url);
-    final byUrl = <String, NodeStatus>{
-      for (final item in statuses.value ?? const <NodeStatus>[]) item.url: item,
-    };
-    final status = byUrl[url];
-
-    final Color color;
-    final String label;
-    if (statuses.isLoading && status == null) {
-      color = theme.colorScheme.onSurface.withValues(alpha: 0.45);
-      label = s.settingsNodeChecking;
-    } else if (status == null) {
-      color = theme.colorScheme.onSurface.withValues(alpha: 0.45);
-      label = s.settingsNodeChecking;
-    } else if (status.ok && !status.relayReady) {
-      // 可連線但沒有 peer：訊息其實送不出去，不該顯示成綠燈。
-      color = AppColors.danger;
-      label = status.latencyMs == null
-          ? s.statusNoPeers
-          : '${s.statusNoPeers} · ${status.latencyMs}ms';
-    } else if (status.ok) {
-      color = AppColors.success;
-      label = status.latencyMs == null
-          ? s.settingsWakuOk
-          : '${s.settingsWakuOk} · ${status.latencyMs}ms';
-    } else {
-      color = AppColors.danger;
-      label = s.settingsWakuFail;
-    }
-
-    return InkWell(
-      onTap: active ? null : onSelect,
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          color: active ? AppColors.brand.withValues(alpha: 0.08) : null,
-          border: Border.all(
-            color: active
-                ? AppColors.brand
-                : theme.colorScheme.onSurface.withValues(alpha: 0.12),
-            width: active ? 1.6 : 1,
-          ),
-        ),
-        child: Row(
-          children: <Widget>[
-            Icon(
-              active ? Icons.radio_button_checked_rounded : Icons.hub_rounded,
-              size: 18,
-              color: active ? AppColors.brand : color,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: MonoText(
-                          url,
-                          maxLines: 1,
-                          style: const TextStyle(fontSize: 12.5),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Pill(
-                        label: builtin
-                            ? s.settingsNodeBuiltin
-                            : s.settingsNodeCustom,
-                        color: builtin
-                            ? AppColors.brand
-                            : theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: <Widget>[
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      if (active) ...<Widget>[
-                        const Icon(
-                          Icons.check_circle_rounded,
-                          size: 13,
-                          color: AppColors.brand,
-                        ),
-                        const SizedBox(width: 5),
-                      ],
-                      Expanded(
-                        child: Text(
-                          label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: active ? AppColors.brand : color,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            if (onRemove != null)
-              IconButton(
-                tooltip: s.settingsNodeRemove,
-                onPressed: onRemove,
-                icon: const Icon(Icons.delete_outline_rounded, size: 18),
-              ),
-          ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 14, 6, 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.4,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
         ),
       ),
     );

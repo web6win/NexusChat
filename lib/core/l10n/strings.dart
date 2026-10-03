@@ -378,6 +378,20 @@ abstract final class K {
   static const settingsVersion = 'settingsVersion';
   static const settingsAdvanced = 'settingsAdvanced';
 
+  // 設定分組標題與目錄副標
+  static const settingsGroupGeneral = 'settingsGroupGeneral';
+  static const settingsGroupAccount = 'settingsGroupAccount';
+  static const settingsGroupConnection = 'settingsGroupConnection';
+  static const settingsGroupDanger = 'settingsGroupDanger';
+  static const settingsSubAppearance = 'settingsSubAppearance';
+  static const settingsSubSecurity = 'settingsSubSecurity';
+  static const settingsSubNetwork = 'settingsSubNetwork';
+  static const settingsSubBlockchain = 'settingsSubBlockchain';
+  static const settingsSubIdentity = 'settingsSubIdentity';
+  static const settingsSubImportKey = 'settingsSubImportKey';
+  static const settingsSubAbout = 'settingsSubAbout';
+  static const settingsSubDanger = 'settingsSubDanger';
+
   // ------------------------------------------------------------ 版本更新
   static const updateCheck = 'updateCheck';
   static const updateChecking = 'updateChecking';
@@ -785,6 +799,18 @@ const Map<String, Map<String, String>> _bundles = {
     K.updateLaunchFailed: '無法開啟下載連結，請稍後再試或掃碼下載',
     K.scanToDownload: '掃碼下載',
     K.settingsAdvanced: '進階',
+    K.settingsGroupGeneral: '通用',
+    K.settingsGroupAccount: '帳號',
+    K.settingsGroupConnection: '連線',
+    K.settingsGroupDanger: '危險區',
+    K.settingsSubAppearance: '主題樣式與介面語言',
+    K.settingsSubSecurity: '鎖定、自動鎖定、修改密碼',
+    K.settingsSubNetwork: 'Waku 節點與連線',
+    K.settingsSubBlockchain: '區塊鏈與 RPC 端點',
+    K.settingsSubIdentity: 'DID 與備份',
+    K.settingsSubImportKey: '以私鑰還原身份',
+    K.settingsSubAbout: '版本與更新',
+    K.settingsSubDanger: '刪除此裝置上的身份',
     K.settingsClearCache: '清除快取',
     K.settingsCacheCleared: '快取已清除',
     K.settingsPublishKeys: '重新發布金鑰包',
@@ -1169,6 +1195,18 @@ const Map<String, Map<String, String>> _bundles = {
     K.updateLaunchFailed: '无法打开下载链接，请稍后再试或扫码下载',
     K.scanToDownload: '扫码下载',
     K.settingsAdvanced: '进阶',
+    K.settingsGroupGeneral: '通用',
+    K.settingsGroupAccount: '账户',
+    K.settingsGroupConnection: '连接',
+    K.settingsGroupDanger: '危险区',
+    K.settingsSubAppearance: '主题样式与界面语言',
+    K.settingsSubSecurity: '锁定、自动锁定、修改密码',
+    K.settingsSubNetwork: 'Waku 节点与连接',
+    K.settingsSubBlockchain: '区块链与 RPC 端点',
+    K.settingsSubIdentity: 'DID 与备份',
+    K.settingsSubImportKey: '用私钥恢复身份',
+    K.settingsSubAbout: '版本与更新',
+    K.settingsSubDanger: '删除此设备上的身份',
     K.settingsClearCache: '清除缓存',
     K.settingsCacheCleared: '缓存已清除',
     K.settingsPublishKeys: '重新发布密钥包',
@@ -1586,6 +1624,18 @@ const Map<String, Map<String, String>> _bundles = {
         'Could not open the download link. Try again later or scan the QR code.',
     K.scanToDownload: 'Scan to download',
     K.settingsAdvanced: 'Advanced',
+    K.settingsGroupGeneral: 'General',
+    K.settingsGroupAccount: 'Account',
+    K.settingsGroupConnection: 'Connection',
+    K.settingsGroupDanger: 'Danger zone',
+    K.settingsSubAppearance: 'Theme style and interface language',
+    K.settingsSubSecurity: 'Lock, auto-lock and password',
+    K.settingsSubNetwork: 'Waku nodes and connectivity',
+    K.settingsSubBlockchain: 'Chain and RPC endpoints',
+    K.settingsSubIdentity: 'DID and backup',
+    K.settingsSubImportKey: 'Restore identity from a private key',
+    K.settingsSubAbout: 'Version and updates',
+    K.settingsSubDanger: 'Delete identity on this device',
     K.settingsClearCache: 'Clear cache',
     K.settingsCacheCleared: 'Cache cleared',
     K.settingsPublishKeys: 'Re-publish key bundle',
@@ -2011,6 +2061,18 @@ const Map<String, Map<String, String>> _bundles = {
         'No se pudo abrir el enlace de descarga. Inténtalo más tarde o escanea el código QR.',
     K.scanToDownload: 'Escanea para descargar',
     K.settingsAdvanced: 'Avanzado',
+    K.settingsGroupGeneral: 'General',
+    K.settingsGroupAccount: 'Cuenta',
+    K.settingsGroupConnection: 'Conexión',
+    K.settingsGroupDanger: 'Zona de peligro',
+    K.settingsSubAppearance: 'Estilo visual e idioma',
+    K.settingsSubSecurity: 'Bloqueo, auto-bloqueo y contraseña',
+    K.settingsSubNetwork: 'Nodos Waku y conectividad',
+    K.settingsSubBlockchain: 'Cadena y puntos RPC',
+    K.settingsSubIdentity: 'DID y copia de seguridad',
+    K.settingsSubImportKey: 'Restaurar identidad con clave privada',
+    K.settingsSubAbout: 'Versión y actualizaciones',
+    K.settingsSubDanger: 'Eliminar identidad en este dispositivo',
     K.settingsClearCache: 'Borrar caché',
     K.settingsCacheCleared: 'Caché borrada',
     K.settingsPublishKeys: 'Republicar paquete de claves',
@@ -2442,6 +2504,18 @@ class Strings {
   String get settingsAbout => get(K.settingsAbout);
   String get settingsVersion => get(K.settingsVersion);
   String get settingsAdvanced => get(K.settingsAdvanced);
+  String get settingsGroupGeneral => get(K.settingsGroupGeneral);
+  String get settingsGroupAccount => get(K.settingsGroupAccount);
+  String get settingsGroupConnection => get(K.settingsGroupConnection);
+  String get settingsGroupDanger => get(K.settingsGroupDanger);
+  String get settingsSubAppearance => get(K.settingsSubAppearance);
+  String get settingsSubSecurity => get(K.settingsSubSecurity);
+  String get settingsSubNetwork => get(K.settingsSubNetwork);
+  String get settingsSubBlockchain => get(K.settingsSubBlockchain);
+  String get settingsSubIdentity => get(K.settingsSubIdentity);
+  String get settingsSubImportKey => get(K.settingsSubImportKey);
+  String get settingsSubAbout => get(K.settingsSubAbout);
+  String get settingsSubDanger => get(K.settingsSubDanger);
 
   String get updateCheck => get(K.updateCheck);
   String get updateChecking => get(K.updateChecking);

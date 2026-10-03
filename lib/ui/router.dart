@@ -11,7 +11,14 @@ import '../features/onboarding/restore_page.dart';
 import '../features/onboarding/welcome_page.dart';
 import '../features/chats/chats_page.dart';
 import '../features/security/migrate_page.dart';
+import '../features/settings/about_settings_page.dart';
+import '../features/settings/appearance_settings_page.dart';
+import '../features/settings/blockchain_settings_page.dart';
+import '../features/settings/danger_settings_page.dart';
+import '../features/settings/identity_import_page.dart';
 import '../features/settings/identity_page.dart';
+import '../features/settings/network_settings_page.dart';
+import '../features/settings/security_settings_page.dart';
 import '../features/settings/settings_page.dart';
 import '../features/wallet/send_page.dart';
 import '../features/wallet/wallet_page.dart';
@@ -173,9 +180,44 @@ final routerProvider = Provider<GoRouter>((ref) {
                     const SettingsPage(),
                 routes: <RouteBase>[
                   GoRoute(
+                    path: 'appearance',
+                    builder: (BuildContext context, GoRouterState state) =>
+                        const AppearanceSettingsPage(),
+                  ),
+                  GoRoute(
+                    path: 'security',
+                    builder: (BuildContext context, GoRouterState state) =>
+                        const SecuritySettingsPage(),
+                  ),
+                  GoRoute(
+                    path: 'network',
+                    builder: (BuildContext context, GoRouterState state) =>
+                        const NetworkSettingsPage(),
+                  ),
+                  GoRoute(
+                    path: 'blockchain',
+                    builder: (BuildContext context, GoRouterState state) =>
+                        const BlockchainSettingsPage(),
+                  ),
+                  GoRoute(
                     path: 'identity',
                     builder: (BuildContext context, GoRouterState state) =>
                         const IdentityPage(),
+                  ),
+                  GoRoute(
+                    path: 'import-key',
+                    builder: (BuildContext context, GoRouterState state) =>
+                        const IdentityImportPage(),
+                  ),
+                  GoRoute(
+                    path: 'about',
+                    builder: (BuildContext context, GoRouterState state) =>
+                        const AboutSettingsPage(),
+                  ),
+                  GoRoute(
+                    path: 'danger',
+                    builder: (BuildContext context, GoRouterState state) =>
+                        const DangerSettingsPage(),
                   ),
                 ],
               ),
