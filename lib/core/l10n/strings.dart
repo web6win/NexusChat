@@ -388,6 +388,9 @@ abstract final class K {
   static const updateNow = 'updateNow';
   static const updateLater = 'updateLater';
   static const updateFailed = 'updateFailed';
+  static const updateLaunchFailed = 'updateLaunchFailed';
+  static const updateRefresh = 'updateRefresh';
+  static const updateWebHint = 'updateWebHint';
   static const scanToDownload = 'scanToDownload';
   static const settingsClearCache = 'settingsClearCache';
   static const settingsCacheCleared = 'settingsCacheCleared';
@@ -772,11 +775,14 @@ const Map<String, Map<String, String>> _bundles = {
     K.updateChecking: '正在檢查更新…',
     K.updateLatest: '已是最新版本',
     K.updateAvailableTitle: '發現新版本',
-    K.updateVersionLine: 'v{0}（建置 {1}）',
-    K.updatePublished: '發佈於 {0}',
+    K.updateVersionLine: 'v%1\$s（建置 %2\$s）',
+    K.updatePublished: '發佈於 %1\$s',
     K.updateNow: '立即更新',
     K.updateLater: '稍後',
     K.updateFailed: '無法檢查更新，請稍後再試',
+    K.updateRefresh: '重新整理頁面',
+    K.updateWebHint: '網頁版由 GitHub Pages 託管，重新整理頁面即更新到最新版本。',
+    K.updateLaunchFailed: '無法開啟下載連結，請稍後再試或掃碼下載',
     K.scanToDownload: '掃碼下載',
     K.settingsAdvanced: '進階',
     K.settingsClearCache: '清除快取',
@@ -1153,11 +1159,14 @@ const Map<String, Map<String, String>> _bundles = {
     K.updateChecking: '正在检查更新…',
     K.updateLatest: '已是最新版本',
     K.updateAvailableTitle: '发现新版本',
-    K.updateVersionLine: 'v{0}（构建 {1}）',
-    K.updatePublished: '发布于 {0}',
+    K.updateVersionLine: 'v%1\$s（构建 %2\$s）',
+    K.updatePublished: '发布于 %1\$s',
     K.updateNow: '立即更新',
     K.updateLater: '稍后',
     K.updateFailed: '无法检查更新，请稍后再试',
+    K.updateRefresh: '刷新页面',
+    K.updateWebHint: '网页版由 GitHub Pages 托管，刷新页面即更新到最新版本。',
+    K.updateLaunchFailed: '无法打开下载链接，请稍后再试或扫码下载',
     K.scanToDownload: '扫码下载',
     K.settingsAdvanced: '进阶',
     K.settingsClearCache: '清除缓存',
@@ -1565,11 +1574,16 @@ const Map<String, Map<String, String>> _bundles = {
     K.updateChecking: 'Checking for updates…',
     K.updateLatest: 'Up to date',
     K.updateAvailableTitle: 'Update available',
-    K.updateVersionLine: 'v{0} (build {1})',
-    K.updatePublished: 'Published {0}',
+    K.updateVersionLine: 'v%1\$s (build %2\$s)',
+    K.updatePublished: 'Published %1\$s',
     K.updateNow: 'Update now',
     K.updateLater: 'Later',
     K.updateFailed: 'Could not check for updates. Try again later.',
+    K.updateRefresh: 'Refresh page',
+    K.updateWebHint:
+        'The web app is hosted on GitHub Pages; just refresh the page to get the latest version.',
+    K.updateLaunchFailed:
+        'Could not open the download link. Try again later or scan the QR code.',
     K.scanToDownload: 'Scan to download',
     K.settingsAdvanced: 'Advanced',
     K.settingsClearCache: 'Clear cache',
@@ -1985,11 +1999,16 @@ const Map<String, Map<String, String>> _bundles = {
     K.updateChecking: 'Buscando actualizaciones…',
     K.updateLatest: 'Está actualizado',
     K.updateAvailableTitle: 'Actualización disponible',
-    K.updateVersionLine: 'v{0} (compilación {1})',
-    K.updatePublished: 'Publicado el {0}',
+    K.updateVersionLine: 'v%1\$s (compilación %2\$s)',
+    K.updatePublished: 'Publicado el %1\$s',
     K.updateNow: 'Actualizar ahora',
     K.updateLater: 'Más tarde',
     K.updateFailed: 'No se pudieron buscar actualizaciones. Inténtalo más tarde.',
+    K.updateRefresh: 'Actualizar página',
+    K.updateWebHint:
+        'La versión web se aloja en GitHub Pages; simplemente actualiza la página para obtener la última versión.',
+    K.updateLaunchFailed:
+        'No se pudo abrir el enlace de descarga. Inténtalo más tarde o escanea el código QR.',
     K.scanToDownload: 'Escanea para descargar',
     K.settingsAdvanced: 'Avanzado',
     K.settingsClearCache: 'Borrar caché',
@@ -2434,6 +2453,9 @@ class Strings {
   String get updateNow => get(K.updateNow);
   String get updateLater => get(K.updateLater);
   String get updateFailed => get(K.updateFailed);
+  String get updateLaunchFailed => get(K.updateLaunchFailed);
+  String get updateRefresh => get(K.updateRefresh);
+  String get updateWebHint => get(K.updateWebHint);
   String get scanToDownload => get(K.scanToDownload);
   String get settingsClearCache => get(K.settingsClearCache);
   String get settingsCacheCleared => get(K.settingsCacheCleared);

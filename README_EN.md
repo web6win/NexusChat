@@ -89,6 +89,42 @@ Identity-like content is deliberately evaluated before URLs, otherwise `name.eth
   on iOS / macOS (macOS additionally needs the Camera entitlement).
 - In a browser, the camera is only available over **HTTPS or localhost** (localhost counts as a secure context).
 
+### 2.3 Android release signing
+
+Without `android/key.properties`, `flutter build apk --release` is signed with an **auto-generated debug key**. That key differs per machine / CI runner, so installs fail with `-7: signatures do not match the previously installed version` and **new builds cannot upgrade older installs**. Release APKs must always be signed with one fixed key.
+
+Generate the key once (keep it safe — if you lose it you can no longer upgrade published installs):
+
+```bash
+keytool -genkeypair -v -keystore upload-keystore.jks \
+  -keyalg RSA -keysize 2048 -validity 10000 -alias nexuschat
+```
+
+Put it at `android/app/upload-keystore.jks` and fill in `android/key.properties` (**already git-ignored — never commit**):
+
+```properties
+storePassword=your-keystore-password
+keyPassword=your-key-password
+keyAlias=nexuschat
+storeFile=upload-keystore.jks   # relative to android/app/
+```
+
+Local `flutter build apk --release` will then use the fixed signature. For CI (`.github/workflows/build-and-publish.yml`), set these repo Settings → Secrets:
+
+| Secret | Value |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | output of `base64 -w0 upload-keystore.jks` |
+| `ANDROID_KEYSTORE_PASSWORD` | `storePassword` |
+| `ANDROID_KEY_PASSWORD` | `keyPassword` |
+| `ANDROID_KEY_ALIAS` | `keyAlias` (e.g. `nexuschat`) |
+
+> On Windows PowerShell, produce `ANDROID_KEYSTORE_BASE64` with
+> `[Convert]::ToBase64String([IO.File]::ReadAllBytes("upload-keystore.jks"))` (Git Bash / Linux / macOS: `base64 -w0 upload-keystore.jks`).
+
+The workflow then writes the keystore and `key.properties` before the Android build; without them it falls back to debug signing (testing only, not for release).
+
+> A device with an older, differently-signed build must **uninstall once** before installing the new one; afterwards, builds signed with the same key upgrade normally.
+
 ---
 
 ## 3. Identity and Key Security

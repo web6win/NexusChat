@@ -15,6 +15,14 @@
 #   IOS_P12_PASSWORD             : .p12 匯出密碼
 #   IOS_PROVISIONING_PROFILE_BASE64 : 佈建檔 .mobileprovision 的 base64
 #   並於 ios/ExportOptions.plist 提供匯出設定。
+#
+# 建議設定的 Android 發佈簽署（強烈建議；否則每次 CI 會用一次性 debug 金鑰簽名，
+# 導致新舊版本簽名不同、無法覆蓋安裝）：
+#   ANDROID_KEYSTORE_BASE64      : 發佈金鑰 .jks 的 base64（base64 -w0 upload-keystore.jks）
+#   ANDROID_KEYSTORE_PASSWORD    : keystore 密碼（storePassword）
+#   ANDROID_KEY_PASSWORD         : 金鑰密碼（keyPassword）
+#   ANDROID_KEY_ALIAS            : 金鑰別名（keyAlias）
+#   產生方式見 README「Android 發佈簽名」一節。
 # =============================================================================
 
 name: Build & Publish
@@ -97,6 +105,8 @@ jobs:
     env:
       APP_VERSION_NAME: ${{ needs.version.outputs.name }}
       APP_VERSION_BUILD: ${{ needs.version.outputs.build }}
+      # secrets 無法直接用於 step 層級 if:，先在 job 層級算布林閘門。
+      HAS_ANDROID_SIGNING: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
       # 所有平台都靠 dart-define 把版本號帶進 App（設定頁會顯示）。
       DART_DEFINES: >-
         --dart-define=APP_VERSION_NAME=${{ needs.version.outputs.name }}
@@ -126,6 +136,19 @@ jobs:
 
       - name: Build Linux (release)
         run: flutter build linux --release $DART_DEFINES
+
+      # 用固定的發佈密鑰簽 Android 包，確保每次發佈的簽名一致、可覆蓋升級；
+      # 未設定 ANDROID_KEYSTORE_BASE64 時略過，退回 debug 簽名（僅供本機測試）。
+      - name: Configure Android release signing
+        if: ${{ env.HAS_ANDROID_SIGNING == 'true' }}
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=upload-keystore.jks
+          EOF
 
       # Android 構建允許失敗（continue-on-error），避免單一平台出錯波及 Web / Linux 發佈；
       # 只要產出任一 APK/AAB，下載清單就會出現 Android 區塊。

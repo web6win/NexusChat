@@ -89,6 +89,42 @@ dart run tool/smoke.dart       # 核心邏輯冒煙測試（不依賴 flutter_te
   `NSCameraUsageDescription`（macOS 另需 Camera entitlement）。
 - 瀏覽器必須在 **HTTPS 或 localhost** 下才能取得相機（localhost 視為安全上下文）。
 
+### 2.3 Android 發佈簽名
+
+`flutter build apk --release` 若沒有 `android/key.properties`，會用**本機自動產生的 debug 金鑰**簽名。debug 金鑰每台機器 / 每次 CI runner 都不同，會導致安裝失敗 `-7：與已安裝應用簽名不同`、**新版無法覆蓋舊版**。因此發佈用的 APK 必須固定用同一把金鑰簽名。
+
+一次性產生金鑰（**務必妥善保存**，遺失後將無法再覆蓋升級已發佈的 App）：
+
+```bash
+keytool -genkeypair -v -keystore upload-keystore.jks \
+  -keyalg RSA -keysize 2048 -validity 10000 -alias nexuschat
+```
+
+把金鑰放到 `android/app/upload-keystore.jks`，並在 `android/key.properties`（**已在 .gitignore，勿提交**）填入：
+
+```properties
+storePassword=你的keystore密碼
+keyPassword=你的金鑰密碼
+keyAlias=nexuschat
+storeFile=upload-keystore.jks   # 相對於 android/app/
+```
+
+此後本機 `flutter build apk --release` 會自動套用固定簽名。CI（`.github/workflows/build-and-publish.yml`）請於倉庫 Settings → Secrets 設定：
+
+| Secret | 內容 |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | `base64 -w0 upload-keystore.jks` 的輸出 |
+| `ANDROID_KEYSTORE_PASSWORD` | `storePassword` |
+| `ANDROID_KEY_PASSWORD` | `keyPassword` |
+| `ANDROID_KEY_ALIAS` | `keyAlias`（例如 `nexuschat`） |
+
+> `ANDROID_KEYSTORE_BASE64` 在 Windows PowerShell 可這樣產生：
+> `[Convert]::ToBase64String([IO.File]::ReadAllBytes("upload-keystore.jks"))`（Git Bash / Linux / macOS 用 `base64 -w0 upload-keystore.jks`）。
+
+設定後 workflow 會在 Android 建構前自動寫入金鑰與 `key.properties`；未設定則維持 debug 簽名（僅供測試，不可用於發佈）。
+
+> 裝置上若已安裝**舊簽名**版本，需先卸載一次再安裝新版；此後同一把金鑰簽出的版本即可正常覆蓋升級。
+
 ---
 
 ## 三、身份與金鑰安全
