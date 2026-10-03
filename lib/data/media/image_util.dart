@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
+import 'media_size.dart';
+
 /// 將圖片壓縮到適合透過 Waku 傳送的大小。
 ///
 /// 流程：先將最長邊縮放到 [maxDim]，再以 JPEG [quality] 重新編碼；
@@ -15,15 +17,19 @@ import 'package:image/image.dart' as img;
 /// HEIC/HEIF）。這種情況**絕不能原樣送出**：接收端同樣解不開，訊息氣泡會
 /// 因為沒有可顯示的圖而塌成一個小點 —— 使用者只會看到「破圖」。
 ///
-/// [maxBytes] 是「壓縮後的原始位元組」，不是送上 Waku 的大小；後者還會
-/// 因為兩次 base64 再膨脹約 2.4 倍。預設 256KB（→ 載荷約 610KB）是為了讓
-/// 成品落在節點的單則上限之內，只求「畫質最好」反而會整張送不出去。
+/// [maxBytes] 是「壓縮後的原始位元組」，不是送上 Waku 的大小 —— 後者還會
+/// 因為兩次 base64 膨脹約 2.37 倍（見 [estimateWakuPayload]）。預設值由
+/// 網路端的 payload 預算反推（[kImageTargetBytes]），只求「畫質最好」反而
+/// 會讓整張圖送不出去。
 Uint8List? compressImage(
   Uint8List bytes, {
   int maxDim = 1280,
   int quality = 82,
-  int maxBytes = 256 * 1024,
+  int? maxBytes,
 }) {
+  // 不能寫成預設值：kImageTargetBytes 是執行期算出來的（由 payload 預算
+  // 反推），而 Dart 要求可選參數的預設值必須是編譯期常數。
+  final budget = maxBytes ?? kImageTargetBytes;
   final source = img.decodeImage(bytes);
   if (source == null) return null;
   // 顯式宣告成不可為 null 的 Image：下面會在迴圈裡重新指派 decoded，
@@ -43,7 +49,7 @@ Uint8List? compressImage(
 
   var q = quality;
   var out = img.encodeJpg(decoded, quality: q);
-  while (out.length > maxBytes && q > 30) {
+  while (out.length > budget && q > 30) {
     q -= 12;
     out = img.encodeJpg(decoded, quality: q);
   }
@@ -53,7 +59,7 @@ Uint8List? compressImage(
   // [decoded] 每輪都真的縮小，因此尺寸條件會逐輪逼近、必定收斂；
   // 上限 8 輪只是額外保險，避免任何意外造成無窮迴圈。
   var shrinkRounds = 0;
-  while (out.length > maxBytes &&
+  while (out.length > budget &&
       decoded.width > 360 &&
       decoded.height > 360 &&
       shrinkRounds < 8) {

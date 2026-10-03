@@ -24,6 +24,7 @@ import '../data/waku/node_probe.dart';
 import '../data/waku/waku_message.dart';
 import '../data/waku/waku_service.dart';
 import '../data/waku/waku_transport.dart';
+import '../data/media/media_size.dart';
 import '../core/l10n/app_locale.dart';
 
 /// 身份發生變化時遞增，讓路由重新判斷導向。
@@ -635,21 +636,6 @@ final nodeStatusProvider = FutureProvider<List<NodeStatus>>((ref) async {
 // 聊天
 // ==========================================================================
 
-/// 單則訊息可攜帶的媒體體積上限（壓縮後的**原始**位元組）。
-///
-/// 這**不是**最終送上 Waku 的大小 —— 中間還會膨脹約 2.4 倍：
-///   1. 媒體位元組先被 base64 編碼放進明文 JSON（×4/3）；
-///   2. 加密後的封包整個再被 base64 編碼一次（×4/3）；
-///   3. 再加上信封欄位（id / from / to / sig）、nonce、MAC 與一次性公鑰。
-///
-/// 實測：200KB 左右的圖片（載荷約 475KB）送得出去，400KB 以上（載荷約
-/// 950KB）會被節點拒絕，因此這裡抓 280KB（→ 載荷約 660KB）留下安全餘裕。
-/// 超過就一律標記失敗，避免使用者白等一趟還拿到莫名其妙的錯誤。
-///
-/// 媒體訊息不帶「給自己的副本」（見 [Core.waku] 的 includeSelfCopy），
-/// 所以這裡不需要再為第二份副本預留空間。
-const int kMaxMediaBytes = 280 * 1024;
-
 /// 聊天畫面狀態。
 class ChatState {
   const ChatState({
@@ -696,8 +682,8 @@ class ChatController extends Notifier<ChatState> {
   static const _pollInterval = Duration(milliseconds: 1200);
   static const _keyRepublishInterval = Duration(minutes: 2);
 
-  /// 單則媒體的最大體積（位元組）。見 [kMaxMediaBytes] 的推導。
-  static const int _maxMediaBytes = kMaxMediaBytes;
+  /// 單則媒體的最大體積（位元組）。由網路端的 payload 預算反推，
+  /// 見 [kMaxMediaBytes]（lib/data/media/media_size.dart）。
 
   @override
   ChatState build() {
@@ -962,7 +948,7 @@ class ChatController extends Notifier<ChatState> {
 
     // 媒體過大：直接標記失敗，避免塞爆 Waku 節點。
     if (content.mediaBytes != null &&
-        content.mediaBytes!.length > _maxMediaBytes) {
+        content.mediaBytes!.length > kMaxMediaBytes) {
       final failed = ChatMessage(
         id: 'tmp-${const Uuid().v4()}',
         peerDid: peerDid,

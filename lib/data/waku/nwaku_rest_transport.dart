@@ -253,7 +253,9 @@ class NwakuRestTransport extends WakuTransport {
           },
           body: jsonEncode(message.toJson()),
         )
-        .timeout(const Duration(seconds: 10));
+        // 圖片訊息的 payload 可達數百 KB，慢速網路下 10 秒太緊；
+        // 放寬到 20 秒，避免「其實送得出去、卻被逾時判死」。
+        .timeout(const Duration(seconds: 20));
     if (response.statusCode >= 300) {
       throw WakuTransportException(
         'publish failed (${response.statusCode}): ${response.body}',

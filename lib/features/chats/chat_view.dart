@@ -19,12 +19,14 @@ import '../../data/crypto/did.dart';
 import '../../data/media/audio_playback.dart';
 import '../../data/media/audio_source.dart';
 import '../../data/media/image_util.dart';
+import '../../data/media/media_size.dart';
 import '../../data/models/chat_models.dart';
 import '../../data/waku/message_content.dart';
 import '../../shared/feedback.dart';
 import '../../shared/layout.dart';
 import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
+import 'image_viewer_page.dart';
 
 /// 單一對話的完整畫面：訊息串 + 輸入框（含圖片 / 語音）。
 class ChatView extends ConsumerStatefulWidget {
@@ -908,7 +910,7 @@ class MessageBubble extends StatelessWidget {
                   ),
                 ],
               ),
-              child: _bubbleContent(outgoing, palette, s),
+              child: _bubbleContent(context, outgoing, palette, s),
             ),
             const SizedBox(height: 3),
             Padding(
@@ -959,7 +961,22 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _bubbleContent(bool outgoing, palette, Strings s) {
+  /// 開啟全螢圖片檢視頁。
+  ///
+  /// 用 MaterialPageRoute 而不是 router：圖片位元組只在記憶體裡，沒必要
+  /// （也無法）放進 URL。
+  void _openImageViewer(BuildContext context, Uint8List bytes) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ImageViewerPage(
+          bytes: bytes,
+          fileName: imageFileNameFor(message.mediaName, message.timestampMs),
+        ),
+      ),
+    );
+  }
+
+  Widget _bubbleContent(BuildContext context, bool outgoing, palette, Strings s) {
     switch (message.kind) {
       case MediaKind.image:
         final bytes = _decodeMediaBytes(message.mediaB64);
@@ -976,14 +993,18 @@ class MessageBubble extends StatelessWidget {
                     maxWidth: 240,
                     maxHeight: 280,
                   ),
-                  child: Image.memory(
-                    bytes,
-                    fit: BoxFit.cover,
-                    // 壞資料 / 不支援的格式：顯示明確的替代方塊。否則
-                    // RenderImage 在沒有可量測的圖時尺寸為 0，整個氣泡
-                    // 會塌成一個看不懂的小點。
-                    errorBuilder: (context, error, stackTrace) =>
-                        _MediaUnavailable(label: s.chatImageUnavailable),
+                  child: GestureDetector(
+                    // 點開大圖：可縮放、可下載。
+                    onTap: () => _openImageViewer(context, bytes),
+                    child: Image.memory(
+                      bytes,
+                      fit: BoxFit.cover,
+                      // 壞資料 / 不支援的格式：顯示明確的替代方塊。否則
+                      // RenderImage 在沒有可量測的圖時尺寸為 0，整個氣泡
+                      // 會塌成一個看不懂的小點。
+                      errorBuilder: (context, error, stackTrace) =>
+                          _MediaUnavailable(label: s.chatImageUnavailable),
+                    ),
                   ),
                 ),
               ),

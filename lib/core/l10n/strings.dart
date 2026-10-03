@@ -303,6 +303,13 @@ abstract final class K {
   static const chatPermissionPhotos = 'chatPermissionPhotos';
   static const chatImageUnavailable = 'chatImageUnavailable';
   static const chatImageUnsupported = 'chatImageUnsupported';
+  static const chatImageDownload = 'chatImageDownload';
+  static const chatImageSaved = 'chatImageSaved';
+  static const chatImageSavedToAlbum = 'chatImageSavedToAlbum';
+  static const chatImageSaveFailed = 'chatImageSaveFailed';
+  static const chatImageZoomIn = 'chatImageZoomIn';
+  static const chatImageZoomOut = 'chatImageZoomOut';
+  static const chatImageReset = 'chatImageReset';
 
   // ------------------------------------------------------------------ 設定
   static const settingsTitle = 'settingsTitle';
@@ -648,6 +655,13 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatPermissionPhotos: '需要相簿權限才能選取圖片。',
     K.chatImageUnavailable: '圖片無法顯示',
     K.chatImageUnsupported: '無法處理這張圖片，請改用 JPG 或 PNG。',
+    K.chatImageDownload: '下載圖片',
+    K.chatImageSaved: '圖片已儲存',
+    K.chatImageSavedToAlbum: '圖片已存入相簿',
+    K.chatImageSaveFailed: '儲存失敗',
+    K.chatImageZoomIn: '放大',
+    K.chatImageZoomOut: '縮小',
+    K.chatImageReset: '還原',
     K.settingsTitle: '設定',
     K.settingsAppearance: '外觀',
     K.settingsTheme: '主題',
@@ -982,6 +996,13 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatPermissionPhotos: '需要相册权限才能选取图片。',
     K.chatImageUnavailable: '图片无法显示',
     K.chatImageUnsupported: '无法处理这张图片，请改用 JPG 或 PNG。',
+    K.chatImageDownload: '下载图片',
+    K.chatImageSaved: '图片已保存',
+    K.chatImageSavedToAlbum: '图片已存入相册',
+    K.chatImageSaveFailed: '保存失败',
+    K.chatImageZoomIn: '放大',
+    K.chatImageZoomOut: '缩小',
+    K.chatImageReset: '还原',
     K.settingsTitle: '设置',
     K.settingsAppearance: '外观',
     K.settingsTheme: '主题',
@@ -1344,6 +1365,13 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatPermissionPhotos: 'Photo library permission is required to pick an image.',
     K.chatImageUnavailable: 'Image unavailable',
     K.chatImageUnsupported: 'Unsupported image. Please use JPG or PNG.',
+    K.chatImageDownload: 'Download image',
+    K.chatImageSaved: 'Image saved',
+    K.chatImageSavedToAlbum: 'Image saved to album',
+    K.chatImageSaveFailed: 'Could not save the image',
+    K.chatImageZoomIn: 'Zoom in',
+    K.chatImageZoomOut: 'Zoom out',
+    K.chatImageReset: 'Reset',
     K.settingsTitle: 'Settings',
     K.settingsAppearance: 'Appearance',
     K.settingsTheme: 'Theme',
@@ -1714,6 +1742,13 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatPermissionPhotos: 'Se necesita permiso de la galería para elegir una imagen.',
     K.chatImageUnavailable: 'Imagen no disponible',
     K.chatImageUnsupported: 'Imagen no compatible. Usa JPG o PNG.',
+    K.chatImageDownload: 'Descargar imagen',
+    K.chatImageSaved: 'Imagen guardada',
+    K.chatImageSavedToAlbum: 'Imagen guardada en el álbum',
+    K.chatImageSaveFailed: 'No se pudo guardar la imagen',
+    K.chatImageZoomIn: 'Acercar',
+    K.chatImageZoomOut: 'Alejar',
+    K.chatImageReset: 'Restablecer',
     K.chainSelect: 'Seleccionar cadena',
     K.settingsTitle: 'Ajustes',
     K.settingsAppearance: 'Apariencia',
@@ -2107,6 +2142,13 @@ class Strings {
   String get chatPermissionPhotos => get(K.chatPermissionPhotos);
   String get chatImageUnavailable => get(K.chatImageUnavailable);
   String get chatImageUnsupported => get(K.chatImageUnsupported);
+  String get chatImageDownload => get(K.chatImageDownload);
+  String get chatImageSaved => get(K.chatImageSaved);
+  String get chatImageSavedToAlbum => get(K.chatImageSavedToAlbum);
+  String get chatImageSaveFailed => get(K.chatImageSaveFailed);
+  String get chatImageZoomIn => get(K.chatImageZoomIn);
+  String get chatImageZoomOut => get(K.chatImageZoomOut);
+  String get chatImageReset => get(K.chatImageReset);
 
   String get settingsTitle => get(K.settingsTitle);
   String get settingsAppearance => get(K.settingsAppearance);
