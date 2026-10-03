@@ -1,7 +1,7 @@
 name: nexuschat
 description: "NexusChat - 去中心化聊天：Waku 网络 + DID 身份 + 以太坊生态，端到端加密。"
 publish_to: 'none'
-version: 1.0.0+12
+version: 1.0.0+13
 
 environment:
   sdk: ^3.13.2
