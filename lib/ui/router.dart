@@ -19,7 +19,7 @@ import '../features/settings/identity_import_page.dart';
 import '../features/settings/identity_page.dart';
 import '../features/settings/network_settings_page.dart';
 import '../features/settings/security_settings_page.dart';
-import '../features/settings/settings_page.dart';
+import '../features/settings/me_page.dart';
 import '../features/wallet/send_page.dart';
 import '../features/wallet/wallet_page.dart';
 import '../data/models/chain.dart';
@@ -172,12 +172,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           StatefulShellBranch(
-            navigatorKey: _settingsKey,
+            navigatorKey: _meKey,
             routes: <RouteBase>[
               GoRoute(
                 path: '/settings',
                 builder: (BuildContext context, GoRouterState state) =>
-                    const SettingsPage(),
+                    const MePage(),
                 routes: <RouteBase>[
                   GoRoute(
                     path: 'appearance',
@@ -234,7 +234,7 @@ final GlobalKey<NavigatorState> _chatsKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _contactsKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _walletKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _discoverKey = GlobalKey<NavigatorState>();
-final GlobalKey<NavigatorState> _settingsKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> _meKey = GlobalKey<NavigatorState>();
 
 /// 讓外部（例如身份刪除）能跳回引導頁。
 GlobalKey<NavigatorState> get rootNavigatorKey => _rootKey;

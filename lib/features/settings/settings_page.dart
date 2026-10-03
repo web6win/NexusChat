@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/l10n/strings.dart';
-import '../../shared/layout.dart';
 import '../../shared/widgets.dart';
 
-/// 設定首頁：以分組目錄的方式列出各設定分頁，點擊進入對應的子頁面，
-/// 避免把所有選項都堆在同一個頁面。
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+/// 設定目錄：依群組列出各設定分類，點擊進入對應子頁面。
+///
+/// 設計成無外框的元件，通常嵌在「我」頁面中，作為帳號與偏好的集中入口；
+/// 需要獨立成頁時，由呼叫方自行包上 [Scaffold] / [ContentColumn]。
+class SettingsDirectory extends StatelessWidget {
+  const SettingsDirectory({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -87,41 +88,29 @@ class SettingsPage extends StatelessWidget {
       ]),
     ];
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: ContentColumn(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
-            children: <Widget>[
-              PageHeader(
-                title: s.settingsTitle,
-                padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        for (final group in groups) ...<Widget>[
+          _GroupHeader(title: group.title),
+          for (final c in group.items)
+            SectionCard(
+              child: SettingsTile(
+                icon: c.icon,
+                title: c.title,
+                subtitle: c.subtitle,
+                danger: c.danger,
+                onTap: () => context.push(c.route),
               ),
-              for (final group in groups) ...<Widget>[
-                _GroupHeader(title: group.title),
-                for (final c in group.items) ...<Widget>[
-                  SectionCard(
-                    child: SettingsTile(
-                      icon: c.icon,
-                      title: c.title,
-                      subtitle: c.subtitle,
-                      danger: c.danger,
-                      onTap: () => context.push(c.route),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 10),
-              ],
-            ],
-          ),
-        ),
-      ),
+            ),
+          const SizedBox(height: 10),
+        ],
+      ],
     );
   }
 }
 
-/// 設定首頁的一個分類入口。
+/// 設定目錄的一個分類入口。
 class _Category {
   const _Category({
     required this.title,
@@ -138,7 +127,7 @@ class _Category {
   final bool danger;
 }
 
-/// 設定首頁的一個分組（例如「通用」「連線」「帳號」「危險區」）。
+/// 設定目錄的一個分組（例如「通用」「連線」「帳號」「危險區」）。
 class _Group {
   const _Group(this.title, this.items);
 

@@ -75,7 +75,7 @@ class _AppShellState extends ConsumerState<AppShell>
       _Destination(Icons.account_balance_wallet_rounded,
           Icons.account_balance_wallet_outlined, s.navWallet),
       _Destination(Icons.explore_rounded, Icons.explore_outlined, s.navDiscover),
-      _Destination(Icons.settings_rounded, Icons.settings_outlined, s.navSettings),
+      _Destination(Icons.person_rounded, Icons.person_outline_rounded, s.navMe),
     ];
 
     if (isWide) {

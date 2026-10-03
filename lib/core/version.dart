@@ -17,7 +17,7 @@ class AppVersion {
   static const String buildKey = 'APP_VERSION_BUILD';
 
   /// 未注入時的語義版本號（應與 pubspec.yaml 的 `version:` 一致）。
-  static const String fallbackName = '1.0.0';
+  static const String fallbackName = '1.0.1';
 
   /// 語義版本號，例如 `1.2.3`。
   static const String name =

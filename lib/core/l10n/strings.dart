@@ -50,6 +50,7 @@ abstract final class K {
   static const navWallet = 'navWallet';
   static const navDiscover = 'navDiscover';
   static const navSettings = 'navSettings';
+  static const navMe = 'navMe';
 
   // ---------------------------------------------------------------- 發現
   static const discoverTitle = 'discoverTitle';
@@ -483,6 +484,7 @@ const Map<String, Map<String, String>> _bundles = {
     K.navWallet: '錢包',
     K.navDiscover: '發現',
     K.navSettings: '設定',
+    K.navMe: '我',
     K.discoverTitle: '發現',
     K.discoverSubtitle: '探索 NexusChat 的更多可能',
     K.discoverTools: '工具',
@@ -880,6 +882,7 @@ const Map<String, Map<String, String>> _bundles = {
     K.navWallet: '钱包',
     K.navDiscover: '发现',
     K.navSettings: '设置',
+    K.navMe: '我',
     K.discoverTitle: '发现',
     K.discoverSubtitle: '探索 NexusChat 的更多可能',
     K.discoverTools: '工具',
@@ -1277,6 +1280,7 @@ const Map<String, Map<String, String>> _bundles = {
     K.navWallet: 'Wallet',
     K.navDiscover: 'Discover',
     K.navSettings: 'Settings',
+    K.navMe: 'Me',
     K.discoverTitle: 'Discover',
     K.discoverSubtitle: 'Explore more of NexusChat',
     K.discoverTools: 'Tools',
@@ -1707,6 +1711,7 @@ const Map<String, Map<String, String>> _bundles = {
     K.navWallet: 'Cartera',
     K.navDiscover: 'Descubrir',
     K.navSettings: 'Ajustes',
+    K.navMe: 'Perfil',
     K.discoverTitle: 'Descubrir',
     K.discoverSubtitle: 'Explora más de NexusChat',
     K.discoverTools: 'Herramientas',
@@ -2171,6 +2176,7 @@ class Strings {
   String get navWallet => get(K.navWallet);
   String get navDiscover => get(K.navDiscover);
   String get navSettings => get(K.navSettings);
+  String get navMe => get(K.navMe);
 
   String get discoverTitle => get(K.discoverTitle);
   String get discoverSubtitle => get(K.discoverSubtitle);
