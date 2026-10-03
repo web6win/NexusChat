@@ -132404,7 +132404,7 @@ if(n.b!==200){h=A.dE("HTTP "+n.b)
 throw A.d(h)}h=n
 m=t.a.a(B.ag.nj(0,A.k9(A.k6(h.e)).d0(0,h.w),null))
 l=A.bMr(m)
-g=A.oX("11",null)
+g=A.oX("12",null)
 k=g==null?0:g
 j=l.b>k
 h=o.f
@@ -136455,7 +136455,7 @@ s.aj$=$.aF()
 s.a4$=0
 this.aN()},
 aLP(a,b){var s
-switch(b.a.a){case 0:return"1.0.0 (11)"
+switch(b.a.a){case 0:return"1.0.0 (12)"
 case 1:return a.u(0,"updateChecking")
 case 2:s=b.b
 return s!=null?a.lG("updateVersionLine",A.a([s.a,s.b],t.d)):a.u(0,"updateAvailableTitle")
@@ -136779,7 +136779,7 @@ d=b0.u(0,"walletRpcUrl")
 f=A.lI(A.bu(A.a([A.jP(!1,!1,e,A.iZ(a7,a7,a7,a7,a7,a7,a7,a7,!0,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,b0.u(0,"walletRpcUrlHint"),a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,g+" \xb7 "+d,!0,!0,!1,a7,B.a00,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7,a7),!1,a7,a7,a7,a7,1,a7,!1,a7,new A.bak(a6),a7,B.cb,a7),B.co,A.dw(A.lA(B.a_L,A.Y(b0.u(0,"save"),a7,a7,a7,a7,a7,a7),a6.gaHZ(),a7),a7,1/0)],l),B.q,B.j,B.n),B.dt,f)
 d=b0.u(0,"settingsAbout")
 g=b0.u(0,"settingsVersion")
-g=A.h7(!1,B.a_n,a7,"1.0.0 (11)",g,a7)
+g=A.h7(!1,B.a_n,a7,"1.0.0 (12)",g,a7)
 e=b0.u(0,"updateCheck")
 a2=$.JA()
 a4=t.We
