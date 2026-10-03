@@ -810,13 +810,32 @@ class _ChatViewState extends ConsumerState<ChatView> {
 /// 播放器造成塌陷或崩潰。
 Uint8List? _decodeMediaBytes(String? b64) {
   if (b64 == null || b64.isEmpty) return null;
+  final cached = _mediaBytesCache[b64];
+  if (cached != null) return cached;
   try {
     final bytes = base64Decode(b64);
-    return bytes.isEmpty ? null : bytes;
+    if (bytes.isEmpty) return null;
+    // 有界快取：超過上限時丟掉最舊的一筆，避免長期佔用記憶體。
+    if (_mediaBytesCache.length >= _mediaBytesCacheLimit) {
+      _mediaBytesCache.remove(_mediaBytesCache.keys.first);
+    }
+    _mediaBytesCache[b64] = bytes;
+    return bytes;
   } catch (_) {
     return null;
   }
 }
+
+/// base64 內容 → 解碼後位元組的快取（插入序，超過上限丟最舊）。
+///
+/// 為什麼需要它：`Image.memory` 內部以 `MemoryImage` 為圖片快取鍵，而該鍵
+/// 的相等性取決於**位元組物件的身份**。若每次 build 都重新 base64 解碼，就會
+/// 產生新的 `Uint8List`，圖片快取永遠命不中、每次重繪都重新非同步解碼，
+/// 在解碼完成前的那一幀尺寸為 0，氣泡便塌成一個看不懂的小圓點（捲動列表時
+/// 因頻繁重建而特別明顯）。快取同一段 base64 的解碼結果，讓每次 build 拿到
+/// 同一個物件，即可命中圖片快取、穩定顯示。
+final Map<String, Uint8List> _mediaBytesCache = <String, Uint8List>{};
+const int _mediaBytesCacheLimit = 32;
 
 /// 媒體無法顯示時的替代方塊（固定尺寸，避免氣泡塌成一個小點）。
 class _MediaUnavailable extends StatelessWidget {
@@ -999,9 +1018,15 @@ class MessageBubble extends StatelessWidget {
                     child: Image.memory(
                       bytes,
                       fit: BoxFit.cover,
-                      // 壞資料 / 不支援的格式：顯示明確的替代方塊。否則
-                      // RenderImage 在沒有可量測的圖時尺寸為 0，整個氣泡
-                      // 會塌成一個看不懂的小點。
+                      // 解碼完成前先撐出固定尺寸，避免 RenderImage 在沒有
+                      // 可量測的圖時尺寸為 0、氣泡塌成一個小點。
+                      frameBuilder: (context, child, frame, wasSync) {
+                        if (wasSync || frame != null) return child;
+                        return const SizedBox(width: 180, height: 180);
+                      },
+                      // 圖片來源不變時沿用上一帧，避免重繪時閃成空白 / 小點。
+                      gaplessPlayback: true,
+                      // 壞資料 / 不支援的格式：顯示明確的替代方塊。
                       errorBuilder: (context, error, stackTrace) =>
                           _MediaUnavailable(label: s.chatImageUnavailable),
                     ),
