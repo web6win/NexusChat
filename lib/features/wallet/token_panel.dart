@@ -258,7 +258,7 @@ class _TokenTile extends StatelessWidget {
           : Padding(
               padding: const EdgeInsets.only(top: 3),
               child: Text(
-                Did.shortAddress(token.address, head: 10, tail: 6),
+                Did.shortAddress(token.address, head: 8, tail: 8),
                 style: TextStyle(
                   fontSize: 12,
                   fontFamily: 'monospace',
@@ -667,7 +667,7 @@ class _HistoryTile extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     '${s.walletSendTo} '
-                    '${Did.shortAddress(record.toAddress, head: 6, tail: 4)}',
+                    '${Did.shortAddress(record.toAddress, head: 8, tail: 8)}',
                     style: TextStyle(
                       fontSize: 11.5,
                       fontFamily: 'monospace',

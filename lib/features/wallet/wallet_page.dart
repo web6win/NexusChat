@@ -64,6 +64,12 @@ class WalletPage extends ConsumerWidget {
     final displayAddress = chain == ChainType.tron
         ? (identity?.tronAddress ?? '')
         : Did.eip55(address);
+    // 卡片與列表只展示「前 8 位…後 8 位」，複製時仍用完整地址。
+    final displayAddressShort = Did.shortAddress(
+      displayAddress,
+      head: 8,
+      tail: 8,
+    );
 
     final busy = info.isLoading;
     // 查不到餘額且不在載入中：RPC 未設定或連線失敗，兩者提示文字不同。
@@ -107,7 +113,7 @@ class WalletPage extends ConsumerWidget {
                     config.displayDecimals,
                   ),
                   symbol: config.symbol,
-                  address: displayAddress,
+                  address: displayAddressShort,
                   busy: busy,
                   onCopyAddress: () => _copy(context, displayAddress),
                 ),
@@ -157,7 +163,7 @@ class WalletPage extends ConsumerWidget {
                       SettingsTile(
                         icon: Icons.badge_outlined,
                         title: s.walletAddress,
-                        subtitle: displayAddress,
+                        subtitle: displayAddressShort,
                         onTap: () => _copy(context, displayAddress),
                       ),
                       if (config.supportsEns)
