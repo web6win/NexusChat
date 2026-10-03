@@ -5,11 +5,20 @@ plugins {
 }
 
 // 读取固定发布签名配置（key.properties）。缺失时回退到 debug 签名，不影响日常开发。
+// 注意：AGP 9 的 new DSL 内置 Kotlin 模式下不暴露 java.util / java.io，
+// 因此这里用 kotlin.io 读取并手动解析，避免在 .kts 脚本里引用 java.* 导致编译失败。
 val keystorePropertiesFile = rootProject.file("key.properties")
 val useReleaseSigning = keystorePropertiesFile.exists()
-val keystoreProperties = java.util.Properties()
+val keystoreProperties = mutableMapOf<String, String>()
 if (useReleaseSigning) {
-    keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+    for (line in keystorePropertiesFile.readLines()) {
+        val trimmed = line.trim()
+        if (trimmed.isEmpty() || trimmed.startsWith("#") || trimmed.startsWith("!")) continue
+        val eq = trimmed.indexOf('=')
+        if (eq > 0) {
+            keystoreProperties[trimmed.substring(0, eq).trim()] = trimmed.substring(eq + 1).trim()
+        }
+    }
 }
 
 android {
