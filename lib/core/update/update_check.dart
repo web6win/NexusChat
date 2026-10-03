@@ -53,11 +53,36 @@ class RemoteVersion {
   final Map<String, String> downloads;
   final String? publishedAt;
 
-  /// 依目前平台挑一個最合適的下載網址：Android 直接給通用 APK，
-  /// 其它平台退回整個下載中心頁。Web 沒有獨立安裝包，也退回下載中心。
-  String downloadUrlForCurrentPlatform() {
-    final url = downloads[currentPlatformKey()];
-    return url ?? downloadPage;
+  /// 依目前平台**與裝置架構**挑最合適的下載網址。
+  ///
+  /// 優先順序：架構專屬包 → 平台通用包 → 下載中心頁。
+  /// Android 會拿 [abis]（見 [DeviceAbi.supportedAbis]，依偏好順序）去對
+  /// `android_arm64_v8a` / `android_armeabi_v7a` / `android_x86_64`，
+  /// 全部缺席才退回通用 APK；其它平台直接用平台鍵。
+  /// Web 沒有獨立安裝包，一律回下載中心。
+  String downloadUrlFor({List<String> abis = const <String>[]}) {
+    for (final key in _candidateKeys(abis)) {
+      final url = downloads[key];
+      if (url != null && url.isNotEmpty) return url;
+    }
+    return downloadPage;
+  }
+
+  /// 候選的 downloads 鍵，越前面越合適。
+  List<String> _candidateKeys(List<String> abis) {
+    final platform = currentPlatformKey();
+    if (platform == 'web') return const <String>[];
+    if (platform == 'android') {
+      final keys = <String>[];
+      for (final abi in abis) {
+        final key = _androidAbiKeys[abi];
+        if (key != null && !keys.contains(key)) keys.add(key);
+      }
+      // 通用 APK 作為最後手段：任何 ABI 都裝得起來，只是體積較大。
+      keys.add('android');
+      return keys;
+    }
+    return <String>[platform];
   }
 }
 
@@ -71,6 +96,16 @@ String currentPlatformKey() {
   if (Platform.isLinux) return 'linux';
   return 'unknown';
 }
+
+/// Android ABI（例如 `arm64-v8a`）→ version.json 的 downloads 鍵。
+///
+/// 只列 CI 實際會產生的分包（見 tool/gen_download_index.py）；
+/// 其餘 ABI（如 `x86`、`armeabi`）沒有對應產物，會退回通用 APK。
+const Map<String, String> _androidAbiKeys = <String, String>{
+  'arm64-v8a': 'android_arm64_v8a',
+  'armeabi-v7a': 'android_armeabi_v7a',
+  'x86_64': 'android_x86_64',
+};
 
 enum UpdateStatus {
   idle,

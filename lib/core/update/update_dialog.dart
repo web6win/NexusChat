@@ -6,18 +6,22 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/l10n/strings.dart';
 import '../../core/theme/app_theme.dart';
+import 'device_abi.dart';
 import 'update_check.dart';
 import 'web_reload_stub.dart' // 非 web 平台的兜底
     if (dart.library.html) 'web_reload_html.dart'; // web 平台的重新整理實作
 
 /// 彈出「發現新版本」對話框：顯示版本資訊、下載中心 QR，以及「稍後 / 立即更新」。
 ///
-/// 立即更新會依目前平台挑對應的下載網址（Android 直接給通用 APK），
-/// 用外部瀏覽器開啟；Android 上使用者下載後需手動允許「未知來源」安裝。
+/// 立即更新會依目前平台**與裝置架構**挑對應的下載網址（Android 優先給
+/// 對應 ABI 的分包，沒有才退回通用 APK），用外部瀏覽器開啟；
+/// Android 上使用者下載後需手動允許「未知來源」安裝。
 void showUpdateDialog(BuildContext context, WidgetRef ref) {
   final remote = ref.read(updateCheckProvider).remote;
   if (remote == null) return;
   final s = context.s;
+  // 只查一次 ABI：對話框與「立即更新」共用同一個結果，避免重複呼叫通道。
+  final abisFuture = DeviceAbi.supportedAbis();
   // 網頁版不應引導去下載原生 APK：隱藏 QR、按鈕改為「重新整理頁面」。
   final isWeb = kIsWeb;
 
@@ -120,8 +124,8 @@ void showUpdateDialog(BuildContext context, WidgetRef ref) {
               reloadPage();
               return;
             }
-            // 原生平台：開啟對應平台的下載連結 / 下載中心。
-            _launchDownload(context, s, remote);
+            // 原生平台：開啟對應平台與架構的下載連結 / 下載中心。
+            _launchDownload(context, s, remote, abisFuture);
           },
           child: Text(isWeb ? s.updateRefresh : s.updateNow),
         ),
@@ -130,14 +134,17 @@ void showUpdateDialog(BuildContext context, WidgetRef ref) {
   );
 }
 
-/// 原生平台：開啟對應平台的下載連結或下載中心，失敗時以 SnackBar 提示，
-/// 避免靜默無反應。網頁版不走這條路（見上方按鈕的 kIsWeb 分支）。
+/// 原生平台：開啟**對應架構**的下載連結（拿不到架構則退回平台通用包，
+/// 再退回下載中心），失敗時以 SnackBar 提示，避免靜默無反應。
+/// 網頁版不走這條路（見上方按鈕的 kIsWeb 分支）。
 Future<void> _launchDownload(
   BuildContext context,
   Strings s,
   RemoteVersion remote,
+  Future<List<String>> abisFuture,
 ) async {
-  final url = remote.downloadUrlForCurrentPlatform();
+  final abis = await abisFuture;
+  final url = remote.downloadUrlFor(abis: abis);
   final uri = Uri.tryParse(url);
   if (uri == null) return;
   try {
