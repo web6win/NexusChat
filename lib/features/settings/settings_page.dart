@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/l10n/app_locale.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/version.dart';
+import '../../core/update/update_check.dart';
+import '../../core/update/update_dialog.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/app_settings.dart' show AppSettings, ThemePreference;
 import '../../data/models/chain.dart';
@@ -49,6 +51,25 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   void dispose() {
     _rpcUrl.dispose();
     super.dispose();
+  }
+
+  /// 「檢查更新」那一列的副標：依目前檢查狀態顯示版本 / 檢查中 / 最新 / 失敗。
+  String _updateSubtitle(Strings s, UpdateState st) {
+    switch (st.status) {
+      case UpdateStatus.idle:
+        return AppVersion.display;
+      case UpdateStatus.checking:
+        return s.updateChecking;
+      case UpdateStatus.available:
+        final remote = st.remote;
+        return remote != null
+            ? s.updateVersionLine(remote.version, remote.buildNumber)
+            : s.updateAvailableTitle;
+      case UpdateStatus.upToDate:
+        return s.updateLatest;
+      case UpdateStatus.error:
+        return s.updateFailed;
+    }
   }
 
   /// 儲存「目前所選鏈」的 RPC 端點；留空表示還原成該鏈的預設值。
@@ -815,6 +836,33 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       // 由 CI 以 --dart-define 注入，每次建置自動遞增。
                       subtitle: AppVersion.display,
                       onTap: null,
+                    ),
+                    SettingsTile(
+                      icon: Icons.system_update_rounded,
+                      title: s.updateCheck,
+                      subtitle: _updateSubtitle(s, ref.watch(updateCheckProvider)),
+                      trailing: ref.watch(updateCheckProvider).status ==
+                              UpdateStatus.checking
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : null,
+                      onTap: () async {
+                        await ref
+                            .read(updateCheckProvider.notifier)
+                            .check();
+                        if (!mounted) return;
+                        final st = ref.read(updateCheckProvider);
+                        if (st.status == UpdateStatus.available) {
+                          showUpdateDialog(context, ref);
+                        } else if (st.status == UpdateStatus.upToDate) {
+                          showAppSnack(context, s.updateLatest);
+                        } else if (st.status == UpdateStatus.error) {
+                          showAppSnack(context, s.updateFailed);
+                        }
+                      },
                     ),
                   ],
                 ),

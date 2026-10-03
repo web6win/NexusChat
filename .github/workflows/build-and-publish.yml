@@ -328,12 +328,15 @@ jobs:
           touch docs/.nojekyll
           [ -f CNAME ] && cp CNAME docs/CNAME
 
-      - name: Generate download index (docs/download/index.html)
+      - name: Generate download index + version.json
         run: |
           # 版本號由 version 作業統一計算，各平台成品都屬同一版。
           APP_VERSION="${{ needs.version.outputs.full }}"
           GIT_COMMIT="${{ github.sha }}"
-          python3 tool/gen_download_index.py docs/download docs/download/index.html "$APP_VERSION" "$GIT_COMMIT"
+          # 下載連結 / QR / version.json 用的絕對網址，取自自訂網域 CNAME。
+          BASE_URL="https://$(cat CNAME 2>/dev/null || echo nchat.web6.win)"
+          python3 tool/gen_download_index.py docs/download docs/download/index.html \
+            "$APP_VERSION" "$GIT_COMMIT" --base-url "$BASE_URL" --version-out docs/version.json
 
       - name: Commit docs/ as source snapshot
         run: |

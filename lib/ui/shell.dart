@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 
 import '../core/l10n/strings.dart';
 import '../core/theme/app_theme.dart';
+import '../core/update/update_check.dart';
+import '../core/update/update_dialog.dart';
 import '../state/controllers.dart';
 
 /// 主要殼層：行動裝置用底部導覽，桌面用左側導覽列。
@@ -29,6 +31,13 @@ class _AppShellState extends ConsumerState<AppShell>
       if (!mounted) return;
       ref.read(chatControllerProvider.notifier).start();
       ref.read(contactsProvider.notifier).refreshKeys();
+      // 靜默檢查版本更新；有更新且使用者沒略過這個 build 才彈窗。
+      ref.read(updateCheckProvider.notifier).check().then((_) async {
+        final checker = ref.read(updateCheckProvider.notifier);
+        final auto = await checker.shouldAutoPrompt();
+        if (!mounted) return;
+        if (auto) showUpdateDialog(context, ref);
+      });
     });
   }
 

@@ -20,11 +20,13 @@
   .web-cta { display:block;text-align:center;margin:0 0 28px;padding:16px;
            border:1px solid var(--brand);border-radius:14px;color:var(--brand);
            text-decoration:none;font-weight:600;background:rgba(108,92,231,.06); }
+  .qr-hero { display:flex;flex-direction:column;align-items:center;gap:8px;margin:22px auto 0; }
   .platform { background:#fff;border:1px solid #e7e8f0;border-radius:14px;padding:18px 20px;margin-bottom:18px; }
   @media (prefers-color-scheme: dark) { .platform { background:#13151f;border-color:#262a3a; } }
-  .platform h2 { margin:0 0 12px;font-size:19px; }
+  .platform-head { display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap; }
+  .platform h2 { margin:0;font-size:19px; }
   .platform h2 small { color:#8a8da0;font-weight:400;font-size:13px;margin-left:6px; }
-  .note { margin:-6px 0 12px;color:#8a8da0;font-size:12.5px; }
+  .note { margin:8px 0 12px;color:#8a8da0;font-size:12.5px; }
   ul.files { list-style:none;margin:0;padding:0; }
   li.file { display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 0;border-top:1px dashed #eceef5; }
   li.file:first-child { border-top:none; }
@@ -34,6 +36,10 @@
   .label { color:#8a8da0;font-size:12.5px;margin-left:8px; }
   .meta { margin-left:auto;color:#8a8da0;font-size:13px;white-space:nowrap; }
   .hash { color:#8a8da0;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .qr { display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 auto; }
+  .qr-img { width:96px;height:96px;padding:6px;background:#fff;border-radius:10px;
+            box-shadow:0 2px 10px rgba(15,23,42,.15); }
+  .qr-cap { color:#8a8da0;font-size:11px; }
   footer { text-align:center;color:#8a8da0;font-size:12px;padding:0 18px 40px; }
   footer code { background:rgba(108,92,231,.1);padding:1px 6px;border-radius:6px; }
 </style>
@@ -43,12 +49,16 @@
   <div class="logo">💬</div>
   <h1>NexusChat 下載中心</h1>
   <p>去中心化聊天 · Waku 網路 · 端對端加密</p>
+  <div class="qr-hero"><div class="qr-img" data-url="https://nchat.web6.win/download/"></div><span class="qr-cap">掃碼開啟下載中心</span></div>
 </header>
 <main>
   <a class="web-cta" href="../">🌐 直接開啟網頁版（Web App）</a>
 
     <section class="platform">
-      <h2>Windows <small>Windows</small></h2>
+      <div class="platform-head">
+        <h2>Windows <small>Windows</small></h2>
+        <div class="qr"><div class="qr-img" data-url="https://nchat.web6.win/download/windows/windows-release.zip"></div><span class="qr-cap">掃碼下載</span></div>
+      </div>
       <ul class="files">
         <li class="file">
           <span class="name"><a href="windows/windows-release.zip" download>windows-release.zip</a><span class="label">解壓後執行 NexusChat.exe</span></span>
@@ -58,7 +68,10 @@
       </ul>
     </section>
     <section class="platform">
-      <h2>macOS <small>macOS</small></h2>
+      <div class="platform-head">
+        <h2>macOS <small>macOS</small></h2>
+        <div class="qr"><div class="qr-img" data-url="https://nchat.web6.win/download/macos/macos-release.zip"></div><span class="qr-cap">掃碼下載</span></div>
+      </div>
       <ul class="files">
         <li class="file">
           <span class="name"><a href="macos/macos-release.zip" download>macos-release.zip</a><span class="label">解壓後開啟 NexusChat.app</span></span>
@@ -68,7 +81,10 @@
       </ul>
     </section>
     <section class="platform">
-      <h2>Linux <small>Linux</small></h2>
+      <div class="platform-head">
+        <h2>Linux <small>Linux</small></h2>
+        <div class="qr"><div class="qr-img" data-url="https://nchat.web6.win/download/linux/linux-bundle.tar.gz"></div><span class="qr-cap">掃碼下載</span></div>
+      </div>
       <ul class="files">
         <li class="file">
           <span class="name"><a href="linux/linux-bundle.tar.gz" download>linux-bundle.tar.gz</a><span class="label">解壓後執行 nexuschat</span></span>
@@ -78,7 +94,10 @@
       </ul>
     </section>
     <section class="platform">
-      <h2>Android <small>Android</small></h2>
+      <div class="platform-head">
+        <h2>Android <small>Android</small></h2>
+        <div class="qr"><div class="qr-img" data-url="https://nchat.web6.win/download/android/flutter-apk/app-release.apk"></div><span class="qr-cap">掃碼下載</span></div>
+      </div>
       <p class="note">手機一般下載 flutter-apk/app-release.apk（通用，適用所有機型）；想縮小體積可改用對應 ABI 的版本，bundle/ 內的 AAB 供 Google Play 上架使用。</p>
       <ul class="files">
         <li class="file">
@@ -110,8 +129,18 @@
     </section>
 </main>
 <footer>
-  版本 <code>1.0.0+9</code> · 建構 <code>f02a76c6</code> · 2026-10-03 02:12 UTC<br>
+  版本 <code>1.0.0+9</code> · 建構 <code>f02a76c6</code> · 2026-10-03 06:20 UTC<br>
   所有桌面與行動版本均為 CI 自動建構產物。
 </footer>
+<!-- 用戶端渲染 QR：依 data-url 產生，避免把圖檔提交進倉庫。 -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+  document.querySelectorAll('.qr-img').forEach(function (el) {
+    if (window.QRCode) {
+      new QRCode(el, { text: el.dataset.url, width: 96, height: 96,
+        correctLevel: QRCode.CorrectLevel.M });
+    }
+  });
+</script>
 </body>
 </html>

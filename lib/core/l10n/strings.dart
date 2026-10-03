@@ -345,6 +345,18 @@ abstract final class K {
   static const settingsAbout = 'settingsAbout';
   static const settingsVersion = 'settingsVersion';
   static const settingsAdvanced = 'settingsAdvanced';
+
+  // ------------------------------------------------------------ 版本更新
+  static const updateCheck = 'updateCheck';
+  static const updateChecking = 'updateChecking';
+  static const updateLatest = 'updateLatest';
+  static const updateAvailableTitle = 'updateAvailableTitle';
+  static const updateVersionLine = 'updateVersionLine';
+  static const updatePublished = 'updatePublished';
+  static const updateNow = 'updateNow';
+  static const updateLater = 'updateLater';
+  static const updateFailed = 'updateFailed';
+  static const scanToDownload = 'scanToDownload';
   static const settingsClearCache = 'settingsClearCache';
   static const settingsCacheCleared = 'settingsCacheCleared';
   static const settingsPublishKeys = 'settingsPublishKeys';
@@ -694,6 +706,16 @@ const Map<String, Map<String, String>> _bundles = {
     K.settingsDeleteConfirm: '這會清除本機身份與所有對話，且無法復原。確定嗎？',
     K.settingsAbout: '關於',
     K.settingsVersion: '版本',
+    K.updateCheck: '檢查更新',
+    K.updateChecking: '正在檢查更新…',
+    K.updateLatest: '已是最新版本',
+    K.updateAvailableTitle: '發現新版本',
+    K.updateVersionLine: 'v{0}（建置 {1}）',
+    K.updatePublished: '發佈於 {0}',
+    K.updateNow: '立即更新',
+    K.updateLater: '稍後',
+    K.updateFailed: '無法檢查更新，請稍後再試',
+    K.scanToDownload: '掃碼下載',
     K.settingsAdvanced: '進階',
     K.settingsClearCache: '清除快取',
     K.settingsCacheCleared: '快取已清除',
@@ -1035,6 +1057,16 @@ const Map<String, Map<String, String>> _bundles = {
     K.settingsDeleteConfirm: '这会清除本机身份与所有对话，且无法复原。确定吗？',
     K.settingsAbout: '关于',
     K.settingsVersion: '版本',
+    K.updateCheck: '检查更新',
+    K.updateChecking: '正在检查更新…',
+    K.updateLatest: '已是最新版本',
+    K.updateAvailableTitle: '发现新版本',
+    K.updateVersionLine: 'v{0}（构建 {1}）',
+    K.updatePublished: '发布于 {0}',
+    K.updateNow: '立即更新',
+    K.updateLater: '稍后',
+    K.updateFailed: '无法检查更新，请稍后再试',
+    K.scanToDownload: '扫码下载',
     K.settingsAdvanced: '进阶',
     K.settingsClearCache: '清除缓存',
     K.settingsCacheCleared: '缓存已清除',
@@ -1406,6 +1438,16 @@ const Map<String, Map<String, String>> _bundles = {
         'This wipes the local identity and every conversation. Continue?',
     K.settingsAbout: 'About',
     K.settingsVersion: 'Version',
+    K.updateCheck: 'Check for updates',
+    K.updateChecking: 'Checking for updates…',
+    K.updateLatest: 'Up to date',
+    K.updateAvailableTitle: 'Update available',
+    K.updateVersionLine: 'v{0} (build {1})',
+    K.updatePublished: 'Published {0}',
+    K.updateNow: 'Update now',
+    K.updateLater: 'Later',
+    K.updateFailed: 'Could not check for updates. Try again later.',
+    K.scanToDownload: 'Scan to download',
     K.settingsAdvanced: 'Advanced',
     K.settingsClearCache: 'Clear cache',
     K.settingsCacheCleared: 'Cache cleared',
@@ -1784,6 +1826,16 @@ const Map<String, Map<String, String>> _bundles = {
         'Esto borra la identidad local y todas las conversaciones. ¿Continuar?',
     K.settingsAbout: 'Acerca de',
     K.settingsVersion: 'Versión',
+    K.updateCheck: 'Buscar actualizaciones',
+    K.updateChecking: 'Buscando actualizaciones…',
+    K.updateLatest: 'Está actualizado',
+    K.updateAvailableTitle: 'Actualización disponible',
+    K.updateVersionLine: 'v{0} (compilación {1})',
+    K.updatePublished: 'Publicado el {0}',
+    K.updateNow: 'Actualizar ahora',
+    K.updateLater: 'Más tarde',
+    K.updateFailed: 'No se pudieron buscar actualizaciones. Inténtalo más tarde.',
+    K.scanToDownload: 'Escanea para descargar',
     K.settingsAdvanced: 'Avanzado',
     K.settingsClearCache: 'Borrar caché',
     K.settingsCacheCleared: 'Caché borrada',
@@ -2184,6 +2236,18 @@ class Strings {
   String get settingsAbout => get(K.settingsAbout);
   String get settingsVersion => get(K.settingsVersion);
   String get settingsAdvanced => get(K.settingsAdvanced);
+
+  String get updateCheck => get(K.updateCheck);
+  String get updateChecking => get(K.updateChecking);
+  String get updateLatest => get(K.updateLatest);
+  String get updateAvailableTitle => get(K.updateAvailableTitle);
+  String updateVersionLine(String version, int build) =>
+      format(K.updateVersionLine, [version, build]);
+  String updatePublished(String date) => format(K.updatePublished, [date]);
+  String get updateNow => get(K.updateNow);
+  String get updateLater => get(K.updateLater);
+  String get updateFailed => get(K.updateFailed);
+  String get scanToDownload => get(K.scanToDownload);
   String get settingsClearCache => get(K.settingsClearCache);
   String get settingsCacheCleared => get(K.settingsCacheCleared);
   String get settingsPublishKeys => get(K.settingsPublishKeys);

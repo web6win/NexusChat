@@ -64,6 +64,11 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
   String? _lastMessageId;
 
+  /// 訊息入場動畫用：初次載入就存在、或已經播放過動畫的訊息 id。
+  /// 用它避免舊訊息在「捲動進視野」時反覆播放入場動畫。
+  final Set<String> _seenMessageIds = {};
+  bool _seenSeeded = false;
+
   /// 待發送的圖片（已壓縮）。
   Uint8List? _pendingImageBytes;
   String? _pendingImageMime;
@@ -101,6 +106,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
       _lastMessageId = null;
       _pendingNew = 0;
       _atBottom = true;
+      _seenSeeded = false;
+      _seenMessageIds.clear();
       _clearPending();
       ref.read(chatControllerProvider.notifier).markRead(widget.peerDid);
       _scrollToEnd();
@@ -233,6 +240,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
       );
       if (xfile == null) return;
       final bytes = await xfile.readAsBytes();
+      // 選圖期間使用者可能已離開頁面：避免在已 dispose 的 State 上 setState。
+      if (!mounted) return;
       final compressed = compressImage(Uint8List.fromList(bytes));
       if (compressed == null) {
         // 無法解碼（例如 iPhone 的 HEIC）：原樣送出對方也解不開，
@@ -291,6 +300,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
         ),
         path: path,
       );
+      // 錄音啟動前若已離開頁面，不要回頭 setState。
+      if (!mounted) return;
       setState(() {
         _recording = true;
         _recordMs = 0;
@@ -313,6 +324,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
     } catch (_) {
       path = null;
     }
+    // 停止錄音前若已離開頁面，不要回頭 setState。
+    if (!mounted) return;
     setState(() => _recording = false);
     if (path == null || path.isEmpty) return;
     final bytes = await readRecordedBytes(path);
@@ -394,6 +407,13 @@ class _ChatViewState extends ConsumerState<ChatView> {
         : AppColors.brand;
 
     final messages = state.forPeer(widget.peerDid);
+
+    // 初次進場把所有既存訊息標記為「已見」，避免一進頁面就整批播放入場動畫；
+    // 之後新送達的訊息才會有淡入上滑的入場效果。
+    if (!_seenSeeded) {
+      _seenSeeded = true;
+      _seenMessageIds.addAll(messages.map((m) => m.id));
+    }
 
     // 用 ref.listen 偵測訊息列表變化，不要直接在 build() 裡捲動，
     // 否則圖片載入、鍵盤彈出等重建都會干擾使用者手勢。
@@ -570,12 +590,28 @@ class _ChatViewState extends ConsumerState<ChatView> {
                                     ),
                                   );
                                 }
-                                final message = messages[index - 1];
+                                final current = messages[index - 1];
                                 final previous =
                                     index >= 2 ? messages[index - 2] : null;
+                                final next = index < messages.length
+                                    ? messages[index]
+                                    : null;
                                 final showDay = previous == null ||
                                     _dayKey(previous.timestamp) !=
-                                        _dayKey(message.timestamp);
+                                        _dayKey(current.timestamp);
+                                final samePrev = previous != null &&
+                                    previous.outgoing == current.outgoing;
+                                final sameNext = next != null &&
+                                    next.outgoing == current.outgoing;
+                                // 同日、同方向（同一發送者）的連續訊息視為同一組：
+                                // 組內靠攏、只在組尾顯示時間，氣泡轉角收小以「併排」。
+                                final groupedWithPrevious = !showDay && samePrev;
+                                final groupedWithNext = !showDay && sameNext;
+                                final showMeta = showDay || !sameNext;
+                                final animate =
+                                    !_seenMessageIds.contains(current.id);
+                                // 真正的新訊息只播放一次入場動畫。
+                                if (animate) _seenMessageIds.add(current.id);
                                 return Column(
                                   children: <Widget>[
                                     if (showDay)
@@ -585,7 +621,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                                         child: Center(
                                           child: Text(
                                             Formatters.dayLabel(
-                                                message.timestamp, s),
+                                                current.timestamp, s),
                                             style: TextStyle(
                                               fontSize: 11.5,
                                               fontWeight: FontWeight.w700,
@@ -595,13 +631,19 @@ class _ChatViewState extends ConsumerState<ChatView> {
                                           ),
                                         ),
                                       ),
-                                    MessageBubble(
-                                      message: message,
-                                      color: color,
-                                      onRetry: () => ref
-                                          .read(
-                                              chatControllerProvider.notifier)
-                                          .retry(message.id),
+                                    _AnimatedAppear(
+                                      animate: animate,
+                                      child: MessageBubble(
+                                        message: current,
+                                        color: color,
+                                        showMeta: showMeta,
+                                        groupedWithPrevious: groupedWithPrevious,
+                                        groupedWithNext: groupedWithNext,
+                                        onRetry: () => ref
+                                            .read(
+                                                chatControllerProvider.notifier)
+                                            .retry(current.id),
+                                      ),
                                     ),
                                   ],
                                 );
@@ -881,11 +923,17 @@ class MessageBubble extends StatelessWidget {
     required this.color,
     super.key,
     this.onRetry,
+    this.showMeta = true,
+    this.groupedWithPrevious = false,
+    this.groupedWithNext = false,
   });
 
   final ChatMessage message;
   final Color color;
   final VoidCallback? onRetry;
+  final bool showMeta;
+  final bool groupedWithPrevious;
+  final bool groupedWithNext;
 
   @override
   Widget build(BuildContext context) {
@@ -899,8 +947,8 @@ class MessageBubble extends StatelessWidget {
       alignment: outgoing ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: EdgeInsets.only(
-          top: 3,
-          bottom: 3,
+          top: groupedWithPrevious ? 1 : 4,
+          bottom: groupedWithNext ? 1 : 4,
           left: outgoing ? 56 : 0,
           right: outgoing ? 0 : 56,
         ),
@@ -916,10 +964,14 @@ class MessageBubble extends StatelessWidget {
                 gradient: outgoing ? AppColors.brandGradient : null,
                 color: outgoing ? null : palette.bubbleOther,
                 borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(18),
-                  topRight: const Radius.circular(18),
-                  bottomLeft: Radius.circular(outgoing ? 18 : 6),
-                  bottomRight: Radius.circular(outgoing ? 6 : 18),
+                  topLeft: Radius.circular(
+                      outgoing ? 18 : (groupedWithPrevious ? 6 : 18)),
+                  topRight: Radius.circular(
+                      outgoing ? (groupedWithPrevious ? 6 : 18) : 18),
+                  bottomLeft: Radius.circular(
+                      outgoing ? 18 : (groupedWithNext ? 6 : 18)),
+                  bottomRight: Radius.circular(
+                      outgoing ? (groupedWithNext ? 6 : 18) : 18),
                 ),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
@@ -931,26 +983,27 @@ class MessageBubble extends StatelessWidget {
               ),
               child: _bubbleContent(context, outgoing, palette, s),
             ),
-            const SizedBox(height: 3),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(
-                    Formatters.clock(message.timestamp),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.42),
+            if (showMeta)
+              Padding(
+                padding: const EdgeInsets.only(top: 3, left: 6, right: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      Formatters.clock(message.timestamp),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color:
+                            theme.colorScheme.onSurface.withValues(alpha: 0.42),
+                      ),
                     ),
-                  ),
-                  if (outgoing) ...<Widget>[
-                    const SizedBox(width: 4),
-                    _StatusIcon(status: message.status),
+                    if (outgoing) ...<Widget>[
+                      const SizedBox(width: 4),
+                      _StatusIcon(status: message.status),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
             if (message.status == MessageStatus.failed)
               Padding(
                 padding: const EdgeInsets.only(top: 6, right: 4),
@@ -1022,7 +1075,8 @@ class MessageBubble extends StatelessWidget {
                       // 可量測的圖時尺寸為 0、氣泡塌成一個小點。
                       frameBuilder: (context, child, frame, wasSync) {
                         if (wasSync || frame != null) return child;
-                        return const SizedBox(width: 180, height: 180);
+                        // 解碼期間顯示微光骨架，體感更「即時」、不會是空的方塊。
+                        return const _ShimmerBox(width: 180, height: 180, radius: 14);
                       },
                       // 圖片來源不變時沿用上一帧，避免重繪時閃成空白 / 小點。
                       gaplessPlayback: true,
@@ -1276,6 +1330,124 @@ class _NewMessagesPill extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 訊息入場動畫：透明度 0→1 搭配輕微上滑（8% 高度）。
+///
+/// [animate] 為 false 時直接顯示最終狀態（不播動畫），用來避免舊訊息在捲動
+/// 進視野時反覆播放。呼叫端負責決定哪些訊息才需要動畫（見 `_seenMessageIds`）。
+class _AnimatedAppear extends StatefulWidget {
+  const _AnimatedAppear({required this.child, required this.animate});
+
+  final Widget child;
+  final bool animate;
+
+  @override
+  State<_AnimatedAppear> createState() => _AnimatedAppearState();
+}
+
+class _AnimatedAppearState extends State<_AnimatedAppear>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 280),
+  );
+  late final Animation<double> _opacity =
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+  late final Animation<Offset> _offset = Tween<Offset>(
+    begin: const Offset(0, 0.08),
+    end: Offset.zero,
+  ).animate(_opacity);
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.animate) {
+      _controller.forward();
+    } else {
+      _controller.value = 1;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimatedAppear oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 若從「需要動畫」變成「不需要」（通常是父層重繪已把 id 標記為已見），
+    // 直接停在終態，避免動畫播到一半被卡住。
+    if (!widget.animate && _controller.status != AnimationStatus.dismissed) {
+      _controller.value = 1;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FadeTransition(
+        opacity: _opacity,
+        child: SlideTransition(position: _offset, child: widget.child),
+      );
+}
+
+/// 圖片解碼期間的「微光」骨架佔位：底色上一道亮帶循環掃過。
+class _ShimmerBox extends StatefulWidget {
+  const _ShimmerBox({this.width = 180, this.height = 180, this.radius = 14});
+
+  final double width;
+  final double height;
+  final double radius;
+
+  @override
+  State<_ShimmerBox> createState() => _ShimmerBoxState();
+}
+
+class _ShimmerBoxState extends State<_ShimmerBox> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final base = palette.softSurface;
+    final highlight =
+        Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1);
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final t = _controller.value;
+        final a = (t - 0.4).clamp(0.0, 1.0);
+        final b = (t - 0.1).clamp(0.0, 1.0);
+        final c = (t + 0.2).clamp(0.0, 1.0);
+        return ShaderMask(
+          shaderCallback: (rect) => LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            stops: <double>[0.0, a, b, c, 1.0],
+            colors: <Color>[base, base, highlight, base, base],
+          ).createShader(rect),
+          child: Container(
+            width: widget.width,
+            height: widget.height,
+            decoration: BoxDecoration(
+              color: base,
+              borderRadius: BorderRadius.circular(widget.radius),
+            ),
+          ),
+        );
+      },
     );
   }
 }
