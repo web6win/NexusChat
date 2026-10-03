@@ -90,7 +90,7 @@ class PageHeader extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 27,
+                    fontSize: 24,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.6,
                   ),

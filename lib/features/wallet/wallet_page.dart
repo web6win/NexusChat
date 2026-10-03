@@ -15,6 +15,7 @@ import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
 import 'chain_selector.dart';
 import 'receive_sheet.dart';
+import 'token_panel.dart';
 
 /// 錢包頁：顯示目前所選鏈的帳戶資訊（餘額、ENS、chain、DID）。
 ///
@@ -140,6 +141,8 @@ class WalletPage extends ConsumerWidget {
                         : s.errorNetwork,
                   ),
                 ],
+                // ------------------------------------------------ 常用通證面板
+                TokenPanel(chain: chain),
                 // -------------------------------------------------- 帳戶資訊
                 SectionCard(
                   title: s.identityTitle,

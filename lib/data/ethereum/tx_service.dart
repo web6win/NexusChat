@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' show pow;
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart' show sha256;
@@ -161,7 +162,9 @@ abstract final class TxService {
     final base = apiUrl.replaceAll(RegExp(r'/+$'), '');
     const headers = <String, String>{'content-type': 'application/json'};
     final credentials = EthPrivateKey(hexToBytes(privateKeyHex));
-    final ownerHex = bytesToHex(credentials.address.addressBytes);
+    // owner 必須是 21 位元組的 `41…` 形式（0x41 + 20 位元組地址），
+    // 不能只給 20 位元組的以太坊地址。
+    final ownerHex = '41${bytesToHex(credentials.address.addressBytes)}';
 
     try {
       // 1) 本地預檢餘額，避免白付頻寬／能量。
@@ -243,6 +246,389 @@ abstract final class TxService {
     } finally {
       if (ownsClient) httpClient.close();
     }
+  }
+
+  /// ERC-20 最小 ABI：只需 `transfer` 與 `balanceOf` 兩個函式。
+  static const String _erc20Abi = '''
+[
+  {"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],
+   "name":"transfer","outputs":[{"name":"","type":"bool"}],"type":"function"},
+  {"constant":true,"inputs":[{"name":"who","type":"address"}],"name":"balanceOf",
+   "outputs":[{"name":"","type":"uint256"}],"type":"function"}
+]''';
+
+  /// ERC-20 代幣轉帳（僅 EVM 系：以太坊 / Base / Arbitrum / BSC / Besu）。
+  ///
+  /// [amount] 為人類可讀數量（如 `1.5` → `1.5 * 10^decimals`），
+  /// 會先本地預檢代幣餘額，避免白付 gas。TRON 的 TRC-20 走另一套合約呼叫，
+  /// 這裡直接拋 `unsupported`。
+  static Future<TxResult> sendErc20({
+    required ChainType chain,
+    required String rpcUrl,
+    required String privateKeyHex,
+    required String contractAddress,
+    required String toAddress,
+    required double amount,
+    required int decimals,
+    String? explorerBase,
+    http.Client? client,
+  }) async {
+    if (chain == ChainType.tron) throw const TxException('unsupported');
+    if (rpcUrl.trim().isEmpty) throw const TxException('no-rpc');
+    if (!Did.isAddress(toAddress) || !Did.isAddress(contractAddress)) {
+      throw const TxException('invalid-address');
+    }
+    if (amount <= 0) throw const TxException('invalid-amount');
+
+    final ownsClient = client == null;
+    final httpClient = client ?? http.Client();
+    final web3 = Web3Client(rpcUrl, httpClient);
+    try {
+      final credentials = EthPrivateKey(hexToBytes(privateKeyHex));
+      final contract = DeployedContract(
+        ContractAbi.fromJson(_erc20Abi, 'ERC20'),
+        EthereumAddress.fromHex(Did.toAddress(contractAddress)),
+      );
+      final transferFn = contract.function('transfer');
+      final value = BigInt.from((amount * pow(10, decimals)).round());
+
+      // 本地預檢代幣餘額，避免白付 gas。
+      final balanceFn = contract.function('balanceOf');
+      final balRes = await web3
+          .call(
+            contract: contract,
+            function: balanceFn,
+            params: <dynamic>[credentials.address],
+          )
+          .timeout(const Duration(seconds: 15));
+      final balance = balRes.first as BigInt;
+      if (balance < value) throw const TxException('insufficient-funds');
+
+      final chainId =
+          (await web3.getChainId().timeout(const Duration(seconds: 15)))
+              .toInt();
+      final gasPrice =
+          await web3.getGasPrice().timeout(const Duration(seconds: 15));
+      final hash = await web3.sendTransaction(
+        credentials,
+        Transaction.callContract(
+          contract: contract,
+          function: transferFn,
+          parameters: <dynamic>[
+            EthereumAddress.fromHex(Did.toAddress(toAddress)),
+            value,
+          ],
+          gasPrice: gasPrice,
+        ),
+        chainId: chainId,
+      );
+      return TxResult(hash: hash, explorerUrl: _explorer(explorerBase, hash));
+    } on TxException {
+      rethrow;
+    } catch (error) {
+      throw TxException(_classify('$error'));
+    } finally {
+      if (ownsClient) {
+        web3.dispose();
+        httpClient.close();
+      }
+    }
+  }
+
+  /// 查詢 ERC-20 代幣餘額（人類可讀），查不到時回傳 null。
+  ///
+  /// 僅 EVM 系；TRON 或無 RPC / 離線時回傳 null（畫面就不顯示可用餘額）。
+  static Future<double?> erc20Balance({
+    required ChainType chain,
+    required String rpcUrl,
+    required String contractAddress,
+    required String ownerAddress,
+    required int decimals,
+    http.Client? client,
+  }) async {
+    if (chain == ChainType.tron) return null;
+    if (rpcUrl.trim().isEmpty) return null;
+    if (!Did.isAddress(contractAddress) || !Did.isAddress(ownerAddress)) {
+      return null;
+    }
+    final ownsClient = client == null;
+    final httpClient = client ?? http.Client();
+    final web3 = Web3Client(rpcUrl, httpClient);
+    try {
+      final contract = DeployedContract(
+        ContractAbi.fromJson(_erc20Abi, 'ERC20'),
+        EthereumAddress.fromHex(Did.toAddress(contractAddress)),
+      );
+      final balanceFn = contract.function('balanceOf');
+      final res = await web3
+          .call(
+            contract: contract,
+            function: balanceFn,
+            params: <dynamic>[
+              EthereumAddress.fromHex(Did.toAddress(ownerAddress))
+            ],
+          )
+          .timeout(const Duration(seconds: 15));
+      final raw = res.first as BigInt;
+      return raw / BigInt.from(10).pow(decimals);
+    } catch (_) {
+      return null;
+    } finally {
+      if (ownsClient) {
+        web3.dispose();
+        httpClient.close();
+      }
+    }
+  }
+
+  /// TRC-20 代幣轉帳（TRON）。
+  ///
+  /// 走 TRON 的「觸發智慧合約」流程：`/wallet/triggersmartcontract` 取交易骨架
+  /// → 本地 secp256k1 簽章（與原生 TRON 相同，對 txID 簽章 + low-S）
+  /// → `/wallet/broadcasttransaction` 廣播。`function_selector` 為
+  /// `transfer(address,uint256)`，`parameter` 為收款地址（左補至 32 位元組）
+  /// 與金額（uint256 大端）拼接的 128 hex。
+  static Future<TxResult> sendTrc20({
+    required String apiUrl,
+    required String privateKeyHex,
+    required String contractAddress,
+    required String toAddress,
+    required double amount,
+    required int decimals,
+    String? explorerBase,
+    http.Client? client,
+  }) async {
+    if (apiUrl.trim().isEmpty) throw const TxException('no-rpc');
+    if (!TronAddress.isValid(toAddress) ||
+        !TronAddress.isValid(contractAddress)) {
+      throw const TxException('invalid-address');
+    }
+    if (amount <= 0) throw const TxException('invalid-amount');
+
+    final ownsClient = client == null;
+    final httpClient = client ?? http.Client();
+    final base = apiUrl.replaceAll(RegExp(r'/+$'), '');
+    const headers = <String, String>{'content-type': 'application/json'};
+    final credentials = EthPrivateKey(hexToBytes(privateKeyHex));
+    // owner 必須是 21 位元組的 `41…` 形式（0x41 + 20 位元組地址），
+    // 不能只給 20 位元組的以太坊地址。
+    final ownerHex = '41${bytesToHex(credentials.address.addressBytes)}';
+
+    try {
+      // 1) 本地預檢代幣餘額（balanceOf）。
+      final balance = await _trc20Call(
+        httpClient,
+        base,
+        headers,
+        ownerHex: ownerHex,
+        contractAddress: contractAddress,
+        function: 'balanceOf(address)',
+        parameter: _tronAddressParam(toAddress),
+      );
+      final value = BigInt.from((amount * pow(10, decimals)).round());
+      if (balance < value) throw const TxException('insufficient-funds');
+
+      // 2) 觸發合約交易骨架。
+      final created = await httpClient
+          .post(
+            Uri.parse('$base/wallet/triggersmartcontract'),
+            headers: headers,
+            body: jsonEncode(<String, dynamic>{
+              'owner_address': ownerHex,
+              'contract_address': TronAddress.toHex(contractAddress),
+              'function_selector': 'transfer(address,uint256)',
+              'parameter':
+                  _tronAddressParam(toAddress) + _tronUintParam(value),
+              'visible': false,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      if (created.statusCode != 200) throw const TxException('network');
+      final decoded = jsonDecode(created.body) as Map<String, dynamic>;
+      final rawTransaction = decoded['transaction'];
+      if (rawTransaction is! Map) throw const TxException('network');
+      final transaction = Map<String, dynamic>.from(rawTransaction);
+      final rawHex = transaction['raw_data_hex'] as String?;
+      if (rawHex == null || rawHex.isEmpty) throw const TxException('network');
+
+      // 3) 簽章（與原生 TRON 同：對 txID 做 secp256k1 ECDSA + low-S）。
+      final txId = Uint8List.fromList(
+        sha256.convert(hexToBytes(rawHex)).bytes,
+      );
+      final signature = sign(txId, credentials.privateKey);
+      transaction['signature'] = <String>[packSignature(signature)];
+
+      // 4) 廣播。
+      final broadcast = await httpClient
+          .post(
+            Uri.parse('$base/wallet/broadcasttransaction'),
+            headers: headers,
+            body: jsonEncode(transaction),
+          )
+          .timeout(const Duration(seconds: 20));
+      if (broadcast.statusCode != 200) throw const TxException('network');
+      final result = jsonDecode(broadcast.body) as Map<String, dynamic>;
+      if (result['result'] != true) {
+        throw TxException(_classifyTron('${result['code']}'));
+      }
+      final hash = bytesToHex(txId);
+      return TxResult(hash: hash, explorerUrl: _explorer(explorerBase, hash));
+    } on TxException {
+      rethrow;
+    } catch (_) {
+      throw const TxException('network');
+    } finally {
+      if (ownsClient) httpClient.close();
+    }
+  }
+
+  /// 查詢 TRC-20 代幣餘額（人類可讀），查不到時回傳 null。
+  static Future<double?> trc20Balance({
+    required String apiUrl,
+    required String contractAddress,
+    required String ownerAddress,
+    required int decimals,
+    http.Client? client,
+  }) async {
+    if (apiUrl.trim().isEmpty) return null;
+    if (!TronAddress.isValid(ownerAddress) ||
+        !TronAddress.isValid(contractAddress)) {
+      return null;
+    }
+    final ownsClient = client == null;
+    final httpClient = client ?? http.Client();
+    final base = apiUrl.replaceAll(RegExp(r'/+$'), '');
+    // owner 必須是 21 位元組的 `41…` 形式（TronAddress.toHex 已含 0x41）。
+    final ownerHex = TronAddress.toHex(ownerAddress);
+    try {
+      final raw = await _trc20Call(
+        httpClient,
+        base,
+        const <String, String>{'content-type': 'application/json'},
+        ownerHex: ownerHex,
+        contractAddress: contractAddress,
+        function: 'balanceOf(address)',
+        parameter: _tronAddressParam(ownerAddress),
+      );
+      return raw / BigInt.from(10).pow(decimals);
+    } catch (_) {
+      return null;
+    } finally {
+      if (ownsClient) httpClient.close();
+    }
+  }
+
+  /// 呼叫 TRC-20 的唯讀函式（目前用於 balanceOf）。
+  ///
+  /// 透過 `/wallet/triggerconstantcontract` 取得 `constant_result`（uint256 的
+  /// 32 位元組 hex），解析為 BigInt。
+  static Future<BigInt> _trc20Call(
+    http.Client httpClient,
+    String base,
+    Map<String, String> headers, {
+    required String ownerHex,
+    required String contractAddress,
+    required String function,
+    required String parameter,
+  }) async {
+    final resp = await httpClient
+        .post(
+          Uri.parse('$base/wallet/triggerconstantcontract'),
+          headers: headers,
+          body: jsonEncode(<String, dynamic>{
+            'owner_address': ownerHex,
+            'contract_address': TronAddress.toHex(contractAddress),
+            'function_selector': function,
+            'parameter': parameter,
+            'visible': false,
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
+    if (resp.statusCode != 200) throw const TxException('network');
+    final decoded = jsonDecode(resp.body) as Map<String, dynamic>;
+    final result = decoded['constant_result'];
+    if (result is! List || result.isEmpty) return BigInt.zero;
+    final hex = result.first as String;
+    if (hex.isEmpty) return BigInt.zero;
+    return BigInt.parse(hex, radix: 16);
+  }
+
+  /// 把 Base58 TRON 地址編碼成 TRC-20 參數用的 32 位元組（64 hex，左補零）。
+  static String _tronAddressParam(String base58) {
+    final h = TronAddress.toHex(base58); // 21 位元組 → 42 hex。
+    return h.padLeft(64, '0');
+  }
+
+  /// 把 uint256 金額編碼成 32 位元組（64 hex，大端、左補零）。
+  static String _tronUintParam(BigInt value) {
+    var hex = value.toRadixString(16);
+    if (hex.length.isOdd) hex = '0$hex';
+    return hex.padLeft(64, '0');
+  }
+
+  /// 依鏈分派代幣（ERC-20 / TRC-20）轉帳。
+  static Future<TxResult> sendToken({
+    required ChainType chain,
+    required String rpcUrl,
+    required String privateKeyHex,
+    required String contractAddress,
+    required String toAddress,
+    required double amount,
+    required int decimals,
+    String? explorerBase,
+    http.Client? client,
+  }) {
+    if (chain == ChainType.tron) {
+      return sendTrc20(
+        apiUrl: rpcUrl,
+        privateKeyHex: privateKeyHex,
+        contractAddress: contractAddress,
+        toAddress: toAddress,
+        amount: amount,
+        decimals: decimals,
+        explorerBase: explorerBase,
+        client: client,
+      );
+    }
+    return sendErc20(
+      chain: chain,
+      rpcUrl: rpcUrl,
+      privateKeyHex: privateKeyHex,
+      contractAddress: contractAddress,
+      toAddress: toAddress,
+      amount: amount,
+      decimals: decimals,
+      explorerBase: explorerBase,
+      client: client,
+    );
+  }
+
+  /// 依鏈分派代幣餘額查詢（ERC-20 / TRC-20）。
+  static Future<double?> tokenBalance({
+    required ChainType chain,
+    required String rpcUrl,
+    required String contractAddress,
+    required String ownerAddress,
+    required int decimals,
+    http.Client? client,
+  }) {
+    if (chain == ChainType.tron) {
+      return trc20Balance(
+        apiUrl: rpcUrl,
+        contractAddress: contractAddress,
+        ownerAddress: ownerAddress,
+        decimals: decimals,
+        client: client,
+      );
+    }
+    return erc20Balance(
+      chain: chain,
+      rpcUrl: rpcUrl,
+      contractAddress: contractAddress,
+      ownerAddress: ownerAddress,
+      decimals: decimals,
+      client: client,
+    );
   }
 
   /// secp256k1 曲線階 N。

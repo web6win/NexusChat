@@ -14,6 +14,8 @@ import '../data/ethereum/tx_service.dart';
 import '../data/ethereum/chain_account.dart';
 import '../data/models/app_settings.dart';
 import '../data/models/chain.dart';
+import '../data/models/token_def.dart';
+import '../data/tokens/token_tx_history.dart';
 import '../data/models/chat_models.dart';
 import '../data/models/security_settings.dart';
 import '../data/security/vault.dart';
@@ -1245,6 +1247,62 @@ class WalletSendController extends Notifier<SendState> {
       state = state.copyWith(busy: false, result: result);
       // 餘額已變動，讓錢包頁重新拉取。
       ref.invalidate(walletInfoProvider);
+      return result;
+    } on TxException catch (error) {
+      state = state.copyWith(busy: false, error: error.code);
+      return null;
+    } catch (_) {
+      state = state.copyWith(busy: false, error: 'network');
+      return null;
+    }
+  }
+
+  /// 送出代幣轉帳（ERC-20 / TRC-20，依目前鏈自動分派）。
+  ///
+  /// 成功時回傳交易結果，失敗回傳 null 並把錯誤碼寫入 state。
+  Future<TxResult?> sendToken({
+    required TokenDef token,
+    required String toAddress,
+    required double amount,
+  }) async {
+    final settings = ref.read(settingsProvider);
+    final identity = ref.read(sessionProvider).identity;
+    if (identity == null) {
+      state = state.copyWith(error: 'no-identity', clearResult: true);
+      return null;
+    }
+
+    state = state.copyWith(
+      busy: true,
+      clearError: true,
+      clearResult: true,
+    );
+    try {
+      final result = await TxService.sendToken(
+        chain: settings.chain,
+        rpcUrl: settings.rpcFor(settings.chain),
+        privateKeyHex: identity.ethPrivateHex,
+        contractAddress: token.address,
+        toAddress: toAddress,
+        amount: amount,
+        decimals: token.decimals,
+        explorerBase: ChainConfig.of(settings.chain).explorerUrl,
+      );
+      state = state.copyWith(busy: false, result: result);
+      // 餘額已變動，讓錢包頁重新拉取。
+      ref.invalidate(walletInfoProvider);
+      // 記一筆本機發送歷史（ERC-20 / TRC-20 通用）。
+      ref.read(tokenTxHistoryProvider.notifier).add(TokenTxRecord(
+            chainId: settings.chain.id,
+            symbol: token.symbol,
+            contract: token.address,
+            toAddress: toAddress,
+            amount: amount,
+            hash: result.hash,
+            timestamp: DateTime.now().millisecondsSinceEpoch,
+            standard: settings.chain == ChainType.tron ? 'trc20' : 'erc20',
+            explorerUrl: result.explorerUrl,
+          ));
       return result;
     } on TxException catch (error) {
       state = state.copyWith(busy: false, error: error.code);

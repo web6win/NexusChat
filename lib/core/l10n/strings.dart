@@ -290,6 +290,38 @@ abstract final class K {
   static const walletRpcUrlHint = 'walletRpcUrlHint';
   static const walletNativeToken = 'walletNativeToken';
 
+  // ---------------------------------------------------- 錢包 · 常用通證面板
+  static const tokenAdd = 'tokenAdd';
+  static const tokenAddTitle = 'tokenAddTitle';
+  static const tokenAdded = 'tokenAdded';
+  static const tokenTabErc20 = 'tokenTabErc20';
+  static const tokenTabErc721 = 'tokenTabErc721';
+  static const tokenTabErc1155 = 'tokenTabErc1155';
+  static const tokenEmpty = 'tokenEmpty';
+  static const tokenCustom = 'tokenCustom';
+  static const tokenCopyContract = 'tokenCopyContract';
+  static const tokenViewExplorer = 'tokenViewExplorer';
+  static const tokenRemove = 'tokenRemove';
+  static const tokenRemoveConfirm = 'tokenRemoveConfirm';
+  static const tokenName = 'tokenName';
+  static const tokenSymbol = 'tokenSymbol';
+  static const tokenStandard = 'tokenStandard';
+  static const tokenDecimals = 'tokenDecimals';
+  static const tokenContract = 'tokenContract';
+  static const tokenIcon = 'tokenIcon';
+  static const tokenColor = 'tokenColor';
+  static const tokenTypeErc20 = 'tokenTypeErc20';
+  static const tokenTypeErc721 = 'tokenTypeErc721';
+  static const tokenTypeErc1155 = 'tokenTypeErc1155';
+  static const tokenTypeNative = 'tokenTypeNative';
+  static const tokenErrNameSymbol = 'tokenErrNameSymbol';
+  static const tokenInvalidAddress = 'tokenInvalidAddress';
+  static const tokenInvalidDecimals = 'tokenInvalidDecimals';
+  static const tokenErrTronToken = 'tokenErrTronToken';
+  static const tokenHistoryTitle = 'tokenHistoryTitle';
+  static const tokenHistoryEmpty = 'tokenHistoryEmpty';
+  static const tokenNotTransferable = 'tokenNotTransferable';
+
   // ------------------------------------------------------------------ 多媒體
   static const chatImage = 'chatImage';
   static const chatVoice = 'chatVoice';
@@ -655,6 +687,36 @@ const Map<String, Map<String, String>> _bundles = {
     K.walletRpcMismatch: 'RPC 回傳的網路與目前選擇不符，請檢查端點設定',
     K.walletRpcUrlHint: '留空則使用預設端點',
     K.walletNativeToken: '原生代幣',
+    K.tokenAdd: '添加通證',
+    K.tokenAddTitle: '新增自訂通證',
+    K.tokenAdded: '已新增通證',
+    K.tokenTabErc20: '代幣',
+    K.tokenTabErc721: 'NFT',
+    K.tokenTabErc1155: '資產集',
+    K.tokenEmpty: '此網路暫無此類通證',
+    K.tokenCustom: '自訂',
+    K.tokenCopyContract: '複製合約地址',
+    K.tokenViewExplorer: '在瀏覽器檢視',
+    K.tokenRemove: '移除',
+    K.tokenRemoveConfirm: '確定要移除這個自訂通證嗎？',
+    K.tokenName: '名稱',
+    K.tokenSymbol: '符號',
+    K.tokenStandard: '類型',
+    K.tokenDecimals: '精度',
+    K.tokenContract: '合約地址',
+    K.tokenIcon: '圖示 (emoji)',
+    K.tokenColor: '顏色 (#RRGGBB)',
+    K.tokenTypeErc20: 'ERC-20 代幣',
+    K.tokenTypeErc721: 'ERC-721 NFT',
+    K.tokenTypeErc1155: 'ERC-1155 資產集',
+    K.tokenTypeNative: '原生代幣',
+    K.tokenErrNameSymbol: '請填寫名稱與符號',
+    K.tokenInvalidAddress: '請輸入有效的合約地址',
+    K.tokenInvalidDecimals: '精度需為 0–36 的整數',
+    K.tokenErrTronToken: 'TRC-20 轉帳暫不支援，請使用原生 TRX 或其他工具',
+    K.tokenHistoryTitle: '發送記錄',
+    K.tokenHistoryEmpty: '尚無發送記錄',
+    K.tokenNotTransferable: '此通證為 NFT，不可轉帳',
     K.chatImage: '圖片',
     K.chatVoice: '語音訊息',
     K.chatSendImage: '傳送圖片',
@@ -1006,6 +1068,36 @@ const Map<String, Map<String, String>> _bundles = {
     K.walletRpcMismatch: 'RPC 返回的网络与当前选择不符，请检查端点设置',
     K.walletRpcUrlHint: '留空则使用默认端点',
     K.walletNativeToken: '原生代币',
+    K.tokenAdd: '添加通证',
+    K.tokenAddTitle: '添加自定义通证',
+    K.tokenAdded: '已添加通证',
+    K.tokenTabErc20: '代币',
+    K.tokenTabErc721: 'NFT',
+    K.tokenTabErc1155: '资产集',
+    K.tokenEmpty: '此网络暂无此类通证',
+    K.tokenCustom: '自定义',
+    K.tokenCopyContract: '复制合约地址',
+    K.tokenViewExplorer: '在浏览器查看',
+    K.tokenRemove: '移除',
+    K.tokenRemoveConfirm: '确定要移除这个自定义通证吗？',
+    K.tokenName: '名称',
+    K.tokenSymbol: '符号',
+    K.tokenStandard: '类型',
+    K.tokenDecimals: '精度',
+    K.tokenContract: '合约地址',
+    K.tokenIcon: '图标 (emoji)',
+    K.tokenColor: '颜色 (#RRGGBB)',
+    K.tokenTypeErc20: 'ERC-20 代币',
+    K.tokenTypeErc721: 'ERC-721 NFT',
+    K.tokenTypeErc1155: 'ERC-1155 资产集',
+    K.tokenTypeNative: '原生代币',
+    K.tokenErrNameSymbol: '请填写名称与符号',
+    K.tokenInvalidAddress: '请输入有效的合约地址',
+    K.tokenInvalidDecimals: '精度需为 0–36 的整数',
+    K.tokenErrTronToken: 'TRC-20 转账暂不支持，请使用原生 TRX 或其他工具',
+    K.tokenHistoryTitle: '发送记录',
+    K.tokenHistoryEmpty: '暂无发送记录',
+    K.tokenNotTransferable: '该通证为 NFT，不可转账',
     K.chatImage: '图片',
     K.chatVoice: '语音消息',
     K.chatSendImage: '发送图片',
@@ -1385,6 +1477,37 @@ const Map<String, Map<String, String>> _bundles = {
         'The RPC endpoint reports a different network than the one selected',
     K.walletRpcUrlHint: 'Leave empty to use the default endpoint',
     K.walletNativeToken: 'Native token',
+    K.tokenAdd: 'Add token',
+    K.tokenAddTitle: 'Add custom token',
+    K.tokenAdded: 'Token added',
+    K.tokenTabErc20: 'Tokens',
+    K.tokenTabErc721: 'NFT',
+    K.tokenTabErc1155: 'Asset sets',
+    K.tokenEmpty: 'No tokens of this type',
+    K.tokenCustom: 'Custom',
+    K.tokenCopyContract: 'Copy contract',
+    K.tokenViewExplorer: 'View in explorer',
+    K.tokenRemove: 'Remove',
+    K.tokenRemoveConfirm: 'Remove this custom token?',
+    K.tokenName: 'Name',
+    K.tokenSymbol: 'Symbol',
+    K.tokenStandard: 'Type',
+    K.tokenDecimals: 'Decimals',
+    K.tokenContract: 'Contract',
+    K.tokenIcon: 'Icon (emoji)',
+    K.tokenColor: 'Color (#RRGGBB)',
+    K.tokenTypeErc20: 'ERC-20 token',
+    K.tokenTypeErc721: 'ERC-721 NFT',
+    K.tokenTypeErc1155: 'ERC-1155 asset set',
+    K.tokenTypeNative: 'Native token',
+    K.tokenErrNameSymbol: 'Enter a name and symbol',
+    K.tokenInvalidAddress: 'Enter a valid contract address',
+    K.tokenInvalidDecimals: 'Decimals must be an integer from 0 to 36',
+    K.tokenErrTronToken:
+        'TRC-20 transfers are not supported yet; use native TRX or another tool',
+    K.tokenHistoryTitle: 'Send history',
+    K.tokenHistoryEmpty: 'No send history yet',
+    K.tokenNotTransferable: 'This token is an NFT and cannot be transferred',
     K.chatImage: 'Photo',
     K.chatVoice: 'Voice message',
     K.chatSendImage: 'Send photo',
@@ -1772,6 +1895,38 @@ const Map<String, Map<String, String>> _bundles = {
         'El endpoint RPC informa de una red distinta a la seleccionada',
     K.walletRpcUrlHint: 'Déjalo vacío para usar el endpoint predeterminado',
     K.walletNativeToken: 'Token nativo',
+    K.tokenAdd: 'Añadir token',
+    K.tokenAddTitle: 'Añadir token personalizado',
+    K.tokenAdded: 'Token añadido',
+    K.tokenTabErc20: 'Tokens',
+    K.tokenTabErc721: 'NFT',
+    K.tokenTabErc1155: 'Conjuntos de activos',
+    K.tokenEmpty: 'No hay tokens de este tipo',
+    K.tokenCustom: 'Personalizado',
+    K.tokenCopyContract: 'Copiar contrato',
+    K.tokenViewExplorer: 'Ver en explorador',
+    K.tokenRemove: 'Eliminar',
+    K.tokenRemoveConfirm: '¿Eliminar este token personalizado?',
+    K.tokenName: 'Nombre',
+    K.tokenSymbol: 'Símbolo',
+    K.tokenStandard: 'Tipo',
+    K.tokenDecimals: 'Decimales',
+    K.tokenContract: 'Contrato',
+    K.tokenIcon: 'Icono (emoji)',
+    K.tokenColor: 'Color (#RRGGBB)',
+    K.tokenTypeErc20: 'Token ERC-20',
+    K.tokenTypeErc721: 'NFT ERC-721',
+    K.tokenTypeErc1155: 'Conjunto ERC-1155',
+    K.tokenTypeNative: 'Token nativo',
+    K.tokenErrNameSymbol: 'Introduce un nombre y símbolo',
+    K.tokenInvalidAddress: 'Introduce una dirección de contrato válida',
+    K.tokenInvalidDecimals: 'Los decimales deben ser un entero del 0 al 36',
+    K.tokenErrTronToken:
+        'Las transferencias TRC-20 aún no son compatibles; usa TRX nativo u otra herramienta',
+    K.tokenHistoryTitle: 'Historial de envío',
+    K.tokenHistoryEmpty: 'Aún no hay envíos',
+    K.tokenNotTransferable:
+        'Este token es un NFT y no se puede transferir',
     K.chatImage: 'Foto',
     K.chatVoice: 'Mensaje de voz',
     K.chatSendImage: 'Enviar foto',
@@ -2181,6 +2336,38 @@ class Strings {
   String get walletRpcMismatch => get(K.walletRpcMismatch);
   String get walletRpcUrlHint => get(K.walletRpcUrlHint);
   String get walletNativeToken => get(K.walletNativeToken);
+
+  // ---------------------------------------------------- 錢包 · 常用通證面板
+  String get tokenAdd => get(K.tokenAdd);
+  String get tokenAddTitle => get(K.tokenAddTitle);
+  String get tokenAdded => get(K.tokenAdded);
+  String get tokenTabErc20 => get(K.tokenTabErc20);
+  String get tokenTabErc721 => get(K.tokenTabErc721);
+  String get tokenTabErc1155 => get(K.tokenTabErc1155);
+  String get tokenEmpty => get(K.tokenEmpty);
+  String get tokenCustom => get(K.tokenCustom);
+  String get tokenCopyContract => get(K.tokenCopyContract);
+  String get tokenViewExplorer => get(K.tokenViewExplorer);
+  String get tokenRemove => get(K.tokenRemove);
+  String get tokenRemoveConfirm => get(K.tokenRemoveConfirm);
+  String get tokenName => get(K.tokenName);
+  String get tokenSymbol => get(K.tokenSymbol);
+  String get tokenStandard => get(K.tokenStandard);
+  String get tokenDecimals => get(K.tokenDecimals);
+  String get tokenContract => get(K.tokenContract);
+  String get tokenIcon => get(K.tokenIcon);
+  String get tokenColor => get(K.tokenColor);
+  String get tokenTypeErc20 => get(K.tokenTypeErc20);
+  String get tokenTypeErc721 => get(K.tokenTypeErc721);
+  String get tokenTypeErc1155 => get(K.tokenTypeErc1155);
+  String get tokenTypeNative => get(K.tokenTypeNative);
+  String get tokenErrNameSymbol => get(K.tokenErrNameSymbol);
+  String get tokenInvalidAddress => get(K.tokenInvalidAddress);
+  String get tokenInvalidDecimals => get(K.tokenInvalidDecimals);
+  String get tokenErrTronToken => get(K.tokenErrTronToken);
+  String get tokenHistoryTitle => get(K.tokenHistoryTitle);
+  String get tokenHistoryEmpty => get(K.tokenHistoryEmpty);
+  String get tokenNotTransferable => get(K.tokenNotTransferable);
 
   String get chatImage => get(K.chatImage);
   String get chatVoice => get(K.chatVoice);

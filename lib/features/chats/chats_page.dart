@@ -249,7 +249,7 @@ class _ConversationTile extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 15.5,
+                              fontSize: 14.5,
                               fontWeight:
                                   unread ? FontWeight.w800 : FontWeight.w700,
                             ),
