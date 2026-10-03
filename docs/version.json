@@ -1,18 +1,13 @@
 {
   "app_name": "nexuschat",
   "version": "1.0.0",
-  "build_number": "9",
+  "build_number": "11",
   "package_name": "nexuschat",
-  "published_at": "2026-10-03T06:20:38Z",
+  "published_at": "2026-10-03T07:35:03Z",
   "download_page": "https://nchat.web6.win/download/",
   "downloads": {
     "windows": "https://nchat.web6.win/download/windows/windows-release.zip",
     "macos": "https://nchat.web6.win/download/macos/macos-release.zip",
-    "linux": "https://nchat.web6.win/download/linux/linux-bundle.tar.gz",
-    "android": "https://nchat.web6.win/download/android/flutter-apk/app-release.apk",
-    "android_arm64_v8a": "https://nchat.web6.win/download/android/flutter-apk/app-arm64-v8a-release.apk",
-    "android_armeabi_v7a": "https://nchat.web6.win/download/android/flutter-apk/app-armeabi-v7a-release.apk",
-    "android_x86_64": "https://nchat.web6.win/download/android/flutter-apk/app-x86_64-release.apk",
-    "android_aab": "https://nchat.web6.win/download/android/bundle/release/app-release.aab"
+    "linux": "https://nchat.web6.win/download/linux/linux-bundle.tar.gz"
   }
 }
