@@ -150,7 +150,15 @@ jobs:
       - name: Configure Android release signing
         if: ${{ env.HAS_ANDROID_SIGNING == 'true' }}
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+          # secret 多半是從 UI 貼進去的，常被編輯器自動換行或被 chat 視窗截斷；
+          # 解碼前先把所有空白清掉，再檢查產出是否為空，避免默默退回 debug 簽名。
+          printf '%s' "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" \
+            | tr -d '[:space:]' \
+            | base64 -d > android/app/upload-keystore.jks
+          if [ ! -s android/app/upload-keystore.jks ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 解碼失敗或內容為空。請確認它是「完整、單行、無空白」的 base64（長度約 2988 字元）。"
+            exit 1
+          fi
           cat > android/key.properties <<EOF
           storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -180,11 +188,14 @@ jobs:
             exit 0
           fi
           # 期望指紋：由本次建構實際使用的 keystore 計算。
+          # 兩個工具的輸出格式不同（keytool 給「大寫 + 冒號」、apksigner 給
+          # 「小寫 + 無分隔符」），因此兩邊都正規化成「小寫無分隔符」再比對，
+          # 否則同一把鑰匙也會被判成不符。
           EXPECTED=$(keytool -list -v \
             -keystore android/app/upload-keystore.jks \
             -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
             -alias "${{ secrets.ANDROID_KEY_ALIAS }}" \
-            | awk '/SHA-?256:/ {print $2; exit}')
+            | awk '/SHA-?256:/ {print $2; exit}' | tr -d ':' | tr 'A-Z' 'a-z')
           # 實際指紋：apksigner 讀取 APK 的簽章憑證（支援 v1 / v2 / v3）。
           SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           SIGNER=$(find "$SDK/build-tools" -name apksigner -type f 2>/dev/null | head -1)
@@ -192,7 +203,8 @@ jobs:
             echo "::error::找不到 apksigner，無法驗證簽章"
             exit 1
           fi
-          ACTUAL=$("$SIGNER" verify --print-certs "$APK" 2>&1 | awk '/SHA-256 digest:/ {print $NF; exit}')
+          ACTUAL=$("$SIGNER" verify --print-certs "$APK" 2>&1 \
+            | awk '/SHA-256 digest:/ {print $NF; exit}' | tr -d ':' | tr 'A-Z' 'a-z')
           if [ -z "$ACTUAL" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
             echo "::error::release APK 不是由發佈金鑰簽名（預期 $EXPECTED，實際 ${ACTUAL:-無}）"
             exit 1

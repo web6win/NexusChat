@@ -47,6 +47,7 @@ app.*.map.json
 # Android signing (keep secret, do NOT commit)
 /android/key.properties
 /android/upload-keystore.jks
+/android/upload-keystore.b64.txt
 
 # Widget Preview related
 .widget_preview/
