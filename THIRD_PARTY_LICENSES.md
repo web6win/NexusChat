@@ -7,8 +7,8 @@ The third-party packages listed below keep their own licenses; all of them are p
 | --- | --- |
 | Apache-2.0 | 9 |
 | BSD-3-Clause | 116 |
+| Flutter/Dart SDK | 5 |
 | MIT | 25 |
-| NO-LICENSE-FILE | 5 |
 
 # Packages
 
@@ -143,6 +143,14 @@ The third-party packages listed below keep their own licenses; all of them are p
 - `webkit_inspection_protocol` 1.2.1 - Copyright 2013, Google Inc.
 - `xdg_directories` 1.1.0 - Copyright 2013 The Flutter Authors. All rights reserved.
 
+## Flutter/Dart SDK
+
+- `flutter` 0.0.0
+- `flutter_localizations` 0.0.0
+- `flutter_test` 0.0.0
+- `flutter_web_plugins` 0.0.0
+- `sky_engine` 0.0.0
+
 ## MIT
 
 - `archive` 4.2.0 - The MIT License
@@ -171,25 +179,16 @@ The third-party packages listed below keep their own licenses; all of them are p
 - `web3dart` 2.7.3 - Copyright 2019 Simon Binder
 - `yaml` 3.1.4 - Copyright (c) 2014, the Dart project authors.
 
-## NO-LICENSE-FILE
-
-- `flutter` 0.0.0 - 
-- `flutter_localizations` 0.0.0 - 
-- `flutter_test` 0.0.0 - 
-- `flutter_web_plugins` 0.0.0 - 
-- `sky_engine` 0.0.0 - 
-
 ---
 
 # License Texts
 
 ## Apache-2.0
 
-Representative text taken from `clock` 1.1.3.
+取自 `clock` 1.1.3。
 
 ```
-
-                                 Apache License
+Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
 
@@ -394,7 +393,7 @@ Representative text taken from `clock` 1.1.3.
 
 ## BSD-3-Clause
 
-Representative text taken from `_fe_analyzer_shared` 103.0.0.
+取自 `_fe_analyzer_shared` 103.0.0。
 
 ```
 Copyright 2019, the Dart project authors.
@@ -426,9 +425,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
+## Flutter/Dart SDK
+
+_（隨 Flutter / Dart SDK 發布，條款見 SDK 本身。）_
+
 ## MIT
 
-Representative text taken from `archive` 4.2.0.
+取自 `archive` 4.2.0。
 
 ```
 The MIT License
@@ -453,12 +456,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-```
-
-## NO-LICENSE-FILE
-
-Representative text taken from `flutter` 0.0.0.
-
-```
-
 ```
