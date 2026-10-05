@@ -1,144 +1,144 @@
 # NexusChat
 
-[English](README_EN.md) | 繁體中文
+[English](README_EN.md) | 简体中文
 
-> 基於 **Waku** 的去中心化聊天：**DID** 身份、**以太坊**生態、端到端加密。
-> 一套 Flutter 程式碼，同時覆蓋 **H5 / 行動端（Android · iOS）/ 桌面端（Windows · macOS · Linux）**。
-> 私鑰與助記詞**永不以明文落地**：本地保險庫以你的密碼（PBKDF2 + AES-256-GCM）加密存放。
+> 基于 **Waku** 的去中心化聊天：**DID** 身份、**以太坊**生态、端到端加密。
+> 一套 Flutter 程式码，同时覆盖 **H5 / 行动端（Android · iOS）/ 桌面端（Windows · macOS · Linux）**。
+> 私钥与助记词**永不以明文落地**：本地保险库以你的密码（PBKDF2 + AES-256-GCM）加密存放。
 
 ---
 
 ## 一、核心特性
 
-| 面向 | 實作 |
+| 面向 | 实作 |
 | --- | --- |
-| 網路 | Waku v2（relay / store 語義），content topic 分流；可接 **nwaku REST 節點**，也可用**本機模擬**零依賴體驗 |
-| 身份 | BIP39 助記詞 → BIP32 派生 → secp256k1 以太坊帳戶 → `did:ethr:0x…`（亦可直接匯入私鑰） |
-| 加密 | X25519（一次性金鑰 ↔ 對方靜態金鑰）→ HKDF-SHA256 → **AES-256-GCM** |
-| 完整性 | 每則封包附 secp256k1 簽章，接收端回推地址與 DID 比對，杜絕冒用 |
-| **金鑰保管** | **本地保險庫**：PBKDF2-HMAC-SHA256（21 萬 / 60 萬次可選）+ AES-256-GCM；靜態零明文 |
-| **會話鎖定** | 啟動不自動解鎖、閒置自動鎖（預設 5 分鐘）、手動鎖定立即清空記憶體中的金鑰 |
-| 以太坊生態 | 餘額查詢、chain id、**ENS 正反解析**（EIP-137 namehash + registry / resolver 合約呼叫） |
-| 錢包 | ETH / **TRON** / **Besu** 三鏈切換（同一把金鑰派生），**已可簽章並送出轉帳**，附區塊瀏覽器連結 |
-| 訊息 | 文字、**圖片**（壓縮後傳）、**語音**（錄製 + 波形/播放） |
-| **掃碼** | **發現 → 掃一掃**：相機讀取 QR Code；網址直接用外部瀏覽器開啟，`did:ethr` / `0x` 地址 / ENS 可一鍵加入聯絡人 |
-| 介面 | 響應式五欄導覽（聊天 / 聯絡人 / 錢包 / 發現 / 設定）、Material 3、**日間 / 夜間**主題 |
-| 多語 | 繁體中文、简体中文、English、Español（可跟隨系統） |
-| 儲存 | Hive（原生走檔案系統，Web 走 IndexedDB），所有資料留在裝置上 |
+| 网路 | Waku v2（relay / store 语义），content topic 分流；可接 **nwaku REST 节点**，也可用**本机模拟**零依赖体验 |
+| 身份 | BIP39 助记词 → BIP32 派生 → secp256k1 以太坊帐户 → `did:ethr:0x…`（亦可直接汇入私钥） |
+| 加密 | X25519（一次性金钥 ↔ 对方静态金钥）→ HKDF-SHA256 → **AES-256-GCM** |
+| 完整性 | 每则封包附 secp256k1 签章，接收端回推地址与 DID 比对，杜绝冒用 |
+| **金钥保管** | **本地保险库**：PBKDF2-HMAC-SHA256（21 万 / 60 万次可选）+ AES-256-GCM；静态零明文 |
+| **会话锁定** | 启动不自动解锁、闲置自动锁（预设 5 分钟）、手动锁定立即清空记忆体中的金钥 |
+| 以太坊生态 | 余额查询、chain id、**ENS 正反解析**（EIP-137 namehash + registry / resolver 合约呼叫） |
+| 钱包 | ETH / **TRON** / **Besu** 三链切换（同一把金钥派生），**已可签章并送出转帐**，附区块浏览器连结 |
+| 讯息 | 文字、**图片**（压缩后传）、**语音**（录制 + 波形/播放） |
+| **扫码** | **发现 → 扫一扫**：相机读取 QR Code；网址直接用外部浏览器开启，`did:ethr` / `0x` 地址 / ENS 可一键加入联络人 |
+| 介面 | 响应式五栏导览（聊天 / 联络人 / 钱包 / 发现 / 设定）、Material 3、**日间 / 夜间**主题 |
+| 多语 | English、简体中文、Español、हिन्दी、Français（英文为预设，可跟随系统） |
+| 储存 | Hive（原生走档案系统，Web 走 IndexedDB），所有资料留在装置上 |
 
 ---
 
-## 二、快速開始
+## 二、快速开始
 
 ```bash
-# 1. 取得依賴
+# 1. 取得依赖
 flutter pub get
 
 # 2. H5
 flutter run -d chrome          # 或 flutter build web --release
 
-# 3. 桌面（Windows 需先安裝 Visual Studio 2022「使用 C++ 的桌面開發」）
+# 3. 桌面（Windows 需先安装 Visual Studio 2022「使用 C++ 的桌面开发」）
 flutter run -d windows
 flutter build windows --release
 
-# 4. 行動端
+# 4. 行动端
 flutter run -d android         # flutter build apk --release
-flutter run -d ios             # 需要 Xcode，僅 macOS 可執行
+flutter run -d ios             # 需要 Xcode，仅 macOS 可执行
 
-# 5. 測試
-flutter test                   # 40 項（保險庫 / 私鑰匯入 / TRON / 端到端加密 / 簽章）
-dart run tool/smoke.dart       # 核心邏輯冒煙測試（不依賴 flutter_test）
+# 5. 测试
+flutter test                   # 40 项（保险库 / 私钥汇入 / TRON / 端到端加密 / 签章）
+dart run tool/smoke.dart       # 核心逻辑冒烟测试（不依赖 flutter_test）
 ```
 
-首次啟動會進入引導頁：**建立新身份**（12 個助記詞）或**匯入既有助記詞 / 私鑰**。
-建立與匯入流程都會要求**設定一組保險庫密碼**——它是日後解鎖、改密碼、匯出助記詞的唯一憑據。
+首次启动会进入引导页：**建立新身份**（12 个助记词）或**汇入既有助记词 / 私钥**。
+建立与汇入流程都会要求**设定一组保险库密码**——它是日后解锁、改密码、汇出助记词的唯一凭据。
 
-預設為「本機模擬」傳輸模式，開箱即有 3 位內建示範聯絡人與自動回覆，可直接體驗完整的加密收發流程。
+预设为「本机模拟」传输模式，开箱即有 3 位内建示范联络人与自动回覆，可直接体验完整的加密收发流程。
 
-### 2.1 H5 部署與 CSP
+### 2.1 H5 部署与 CSP
 
-`web/index.html` 內建 `Content-Security-Policy`。若自行加上更嚴格的策略，請務必保留：
+`web/index.html` 内建 `Content-Security-Policy`。若自行加上更严格的策略，请务必保留：
 
 - `script-src` 需含 `'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:`
-  以及 `https://www.gstatic.com/flutter-canvaskit/`（release 版的 CanvasKit 來源，
-  **少了它網頁會整片空白**）
+  以及 `https://www.gstatic.com/flutter-canvaskit/`（release 版的 CanvasKit 来源，
+  **少了它网页会整片空白**）
 - `worker-src` 需含 `blob:`（Flutter web worker）
 - `font-src` 需含 `https://fonts.gstatic.com`
-- `script-src` 與 `worker-src` 需含 `https://cdn.jsdelivr.net/npm/zxing-wasm/`
-  （發現 → 掃一掃：瀏覽器沒有原生 `BarcodeDetector` 時，掃碼引擎從這裡載入）
+- `script-src` 与 `worker-src` 需含 `https://cdn.jsdelivr.net/npm/zxing-wasm/`
+  （发现 → 扫一扫：浏览器没有原生 `BarcodeDetector` 时，扫码引擎从这里载入）
 
-頁面另設定 `referrer=no-referrer`，避免把帶 DID 的路徑外洩給第三方資源。
-部署時建議由伺服器再補 `X-Frame-Options`、`X-Content-Type-Options` 等標頭。
+页面另设定 `referrer=no-referrer`，避免把带 DID 的路径外泄给第三方资源。
+部署时建议由伺服器再补 `X-Frame-Options`、`X-Content-Type-Options` 等标头。
 
-### 2.2 發現 → 掃一掃
+### 2.2 发现 → 扫一扫
 
-底部導覽（桌面為左側欄）的**發現**頁提供相機掃碼。掃到的內容依序按下列規則分派：
+底部导览（桌面为左侧栏）的**发现**页提供相机扫码。扫到的内容依序按下列规则分派：
 
-| 掃到的內容 | 行為 |
+| 扫到的内容 | 行为 |
 | --- | --- |
-| 網址（`http(s)://…`，或 `example.com/path` 這類網域） | **直接用外部瀏覽器開啟**，成功後自動返回發現頁；開啟失敗則提示並恢復掃描 |
-| `did:ethr:0x…` / `0x…` 地址 / `xxx.eth` | 彈出結果面板：可**加入聯絡人**（加入後直接開啟該 DID 的對話）或複製 |
-| 其他文字 | 顯示內容並可複製 |
+| 网址（`http(s)://…`，或 `example.com/path` 这类网域） | **直接用外部浏览器开启**，成功后自动返回发现页；开启失败则提示并恢复扫描 |
+| `did:ethr:0x…` / `0x…` 地址 / `xxx.eth` | 弹出结果面板：可**加入联络人**（加入后直接开启该 DID 的对话）或复制 |
+| 其他文字 | 显示内容并可复制 |
 
-身份類內容刻意優先於網址判斷，否則 `name.eth` 會被當成一般網域送進瀏覽器。
+身份类内容刻意优先于网址判断，否则 `name.eth` 会被当成一般网域送进浏览器。
 
-- 相機後端由 [`mobile_scanner`](https://pub.dev/packages/mobile_scanner) 提供，
-  支援 **Android / iOS / macOS / 瀏覽器**；**Windows 與 Linux 沒有相機後端**，
-  掃碼頁會顯示不支援提示而不會崩潰。
-- 相機權限：Android 已宣告 `CAMERA`；iOS / macOS 已在 `Info.plist` 寫入
+- 相机后端由 [`mobile_scanner`](https://pub.dev/packages/mobile_scanner) 提供，
+  支援 **Android / iOS / macOS / 浏览器**；**Windows 与 Linux 没有相机后端**，
+  扫码页会显示不支援提示而不会崩溃。
+- 相机权限：Android 已宣告 `CAMERA`；iOS / macOS 已在 `Info.plist` 写入
   `NSCameraUsageDescription`（macOS 另需 Camera entitlement）。
-- 瀏覽器必須在 **HTTPS 或 localhost** 下才能取得相機（localhost 視為安全上下文）。
+- 浏览器必须在 **HTTPS 或 localhost** 下才能取得相机（localhost 视为安全上下文）。
 
-### 2.3 Android 發佈簽名
+### 2.3 Android 发布签名
 
-`flutter build apk --release` 若沒有 `android/key.properties`，會用**本機自動產生的 debug 金鑰**簽名。debug 金鑰每台機器 / 每次 CI runner 都不同，會導致安裝失敗 `-7：與已安裝應用簽名不同`、**新版無法覆蓋舊版**。因此發佈用的 APK 必須固定用同一把金鑰簽名。
+`flutter build apk --release` 若没有 `android/key.properties`，会用**本机自动产生的 debug 金钥**签名。debug 金钥每台机器 / 每次 CI runner 都不同，会导致安装失败 `-7：与已安装应用签名不同`、**新版无法覆盖旧版**。因此发布用的 APK 必须固定用同一把金钥签名。
 
-一次性產生金鑰（**務必妥善保存**，遺失後將無法再覆蓋升級已發佈的 App）：
+一次性产生金钥（**务必妥善保存**，遗失后将无法再覆盖升级已发布的 App）：
 
 ```bash
 keytool -genkeypair -v -keystore upload-keystore.jks \
   -keyalg RSA -keysize 2048 -validity 10000 -alias nexuschat
 ```
 
-把金鑰放到 `android/app/upload-keystore.jks`，並在 `android/key.properties`（**已在 .gitignore，勿提交**）填入：
+把金钥放到 `android/app/upload-keystore.jks`，并在 `android/key.properties`（**已在 .gitignore，勿提交**）填入：
 
 ```properties
-storePassword=你的keystore密碼
-keyPassword=你的金鑰密碼
+storePassword=你的keystore密码
+keyPassword=你的金钥密码
 keyAlias=nexuschat
-storeFile=upload-keystore.jks   # 相對於 android/app/
+storeFile=upload-keystore.jks   # 相对于 android/app/
 ```
 
-此後本機 `flutter build apk --release` 會自動套用固定簽名。CI（`.github/workflows/build-and-publish.yml`）請於倉庫 Settings → Secrets 設定：
+此后本机 `flutter build apk --release` 会自动套用固定签名。CI（`.github/workflows/build-and-publish.yml`）请于仓库 Settings → Secrets 设定：
 
-| Secret | 內容 |
+| Secret | 内容 |
 | --- | --- |
-| `ANDROID_KEYSTORE_BASE64` | `base64 -w0 upload-keystore.jks` 的輸出 |
+| `ANDROID_KEYSTORE_BASE64` | `base64 -w0 upload-keystore.jks` 的输出 |
 | `ANDROID_KEYSTORE_PASSWORD` | `storePassword` |
 | `ANDROID_KEY_PASSWORD` | `keyPassword` |
 | `ANDROID_KEY_ALIAS` | `keyAlias`（例如 `nexuschat`） |
 
-> `ANDROID_KEYSTORE_BASE64` 在 Windows PowerShell 可這樣產生：
+> `ANDROID_KEYSTORE_BASE64` 在 Windows PowerShell 可这样产生：
 > `[Convert]::ToBase64String([IO.File]::ReadAllBytes("upload-keystore.jks"))`（Git Bash / Linux / macOS 用 `base64 -w0 upload-keystore.jks`）。
 
-設定後 workflow 會在 Android 建構前自動寫入金鑰與 `key.properties`；未設定則維持 debug 簽名（僅供測試，不可用於發佈）。
+设定后 workflow 会在 Android 构建前自动写入金钥与 `key.properties`；未设定则维持 debug 签名（仅供测试，不可用于发布）。
 
-> 裝置上若已安裝**舊簽名**版本，需先卸載一次再安裝新版；此後同一把金鑰簽出的版本即可正常覆蓋升級。
+> 装置上若已安装**旧签名**版本，需先卸载一次再安装新版；此后同一把金钥签出的版本即可正常覆盖升级。
 
 ---
 
-## 三、身份與金鑰安全
+## 三、身份与金钥安全
 
-### 3.1 威脅模型（先講清楚極限）
+### 3.1 威胁模型（先讲清楚极限）
 
-- **原生 / 桌面**：密碼解開後的秘密只存在於本程序記憶體，磁碟上沒有明文。
-- **Web**：瀏覽器裡沒有可信任的硬體金鑰儲存。凡是「應用能自動解開」的方案，
-  能執行腳本的攻擊者就能用同一條路徑解開。因此 Web 端的目標是
-  **靜態零明文 + 最短暴露窗口 + 密碼因子不可重放**，而不是聲稱絕對防竊。
-- 換句話說：**保險庫防的是「拿走你的資料庫 / 硬碟 / IndexedDB」，
-  防不了「在你正在用的頁面裡執行腳本」。** 請只從你信任的網址開啟 H5 版。
+- **原生 / 桌面**：密码解开后的秘密只存在于本程序记忆体，磁碟上没有明文。
+- **Web**：浏览器里没有可信任的硬体金钥储存。凡是「应用能自动解开」的方案，
+  能执行脚本的攻击者就能用同一条路径解开。因此 Web 端的目标是
+  **静态零明文 + 最短暴露窗口 + 密码因子不可重放**，而不是声称绝对防窃。
+- 换句话说：**保险库防的是「拿走你的资料库 / 硬碟 / IndexedDB」，
+  防不了「在你正在用的页面里执行脚本」。** 请只从你信任的网址开启 H5 版。
 
-### 3.2 保險庫格式
+### 3.2 保险库格式
 
 ```
 password ──PBKDF2-HMAC-SHA256(iterations, salt)──> 32 bytes key
@@ -146,147 +146,147 @@ password ──PBKDF2-HMAC-SHA256(iterations, salt)──> 32 bytes key
 payload(JSON: mnemonic / privateKey …) ──AES-256-GCM─┘──> ct + mac
 ```
 
-密文以 Map 存放，只有標頭是公開的（它們不是秘密）：
+密文以 Map 存放，只有标头是公开的（它们不是秘密）：
 
 ```jsonc
 {
   "v": 1,
   "kdf": "pbkdf2-hmac-sha256",
-  "iterations": 210000,      // 210000 或 600000，寫入標頭，未來可無痛升級
-  "salt": "…", "nonce": "…", // 每次加密獨立隨機
-  "ct": "…", "mac": "…"      // AES-256-GCM，16 位元組認證標籤
+  "iterations": 210000,      // 210000 或 600000，写入标头，未来可无痛升级
+  "salt": "…", "nonce": "…", // 每次加密独立随机
+  "ct": "…", "mac": "…"      // AES-256-GCM，16 位元组认证标签
 }
 ```
 
-- **AAD** 綁定 `nexuschat/vault/v1`，避免別處的密文被移花接木。
-- 解密失敗統一回傳 `bad-password`，**不區分「密碼錯」與「密文被竄改」**，避免成為猜測 oracle。
-  其餘錯誤碼：`corrupt`（結構毀損）、`unsupported`（版本 / KDF 不認識）。
-- **密碼策略**：至少 8 位；純數字、常見弱密碼、重複或連續序列一律拒絕；
-  強度標籤 `weak / fair / good / strong`，`score ≥ 2` 才接受。
-- 迭代次數取 21 萬是為了讓**純 Dart 實作**（無 WebCrypto 加速）的首次解鎖仍在一秒內；
-  想要更高強度可在設定密碼時選 60 萬（OWASP 對 PBKDF2-HMAC-SHA256 的建議值）。
+- **AAD** 绑定 `nexuschat/vault/v1`，避免别处的密文被移花接木。
+- 解密失败统一回传 `bad-password`，**不区分「密码错」与「密文被窜改」**，避免成为猜测 oracle。
+  其余错误码：`corrupt`（结构毁损）、`unsupported`（版本 / KDF 不认识）。
+- **密码策略**：至少 8 位；纯数字、常见弱密码、重复或连续序列一律拒绝；
+  强度标签 `weak / fair / good / strong`，`score ≥ 2` 才接受。
+- 迭代次数取 21 万是为了让**纯 Dart 实作**（无 WebCrypto 加速）的首次解锁仍在一秒内；
+  想要更高强度可在设定密码时选 60 万（OWASP 对 PBKDF2-HMAC-SHA256 的建议值）。
 
-### 3.3 靜態資料的存放方式
+### 3.3 静态资料的存放方式
 
-| 鍵 | 內容 | 說明 |
+| 键 | 内容 | 说明 |
 | --- | --- | --- |
-| `identity_vault` | 保險庫密文 | 助記詞 / 私鑰唯一的落地形式 |
-| `identity_hint` | `did`、地址、TRON 地址、加密公鑰 | **公開提示**，未解鎖時也能顯示名片 |
-| `identity` | 舊版明文身份 | 僅供升級時遷移，遷移完成即失效 |
+| `identity_vault` | 保险库密文 | 助记词 / 私钥唯一的落地形式 |
+| `identity_hint` | `did`、地址、TRON 地址、加密公钥 | **公开提示**，未解锁时也能显示名片 |
+| `identity` | 旧版明文身份 | 仅供升级时迁移，迁移完成即失效 |
 
-### 3.4 會話與鎖定
+### 3.4 会话与锁定
 
-- `Core.bootstrap()` **不會**自動解鎖；必須 `unlock(password)` 才把金鑰載入記憶體。
-- `lock()` 停止 Waku 並清空記憶體中的身份物件。
-- **閒置自動鎖**：預設 5 分鐘，可選 1 / 5 / 15 / 30 / 60 分鐘或永不（0）。
-- **切到背景立即鎖**：預設關閉（瀏覽器頻繁切分頁會很惱人），要求高者可開啟。
-- **匯出助記詞 / 私鑰**：需先通過密碼驗證，顯示後預設 **30 秒自動隱藏**，防肩窺與螢幕錄製殘留。
-- **改密碼**：以新密碼重新封裝整包密文，舊密文不再保留。
-- **舊版升級**：啟動時偵測到明文身份會導向 `/migrate`，設定密碼後遷入保險庫。
+- `Core.bootstrap()` **不会**自动解锁；必须 `unlock(password)` 才把金钥载入记忆体。
+- `lock()` 停止 Waku 并清空记忆体中的身份物件。
+- **闲置自动锁**：预设 5 分钟，可选 1 / 5 / 15 / 30 / 60 分钟或永不（0）。
+- **切到背景立即锁**：预设关闭（浏览器频繁切分页会很恼人），要求高者可开启。
+- **汇出助记词 / 私钥**：需先通过密码验证，显示后预设 **30 秒自动隐藏**，防肩窥与萤幕录制残留。
+- **改密码**：以新密码重新封装整包密文，旧密文不再保留。
+- **旧版升级**：启动时侦测到明文身份会导向 `/migrate`，设定密码后迁入保险库。
 
 ---
 
-## 四、連上真實 Waku 節點
+## 四、连上真实 Waku 节点
 
-> 聯絡人清單顯示黃色「同步中」＝還沒拿到對方的加密公鑰（key bundle）。
-> 在本機模擬模式下訊息只在自己的 app 內打轉，只有真正連上 Waku 網路，
-> 且對方也上線發布過金鑰包，狀態才會轉成綠色「已加密」。
+> 联络人清单显示黄色「同步中」＝还没拿到对方的加密公钥（key bundle）。
+> 在本机模拟模式下讯息只在自己的 app 内打转，只有真正连上 Waku 网路，
+> 且对方也上线发布过金钥包，状态才会转成绿色「已加密」。
 
-### 4.1 一鍵起節點（推薦）
+### 4.1 一键起节点（推荐）
 
-專案內附 `docker/docker-compose.yml`，內含**兩個互相直連的 nwaku 節點**：
+专案内附 `docker/docker-compose.yml`，内含**两个互相直连的 nwaku 节点**：
 
 ```bash
 cd docker
-bash deploy.sh        # 或 docker compose up -d（deploy.sh 會自動校正 peer ID）
+bash deploy.sh        # 或 docker compose up -d（deploy.sh 会自动校正 peer ID）
 docker compose logs -f nwaku-a nwaku-b
 docker compose down
 ```
 
-為什麼要兩個：gossipsub 在節點沒有任何 peer 時會拒絕發布（`NoPeersToPublish`），
-單節點上兩個客戶端是聊不起來的。這裡讓 A、B 互相以 `--staticnode` 直連，
-**不依賴外網**，局域網即可跑通完整流程。
+为什么要两个：gossipsub 在节点没有任何 peer 时会拒绝发布（`NoPeersToPublish`），
+单节点上两个客户端是聊不起来的。这里让 A、B 互相以 `--staticnode` 直连，
+**不依赖外网**，局域网即可跑通完整流程。
 
-> **staticnode 一定要寫 IP，不能寫 `/dns4/` 容器名**：nwaku 的 DNS 解析器在
-> Docker 容器內會回傳空陣列（`resolvedAddresses=[]`），用 `/dns4/nwaku-a/...`
-> 會靜默撥號失敗。compose 已為兩個節點配置固定 IP（`172.28.0.10` / `172.28.0.11`）。
+> **staticnode 一定要写 IP，不能写 `/dns4/` 容器名**：nwaku 的 DNS 解析器在
+> Docker 容器内会回传空阵列（`resolvedAddresses=[]`），用 `/dns4/nwaku-a/...`
+> 会静默拨号失败。compose 已为两个节点配置固定 IP（`172.28.0.10` / `172.28.0.11`）。
 
-| 服務 | REST 埠 | 說明 |
+| 服务 | REST 埠 | 说明 |
 | --- | --- | --- |
-| `nwaku-a` | `8645` | 給**客戶端一**用（relay + store + filter + lightpush） |
-| `nwaku-b` | `8646` | 給**客戶端二**用，與 A 互相轉發、各自保存訊息 |
+| `nwaku-a` | `8645` | 给**客户端一**用（relay + store + filter + lightpush） |
+| `nwaku-b` | `8646` | 给**客户端二**用，与 A 互相转发、各自保存讯息 |
 
-客戶端填法（設定 → 網路 → Waku 節點（REST））：
+客户端填法（设定 → 网路 → Waku 节点（REST））：
 
-- **客戶端一**：`http://<主機IP>:8645`（本機就是 `http://localhost:8645`）
-- **客戶端二**：`http://<主機IP>:8646`
-- **兩個客戶端都填同一個節點也可以**（例如都填 `8645`）——relay 快取讀走即清空，
-  但 store 會持久保存，客戶端兩個來源合併去重，不會互相搶走訊息
-- 節點已帶 `--rest-allow-origin=*`，瀏覽器 H5 可直連，無需反代
-- 手機實機：把 `<主機IP>` 換成電腦的區域網路 IP
+- **客户端一**：`http://<主机IP>:8645`（本机就是 `http://localhost:8645`）
+- **客户端二**：`http://<主机IP>:8646`
+- **两个客户端都填同一个节点也可以**（例如都填 `8645`）——relay 快取读走即清空，
+  但 store 会持久保存，客户端两个来源合并去重，不会互相抢走讯息
+- 节点已带 `--rest-allow-origin=*`，浏览器 H5 可直连，无需反代
+- 手机实机：把 `<主机IP>` 换成电脑的区域网路 IP
 
-> 注意：兩個節點的私鑰固定寫在 `docker/.env`（僅供開發），所以 peer ID 穩定；
-> 正式部署請換成自己的私鑰。若要接公共 Waku 網路，給節點追加有效的
+> 注意：两个节点的私钥固定写在 `docker/.env`（仅供开发），所以 peer ID 稳定；
+> 正式部署请换成自己的私钥。若要接公共 Waku 网路，给节点追加有效的
 > `--dns-discovery-url`（官方 sandbox fleet 的 DNS 目前已停止解析）或
-> `--staticnode` 到任一公共節點即可。
+> `--staticnode` 到任一公共节点即可。
 
-### 4.2 驗證節點
+### 4.2 验证节点
 
 ```bash
-curl http://127.0.0.1:8645/debug/v1/info    # 節點 A 資訊（含 peer ID）
-curl http://127.0.0.1:8646/debug/v1/info    # 節點 B 資訊
-curl http://127.0.0.1:8645/health           # Relay 應為 READY（代表有 peer）
+curl http://127.0.0.1:8645/debug/v1/info    # 节点 A 资讯（含 peer ID）
+curl http://127.0.0.1:8646/debug/v1/info    # 节点 B 资讯
+curl http://127.0.0.1:8645/health           # Relay 应为 READY（代表有 peer）
 ```
 
-### 4.3 端到端聊天測試
+### 4.3 端到端聊天测试
 
-不需開瀏覽器，直接驗證「金鑰交換 → 加密私訊 → 雙向收發 → 第三方竊聽失敗」：
+不需开浏览器，直接验证「金钥交换 → 加密私讯 → 双向收发 → 第三方窃听失败」：
 
 ```bash
-# 兩個客戶端各連一個節點
+# 两个客户端各连一个节点
 dart run tool/e2e_waku.dart http://10.37.0.110:8645 http://10.37.0.110:8646
 
-# 或兩個客戶端共用同一個節點
+# 或两个客户端共用同一个节点
 dart run tool/e2e_waku.dart http://10.37.0.110:8645 http://10.37.0.110:8645
 ```
 
-14 項全過才算通；失敗時會印出診斷（看到幾則金鑰包、各自的 `from` DID）。
+14 项全过才算通；失败时会印出诊断（看到几则金钥包、各自的 `from` DID）。
 
-埠號與鏡像版本可用環境變數覆寫：`REST_A_PORT`、`REST_B_PORT`、`TCP_A_PORT`、
+埠号与镜像版本可用环境变数覆写：`REST_A_PORT`、`REST_B_PORT`、`TCP_A_PORT`、
 `TCP_B_PORT`、`UDP_A_PORT`、`UDP_B_PORT`、`NWAKU_IMAGE`、`NWAKU_NODEKEY_A/B`
-（見 `docker/docker-compose.yml`）。
+（见 `docker/docker-compose.yml`）。
 
-> NexusChat 走 `/relay/v1/auto/messages`（自動分片，topic 是**路徑段**，且 body 是
-> **單一物件不是陣列**）、`GET /store/v3/messages?includeData=true`（拉歷史）。
-> 注意 store v3 回傳的每筆是 `{"messageHash":..,"message":{..},"pubsubTopic":..}`
-> 包裝結構，真正欄位在 `message` 裡，解析時必須拆開。
-> relay 快取**讀走即清空**，store 才持久，所以客戶端兩個來源合併去重。
-> 客戶端每 2 分鐘自動重發一次金鑰包，新加的聯絡人也能從 store 補到公鑰。
+> NexusChat 走 `/relay/v1/auto/messages`（自动分片，topic 是**路径段**，且 body 是
+> **单一物件不是阵列**）、`GET /store/v3/messages?includeData=true`（拉历史）。
+> 注意 store v3 回传的每笔是 `{"messageHash":..,"message":{..},"pubsubTopic":..}`
+> 包装结构，真正栏位在 `message` 里，解析时必须拆开。
+> relay 快取**读走即清空**，store 才持久，所以客户端两个来源合并去重。
+> 客户端每 2 分钟自动重发一次金钥包，新加的联络人也能从 store 补到公钥。
 
-傳輸層 `WakuTransport` 是抽象介面。日後要換成 JSON-RPC、Filter v2 WebSocket 推播，
-或在原生端嵌入 waku 綁定，只需新增一個實作，UI 與業務層不必改動。
+传输层 `WakuTransport` 是抽象介面。日后要换成 JSON-RPC、Filter v2 WebSocket 推播，
+或在原生端嵌入 waku 绑定，只需新增一个实作，UI 与业务层不必改动。
 
 ---
 
-## 五、協定設計
+## 五、协定设计
 
-### Content topics（Waku v2 慣例 `/{app}/{version}/{name}/{encoding}`）
+### Content topics（Waku v2 惯例 `/{app}/{version}/{name}/{encoding}`）
 
-> 注意：本專案產品名為 **NexusChat**，線上協定與內部常數統一以 `nexuschat` 作為識別字（content topic、`nexuschat|1|…` 簽章前綴、`nexuschat/enc/v1` 等）。以下以產品名 **NexusChat** 稱呼本專案。
+> 注意：本专案产品名为 **NexusChat**，线上协定与内部常数统一以 `nexuschat` 作为识别字（content topic、`nexuschat|1|…` 签章前缀、`nexuschat/enc/v1` 等）。以下以产品名 **NexusChat** 称呼本专案。
 
 | Topic | 用途 |
 | --- | --- |
-| `/nexuschat/1/keys/json` | 金鑰包：廣播自己的 X25519 公鑰與暱稱 |
-| `/nexuschat/1/dm-<hash>/json` | 一對一訊息，`hash` 由雙方 DID 排序後雜湊（兩端算出同一個 topic） |
+| `/nexuschat/1/keys/json` | 金钥包：广播自己的 X25519 公钥与昵称 |
+| `/nexuschat/1/dm-<hash>/json` | 一对一讯息，`hash` 由双方 DID 排序后杂凑（两端算出同一个 topic） |
 | `/nexuschat/1/inbox-<hash>/json` | **收件匣**：`hash` 只由收件人自己的 DID 派生 |
-| `/nexuschat/1/presence/json` | 在線 / 輸入中（ephemeral，不進 store） |
-| `/nexuschat/1/g-<hash>/json` | 群組聊天（預留） |
+| `/nexuschat/1/presence/json` | 在线 / 输入中（ephemeral，不进 store） |
+| `/nexuschat/1/g-<hash>/json` | 群组聊天（预留） |
 
-> 每一則私訊都會**同時**發到 `dm-*` 與對方的 `inbox-*`，收件端靠 `id` 去重。
-> 為什麼需要收件匣：`dm-*` 只有在「收件人已把發送者加進聯絡人」時才會被輪詢，
-> 對方還不認識你時那則訊息永遠不會被取走。每個客戶端固定輪詢
-> `keys` + 自己的 `inbox-*`，所以**第一次來訊不需要事先加聯絡人**——
-> 收到後會自動替對方建立名片，並用封包裡附的 `pub.enc` 立刻回覆。
+> 每一则私讯都会**同时**发到 `dm-*` 与对方的 `inbox-*`，收件端靠 `id` 去重。
+> 为什么需要收件匣：`dm-*` 只有在「收件人已把发送者加进联络人」时才会被轮询，
+> 对方还不认识你时那则讯息永远不会被取走。每个客户端固定轮询
+> `keys` + 自己的 `inbox-*`，所以**第一次来讯不需要事先加联络人**——
+> 收到后会自动替对方建立名片，并用封包里附的 `pub.enc` 立刻回覆。
 
 ### 封包格式
 
@@ -298,115 +298,115 @@ dart run tool/e2e_waku.dart http://10.37.0.110:8645 http://10.37.0.110:8645
   "from": "did:ethr:0x…",          // 明文
   "to":   "did:ethr:0x…",          // 明文
   "ts": 1700000000000,             // 明文
-  "body": { "ct": "…", "mac": "…", "nonce": "…", "eph": "…" },  // 加密給收件人
-  "self": { "ct": "…", "mac": "…", "nonce": "…", "eph": "…" },  // 加密給自己的副本
-  "sig":  "r:s:v"                  // secp256k1 簽章
+  "body": { "ct": "…", "mac": "…", "nonce": "…", "eph": "…" },  // 加密给收件人
+  "self": { "ct": "…", "mac": "…", "nonce": "…", "eph": "…" },  // 加密给自己的副本
+  "sig":  "r:s:v"                  // secp256k1 签章
 }
 ```
 
-- 簽章內容（正規化字串）：`nexuschat|1|{id}|{type}|{from}|{to}|{ts}|{cipherText}`
-- 加密 AAD：`{from}|{to}|{ts}`，防止封包被搬到別的對話重放
-- `self` 副本讓多裝置從 Waku store 還原自己的送出紀錄
+- 签章内容（正规化字串）：`nexuschat|1|{id}|{type}|{from}|{to}|{ts}|{cipherText}`
+- 加密 AAD：`{from}|{to}|{ts}`，防止封包被搬到别的对话重放
+- `self` 副本让多装置从 Waku store 还原自己的送出纪录
 
-### 金鑰派生
+### 金钥派生
 
 ```
-助記詞 (BIP39)
+助记词 (BIP39)
   └─ seed (PBKDF2-HMAC-SHA512)
        ├─ m/44'/60'/0'/0/0   → secp256k1 → 以太坊地址 → did:ethr:0x…
-       │                                              ↘ 同一把金鑰 → TRON T 地址
-       └─ m/10016'/0'        → X25519 訊息加密金鑰（與 EVM 帳戶路徑隔離）
+       │                                              ↘ 同一把金钥 → TRON T 地址
+       └─ m/10016'/0'        → X25519 讯息加密金钥（与 EVM 帐户路径隔离）
 ```
 
 ---
 
-## 六、專案結構
+## 六、专案结构
 
 ```
 lib/
-├── main.dart                  # 入口：初始化 Core、裝載硬體鍵盤/生命週期監聽後注入 ProviderScope
+├── main.dart                  # 入口：初始化 Core、装载硬体键盘/生命周期监听后注入 ProviderScope
 ├── app/
-│   └── core.dart              # 核心容器（儲存 / 身份 / 保險庫 / 密碼學 / Waku / 示範機器人）
+│   └── core.dart              # 核心容器（储存 / 身份 / 保险库 / 密码学 / Waku / 示范机器人）
 ├── core/
-│   ├── l10n/                  # 四語文案與 Localizations delegate
-│   ├── theme/                 # Material 3 主題、調色盤、圓角與間距尺度
-│   └── utils/                 # Hex/Base64、時間與金額格式化
+│   ├── l10n/                  # 四语文案与 Localizations delegate
+│   ├── theme/                 # Material 3 主题、调色盘、圆角与间距尺度
+│   └── utils/                 # Hex/Base64、时间与金额格式化
 ├── data/
-│   ├── crypto/                # 身份派生、DID、加解密與簽章、TRON 地址編碼
-│   ├── security/              # ★ 保險庫（PBKDF2 + AES-GCM）與密碼策略
-│   ├── waku/                  # content topics、封包、傳輸層（REST / 本機迴路）
-│   ├── ethereum/              # 餘額、chain id、ENS、轉帳簽章與廣播
-│   ├── media/                 # 圖片壓縮、錄音與播放（原生 / Web 雙實作）
-│   ├── models/                # 設定、安全設定、鏈、聯絡人、對話、訊息、身份提示
-│   ├── repositories/          # 各資料表的讀寫
-│   └── storage/               # Hive 封裝（含保險庫鍵）
+│   ├── crypto/                # 身份派生、DID、加解密与签章、TRON 地址编码
+│   ├── security/              # ★ 保险库（PBKDF2 + AES-GCM）与密码策略
+│   ├── waku/                  # content topics、封包、传输层（REST / 本机回路）
+│   ├── ethereum/              # 余额、chain id、ENS、转帐签章与广播
+│   ├── media/                 # 图片压缩、录音与播放（原生 / Web 双实作）
+│   ├── models/                # 设定、安全设定、链、联络人、对话、讯息、身份提示
+│   ├── repositories/          # 各资料表的读写
+│   └── storage/               # Hive 封装（含保险库键）
 ├── state/
-│   └── controllers.dart       # Riverpod：設定 / 身份 / 會話鎖 / 安全 / 聯絡人 / 聊天 / 錢包
+│   └── controllers.dart       # Riverpod：设定 / 身份 / 会话锁 / 安全 / 联络人 / 聊天 / 钱包
 ├── ui/
-│   ├── router.dart            # go_router（migration → locked → unlocked 重定向鏈、?peer= 深層連結）
-│   └── shell.dart             # 響應式殼層（NavigationRail / NavigationBar）
+│   ├── router.dart            # go_router（migration → locked → unlocked 重定向链、?peer= 深层连结）
+│   └── shell.dart             # 响应式壳层（NavigationRail / NavigationBar）
 └── features/
-    ├── onboarding/            # 歡迎 / 建立身份（含密碼設定）/ 匯入
-    ├── lock/                  # ★ 解鎖頁
-    ├── security/              # ★ 舊明文遷移頁、密碼輸入元件
-    ├── chats/                 # 對話列表與聊天頁（文字 / 圖片 / 語音）
-    ├── contacts/              # 聯絡人（同步中 / 已加密狀態）
-    ├── wallet/                # 收款 QR、轉帳頁
-    ├── discover/              # 發現頁、掃一掃（相機掃碼與結果分派）
-    └── settings/              # 設定頁、身份頁（匯出需密碼驗證）
+    ├── onboarding/            # 欢迎 / 建立身份（含密码设定）/ 汇入
+    ├── lock/                  # ★ 解锁页
+    ├── security/              # ★ 旧明文迁移页、密码输入元件
+    ├── chats/                 # 对话列表与聊天页（文字 / 图片 / 语音）
+    ├── contacts/              # 联络人（同步中 / 已加密状态）
+    ├── wallet/                # 收款 QR、转帐页
+    ├── discover/              # 发现页、扫一扫（相机扫码与结果分派）
+    └── settings/              # 设定页、身份页（汇出需密码验证）
 test/
-├── vault_test.dart            # 保險庫：還原正確性、密文不含秘密、竄改與錯誤碼
+├── vault_test.dart            # 保险库：还原正确性、密文不含秘密、窜改与错误码
 ├── private_key_import_test.dart
-├── tron_address_test.dart     # TRON 地址派生與 Base58Check 校驗
+├── tron_address_test.dart     # TRON 地址派生与 Base58Check 校验
 ├── tron_tx_test.dart
-└── widget_test.dart           # 端到端加解密、簽章不可偽造
+└── widget_test.dart           # 端到端加解密、签章不可伪造
 ```
 
 ---
 
-## 七、測試
+## 七、测试
 
 ```bash
-flutter test                   # 40 項全過
-dart run tool/smoke.dart       # 不依賴 flutter_test 的核心邏輯冒煙
-dart run tool/e2e_waku.dart <nodeA> <nodeB>   # 真實節點端到端（14 項）
+flutter test                   # 40 项全过
+dart run tool/smoke.dart       # 不依赖 flutter_test 的核心逻辑冒烟
+dart run tool/e2e_waku.dart <nodeA> <nodeB>   # 真实节点端到端（14 项）
 ```
 
 ---
 
-## 八、目前限制與後續
+## 八、目前限制与后续
 
-- **推播**：目前以 4 秒輪詢取得新訊息；接上 Filter v2 的 WebSocket 後可改成即時推播。
-- **群組聊天**：topic 與資料模型已預留，加密方案預計改用 sender keys。
-- **前向保密**：已使用一次性 X25519 金鑰，尚未實作 Signal 式的棘輪（Double Ratchet）。
-- **多裝置**：`self` 副本與 store 已具備基礎，尚未做裝置間的金鑰同步與撤銷。
-- **ENS**：以 JSON-RPC 直接呼叫 registry / resolver；反向解析需要該地址已設定反向紀錄。
-- **多媒體大小**：圖片會先壓縮再上 Waku，未做分片；大檔（影片）尚未支援。
-- **掃碼**：僅 Android / iOS / macOS / 瀏覽器可用（mobile_scanner 的平台限制），
-  Windows 與 Linux 顯示「不支援掃碼」；尚未支援「從相簿圖片辨識 QR Code」。
-- **Web 安全邊界**：見 3.1 —— 瀏覽器內無法對抗同源腳本注入，請只從信任的來源開啟。
+- **推播**：目前以 4 秒轮询取得新讯息；接上 Filter v2 的 WebSocket 后可改成即时推播。
+- **群组聊天**：topic 与资料模型已预留，加密方案预计改用 sender keys。
+- **前向保密**：已使用一次性 X25519 金钥，尚未实作 Signal 式的棘轮（Double Ratchet）。
+- **多装置**：`self` 副本与 store 已具备基础，尚未做装置间的金钥同步与撤销。
+- **ENS**：以 JSON-RPC 直接呼叫 registry / resolver；反向解析需要该地址已设定反向纪录。
+- **多媒体大小**：图片会先压缩再上 Waku，未做分片；大档（影片）尚未支援。
+- **扫码**：仅 Android / iOS / macOS / 浏览器可用（mobile_scanner 的平台限制），
+  Windows 与 Linux 显示「不支援扫码」；尚未支援「从相簿图片辨识 QR Code」。
+- **Web 安全边界**：见 3.1 —— 浏览器内无法对抗同源脚本注入，请只从信任的来源开启。
 
 ---
 
 ## 九、安全提醒
 
-- 助記詞是**唯一**能還原身份的方式，請離線保存；任何人取得它便能完全控制你的身份。
-- **保險庫密碼無法找回**。忘了密碼 ＝ 本地身份永久無法解鎖，只能重新匯入助記詞重建。
-  （這不是缺陷：能找回的密碼，代表系統裡存在第二條不需要你知道的解密路徑。）
-- 匯出助記詞後請立即收好，頁面會在 30 秒後自動隱藏，但**剪貼簿不會自動清除**，請自行覆蓋。
-- 本專案尚未經過第三方安全審計，請勿直接用於承載高敏感資訊的正式場景。
+- 助记词是**唯一**能还原身份的方式，请离线保存；任何人取得它便能完全控制你的身份。
+- **保险库密码无法找回**。忘了密码 ＝ 本地身份永久无法解锁，只能重新汇入助记词重建。
+  （这不是缺陷：能找回的密码，代表系统里存在第二条不需要你知道的解密路径。）
+- 汇出助记词后请立即收好，页面会在 30 秒后自动隐藏，但**剪贴簿不会自动清除**，请自行覆盖。
+- 本专案尚未经过第三方安全审计，请勿直接用于承载高敏感资讯的正式场景。
 
 ---
 
-## 十、開源授權
+## 十、开源授权
 
 Copyright © 2026 WEB6 contributors
 
-本專案以 **GNU General Public License v3.0（GPL-3.0）** 授權釋出，完整條款見 [`LICENSE`](LICENSE)。
+本专案以 **GNU General Public License v3.0（GPL-3.0）** 授权释出，完整条款见 [`LICENSE`](LICENSE)。
 
-- 可自由使用、複製、修改與散佈（**含商業用途**）。
-- **衍生作品必須以相同授權（GPL-3.0）釋出**，並保留著作權與授權聲明。
-- 散佈時必須一併提供完整的**對應原始碼**（或提供取得方式）。
-- 本軟體**不附任何擔保**，詳見條款第 15、16 節。
+- 可自由使用、复制、修改与散布（**含商业用途**）。
+- **衍生作品必须以相同授权（GPL-3.0）释出**，并保留着作权与授权声明。
+- 散布时必须一并提供完整的**对应原始码**（或提供取得方式）。
+- 本软体**不附任何担保**，详见条款第 15、16 节。
 
-第三方套件（Flutter 外掛等）各自沿用其原始授權，請參考 `pubspec.yaml` 與各套件說明。
+第三方套件（Flutter 外挂等）各自沿用其原始授权，请参考 `pubspec.yaml` 与各套件说明。

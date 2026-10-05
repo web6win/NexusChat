@@ -19,29 +19,29 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description"
-      content="NexusChat — 基於 Waku 的去中心化聊天，did:ethr 身份，端到端加密。">
+      content="NexusChat — 基于 Waku 的去中心化聊天，did:ethr 身份，端到端加密。">
   <meta name="theme-color" content="#6C5CE7">
 
   <!--
-    內容安全政策（CSP）。
+    内容安全政策（CSP）。
 
-    為什麼要限制 script-src：這個應用持有可解密的憑證（保險庫密碼輸入）。
-    若攻擊者能注入 DOM，最有效的利用方式是載入外部惡意腳本並把資料外送。
+    为什么要限制 script-src：这个应用持有可解密的凭证（保险库密码输入）。
+    若攻击者能注入 DOM，最有效的利用方式是载入外部恶意脚本并把资料外送。
     把 script-src 限定在 'self'（外加 Flutter 需要的 inline / wasm / gstatic
-    畫布套件）能直接切斷這條路徑 —— 注入的 <script src="https://evil.example/x.js">
-    會被拒絕。
+    画布套件）能直接切断这条路径 —— 注入的 <script src="https://evil.example/x.js">
+    会被拒绝。
 
-    'unsafe-inline' 與 'unsafe-eval' 是 Flutter Web 啟動器與 dart2js 執行時
-    的必要條件，無法移除；release 模式還需從 Google 靜態網域載入 canvaskit.js，
-    因此額外放行 https://www.gstatic.com/flutter-canvaskit/（僅此路徑）。
-    這份 CSP 的價值在於「限制來源」而非「禁止內聯」。
+    'unsafe-inline' 与 'unsafe-eval' 是 Flutter Web 启动器与 dart2js 执行时
+    的必要条件，无法移除；release 模式还需从 Google 静态网域载入 canvaskit.js，
+    因此额外放行 https://www.gstatic.com/flutter-canvaskit/（仅此路径）。
+    这份 CSP 的价值在于「限制来源」而非「禁止内联」。
 
-    connect-src 保留為 *：RPC 與 Waku 節點由使用者自行設定，無法預先列舉。
-    部署時建議由伺服器再補上 X-Frame-Options / X-Content-Type-Options 等標頭。
+    connect-src 保留为 *：RPC 与 Waku 节点由使用者自行设定，无法预先列举。
+    部署时建议由伺服器再补上 X-Frame-Options / X-Content-Type-Options 等标头。
 
-    發現 → 掃一掃在瀏覽器沒有原生 BarcodeDetector 時（Firefox、舊版 Safari），
-    會由 mobile_scanner 從 jsDelivr 載入 zxing-wasm 做辨識；上面兩處
-    https://cdn.jsdelivr.net/npm/zxing-wasm/ 就是為它開的，移除後那些瀏覽器會掃不出來。
+    发现 → 扫一扫在浏览器没有原生 BarcodeDetector 时（Firefox、旧版 Safari），
+    会由 mobile_scanner 从 jsDelivr 载入 zxing-wasm 做辨识；上面两处
+    https://cdn.jsdelivr.net/npm/zxing-wasm/ 就是为它开的，移除后那些浏览器会扫不出来。
   -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
@@ -57,7 +57,7 @@
     form-action 'none';
     frame-src 'none';
   ">
-  <!-- 不要把應用網址洩漏給外部資源（同時避免 Referer 洩漏 DID 相關路徑）。 -->
+  <!-- 不要把应用网址泄漏给外部资源（同时避免 Referer 泄漏 DID 相关路径）。 -->
   <meta name="referrer" content="no-referrer">
 
   <!-- iOS meta tags & icons -->
@@ -72,7 +72,7 @@
   <title>NexusChat</title>
   <link rel="manifest" href="manifest.json">
   <style>
-    /* 開場載入畫面，避免白屏閃爍 */
+    /* 开场载入画面，避免白屏闪烁 */
     #nexuschat-loading {
       position: fixed;
       inset: 0;
@@ -109,7 +109,7 @@
   -->
   <script src="flutter_bootstrap.js" async></script>
   <script>
-    // Flutter 首幀後移除載入畫面。
+    // Flutter 首帧后移除载入画面。
     window.addEventListener('load', function () {
       var el = document.getElementById('nexuschat-loading');
       if (el && el.parentNode) el.parentNode.removeChild(el);

@@ -1,6 +1,6 @@
 # NexusChat
 
-English | [繁體中文](README.md)
+English | [简体中文](README.md)
 
 > Decentralized chat built on **Waku**: **DID** identity, the **Ethereum** ecosystem, end-to-end encryption.
 > One Flutter codebase covering **H5 / mobile (Android · iOS) / desktop (Windows · macOS · Linux)**.
@@ -23,7 +23,7 @@ English | [繁體中文](README.md)
 | Messages | Text, **images** (compressed before sending), **voice** (recording + waveform / playback) |
 | **Scanning** | **Discover → Scan**: read QR codes with the camera; URLs open directly in the external browser, and `did:ethr` / `0x` addresses / ENS names can be added as a contact in one tap |
 | Interface | Responsive navigation (Chats / Contacts / Wallet / Discover / Settings), Material 3, **light / dark** themes |
-| Languages | 繁體中文, 简体中文, English, Español (can follow the system) |
+| Languages | English, 简体中文, Español, हिन्दी, Français (English is the default; can follow the system) |
 | Storage | Hive (filesystem on native, IndexedDB on web); all data stays on the device |
 
 ---

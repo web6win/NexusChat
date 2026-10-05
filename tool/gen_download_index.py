@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-gen_download_index.py — 產生 docs/download/index.html 下載總表，並匯出
-docs/version.json 給 App 內「版本更新」功能比對。
+gen_download_index.py — 产生 docs/download/index.html 下载总表，并汇出
+docs/version.json 给 App 内「版本更新」功能比对。
 
-掃描 <download_dir> 下的各平台子資料夾，列出可下載的建構產物，
-並附上檔案大小與 SHA-256。index.html 本身與 .nojekyll / CNAME / README
-等輔助檔案會被自動忽略，不會出現在下載清單中。
+扫描 <download_dir> 下的各平台子资料夹，列出可下载的构建产物，
+并附上档案大小与 SHA-256。index.html 本身与 .nojekyll / CNAME / README
+等辅助档案会被自动忽略，不会出现在下载清单中。
 
-會遞迴走訪子資料夾，因為 CI 上傳 Android 產物時保留了
-build/app/outputs/ 的相對結構（flutter-apk/… 與 bundle/release/…）。
-不遞迴的話，只有子資料夾、沒有直接子檔案的平台會被整段略過。
+会递回走访子资料夹，因为 CI 上传 Android 产物时保留了
+build/app/outputs/ 的相对结构（flutter-apk/… 与 bundle/release/…）。
+不递回的话，只有子资料夹、没有直接子档案的平台会被整段略过。
 
-每個平台區塊會附一個「掃碼下載」的 QR Code（指向該平台主下載檔的
-絕對網址），頁首另有一個指向整個下載中心的大 QR，方便手機直接掃碼。
+每个平台区块会附一个「扫码下载」的 QR Code（指向该平台主下载档的
+绝对网址），页首另有一个指向整个下载中心的大 QR，方便手机直接扫码。
 
 用法:
     python3 gen_download_index.py <download_dir> <output_index_html> \
         [app_version] [git_commit] [--base-url URL] [--version-out PATH]
 
-範例:
+范例:
     python3 tool/gen_download_index.py docs/download docs/download/index.html \
         1.0.0+9 abc1234 --base-url https://nchat.web6.win \
         --version-out docs/version.json
@@ -32,7 +32,7 @@ import os
 import sys
 from datetime import datetime, timezone
 
-# 平台顯示順序與名稱（繁體中文為主，附英文）。
+# 平台显示顺序与名称（繁体中文为主，附英文）。
 PLATFORM_META = [
     ("windows", "Windows", "Windows"),
     ("macos", "macOS", "macOS"),
@@ -41,33 +41,33 @@ PLATFORM_META = [
     ("ios", "iOS", "iPhone / iPad"),
 ]
 
-# 各平台標題下方的補充說明（沒有對應鍵就不顯示）。
+# 各平台标题下方的补充说明（没有对应键就不显示）。
 PLATFORM_NOTES = {
-    "android": "手機一般下載 flutter-apk/app-release.apk（通用，適用所有機型）；"
-               "想縮小體積可改用對應 ABI 的版本，bundle/ 內的 AAB 供 Google Play 上架使用。",
-    "ios": "iOS 版本需要簽署憑證才能安裝，僅在倉庫設定簽署 secrets 後才會出現。",
+    "android": "手机一般下载 flutter-apk/app-release.apk（通用，适用所有机型）；"
+               "想缩小体积可改用对应 ABI 的版本，bundle/ 内的 AAB 供 Google Play 上架使用。",
+    "ios": "iOS 版本需要签署凭证才能安装，仅在仓库设定签署 secrets 后才会出现。",
 }
 
-# 檔名 → 一句話說明，讓使用者不必猜 ABI 差異。
+# 档名 → 一句话说明，让使用者不必猜 ABI 差异。
 FILE_LABELS = {
     "app-release.apk": "通用 APK（所有 ABI）",
-    "app-arm64-v8a-release.apk": "arm64-v8a（多數現代手機）",
-    "app-armeabi-v7a-release.apk": "armeabi-v7a（較舊手機）",
-    "app-x86_64-release.apk": "x86_64（模擬器）",
+    "app-arm64-v8a-release.apk": "arm64-v8a（多数现代手机）",
+    "app-armeabi-v7a-release.apk": "armeabi-v7a（较旧手机）",
+    "app-x86_64-release.apk": "x86_64（模拟器）",
     "app-release.aab": "AAB（Google Play 上架用）",
-    "windows-release.zip": "解壓後執行 NexusChat.exe",
-    "macos-release.zip": "解壓後開啟 NexusChat.app",
-    "linux-bundle.tar.gz": "解壓後執行 nexuschat",
+    "windows-release.zip": "解压后执行 NexusChat.exe",
+    "macos-release.zip": "解压后开启 NexusChat.app",
+    "linux-bundle.tar.gz": "解压后执行 nexuschat",
 }
 
-# 排序優先序：可安裝的成品在前，上架包在後。
+# 排序优先序：可安装的成品在前，上架包在后。
 EXTENSION_ORDER = {".apk": 0, ".zip": 0, ".tar.gz": 0, ".ipa": 1, ".aab": 2}
 
-# 不列入下載清單的輔助檔案。
+# 不列入下载清单的辅助档案。
 SKIP_FILES = {"index.html", "checksums.sha256", ".nojekyll", "cname", "readme.md"}
 BRAND = "#6C5CE7"
 
-# version.json 裡各平台對應的鍵；Android 會額外展開各 ABI 變體。
+# version.json 里各平台对应的键；Android 会额外展开各 ABI 变体。
 PLATFORM_JSON_KEY = {
     "windows": "windows",
     "macos": "macos",
@@ -75,7 +75,7 @@ PLATFORM_JSON_KEY = {
     "android": "android",
     "ios": "ios",
 }
-# Android 變體檔名 → version.json 鍵。
+# Android 变体档名 → version.json 键。
 ANDROID_VARIANT_KEYS = {
     "app-release.apk": "android",
     "app-arm64-v8a-release.apk": "android_arm64_v8a",
@@ -105,7 +105,7 @@ def sha256_of(path: str) -> str:
 
 def sort_key(rel_path: str):
     lower = rel_path.lower()
-    # .tar.gz 需先於 os.path.splitext 判斷，否則會被當成 .gz。
+    # .tar.gz 需先于 os.path.splitext 判断，否则会被当成 .gz。
     if lower.endswith(".tar.gz"):
         rank = 0
     else:
@@ -114,17 +114,17 @@ def sort_key(rel_path: str):
 
 
 def collect_platform(download_dir: str, name: str):
-    """收集某平台資料夾下的所有檔案（含子資料夾）。
+    """收集某平台资料夹下的所有档案（含子资料夹）。
 
-    回傳 (相對路徑, 大小, sha256) 清單；相對路徑一律使用 `/` 分隔，
-    因為它就是網頁上的連結（例如 flutter-apk/app-release.apk）。
+    回传 (相对路径, 大小, sha256) 清单；相对路径一律使用 `/` 分隔，
+    因为它就是网页上的连结（例如 flutter-apk/app-release.apk）。
     """
     folder = os.path.join(download_dir, name)
     if not os.path.isdir(folder):
         return None
     files = []
     for root, dirs, names in os.walk(folder):
-        # 略過隱藏資料夾（例如 .git），並讓走訪順序穩定。
+        # 略过隐藏资料夹（例如 .git），并让走访顺序稳定。
         dirs[:] = sorted(d for d in dirs if not d.startswith("."))
         for entry in sorted(names):
             if entry.lower() in SKIP_FILES or entry.startswith("."):
@@ -137,16 +137,16 @@ def collect_platform(download_dir: str, name: str):
 
 
 def abs_url(base: str, rel: str) -> str:
-    """把相對路徑補成絕對網址；base 為空則維持相對（QR 無意義但頁面連結仍可用）。"""
+    """把相对路径补成绝对网址；base 为空则维持相对（QR 无意义但页面连结仍可用）。"""
     if not base:
         return rel
     return base.rstrip("/") + "/" + rel.lstrip("/")
 
 
 def primary_url(name: str, files, base: str) -> str:
-    """挑一個「主下載檔」的絕對網址，用於 QR 與 version.json。
+    """挑一个「主下载档」的绝对网址，用于 QR 与 version.json。
 
-    Android 偏好通用 app-release.apk；其餘平台取清單第一個。
+    Android 偏好通用 app-release.apk；其余平台取清单第一个。
     """
     if name == "android":
         for rel, _, _ in files:
@@ -158,7 +158,7 @@ def primary_url(name: str, files, base: str) -> str:
 
 
 def build_downloads_map(platforms_files, base: str) -> dict:
-    """組出 version.json 的 downloads 對照表。"""
+    """组出 version.json 的 downloads 对照表。"""
     downloads: dict = {}
     for name, files in platforms_files:
         if not files:
@@ -200,7 +200,7 @@ def main() -> int:
     out_path = sys.argv[2]
     app_version = "dev"
     git_commit = "unknown"
-    base_url = "https://nchat.web6.win"  # 預設自訂網域；可用 --base-url 覆寫。
+    base_url = "https://nchat.web6.win"  # 预设自订网域；可用 --base-url 覆写。
     version_out = None
 
     i = 3
@@ -226,7 +226,7 @@ def main() -> int:
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-    # 組合平台：已知順序優先，其餘依字母排序補在後方。
+    # 组合平台：已知顺序优先，其余依字母排序补在后方。
     known = [n for n, _, _ in PLATFORM_META]
     present_known = [n for n in known if os.path.isdir(os.path.join(download_dir, n))]
     extras = sorted(
@@ -254,7 +254,7 @@ def main() -> int:
         qr_url = primary_url(name, files, base_url)
         qr_html = (
             f'<div class="qr"><div class="qr-img" data-url="{html.escape(qr_url)}"></div>'
-            f'<span class="qr-cap">掃碼下載</span></div>'
+            f'<span class="qr-cap">扫码下载</span></div>'
         )
         sections.append(f"""
     <section class="platform">
@@ -268,14 +268,14 @@ def main() -> int:
 
     if not sections:
         sections.append(
-            '<section class="platform"><h2>尚無可用的下載</h2>'
-            '<p>建構產物將在本次 CI 完成後出現。</p></section>'
+            '<section class="platform"><h2>尚无可用的下载</h2>'
+            '<p>构建产物将在本次 CI 完成后出现。</p></section>'
         )
 
     download_page_url = abs_url(base_url, "download/")
     hero_qr = (
         f'<div class="qr-hero"><div class="qr-img" data-url="{html.escape(download_page_url)}"></div>'
-        f'<span class="qr-cap">掃碼開啟下載中心</span></div>'
+        f'<span class="qr-cap">扫码开启下载中心</span></div>'
     )
 
     html_doc = f"""<!DOCTYPE html>
@@ -283,7 +283,7 @@ def main() -> int:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NexusChat · 下載中心</title>
+<title>NexusChat · 下载中心</title>
 <style>
   :root {{ --brand: {BRAND}; }}
   * {{ box-sizing: border-box; }}
@@ -327,19 +327,19 @@ def main() -> int:
 <body>
 <header>
   <div class="logo">💬</div>
-  <h1>NexusChat 下載中心</h1>
-  <p>去中心化聊天 · Waku 網路 · 端對端加密</p>
+  <h1>NexusChat 下载中心</h1>
+  <p>去中心化聊天 · Waku 网路 · 端对端加密</p>
   {hero_qr}
 </header>
 <main>
-  <a class="web-cta" href="../">🌐 直接開啟網頁版（Web App）</a>
+  <a class="web-cta" href="../">🌐 直接开启网页版（Web App）</a>
 {''.join(sections)}
 </main>
 <footer>
-  版本 <code>{html.escape(app_version)}</code> · 建構 <code>{html.escape(git_commit)}</code> · {html.escape(now)}<br>
-  所有桌面與行動版本均為 CI 自動建構產物。
+  版本 <code>{html.escape(app_version)}</code> · 构建 <code>{html.escape(git_commit)}</code> · {html.escape(now)}<br>
+  所有桌面与行动版本均为 CI 自动构建产物。
 </footer>
-<!-- 用戶端渲染 QR：依 data-url 產生，避免把圖檔提交進倉庫。 -->
+<!-- 用户端渲染 QR：依 data-url 产生，避免把图档提交进仓库。 -->
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
   document.querySelectorAll('.qr-img').forEach(function (el) {{
@@ -357,9 +357,9 @@ def main() -> int:
         fh.write(html_doc)
     print(f"written: {out_path} ({len(html_doc)} bytes)")
 
-    # 匯出 version.json 給 App 內版本更新比對。
+    # 汇出 version.json 给 App 内版本更新比对。
     if version_out:
-        # app_version 可能是 "1.0.0+9"，拆出 name 與 build_number。
+        # app_version 可能是 "1.0.0+9"，拆出 name 与 build_number。
         if "+" in app_version:
             vname, vbuild = app_version.split("+", 1)
         else:

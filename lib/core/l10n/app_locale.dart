@@ -1,15 +1,20 @@
 import 'dart:ui' show Locale;
 
 /// 應用程式支援的語系。
+///
+/// 列舉順序同時決定「設定裡的語言列表」與
+/// [MaterialApp.supportedLocales] 的排列；英文為預設且排在最前面。
 enum AppLocale {
-  /// 繁體中文（預設）
-  zhHant('zh_Hant', '繁體中文', 'Traditional Chinese', Locale('zh', 'TW')),
+  /// English（預設）
+  en('en', 'English', 'English', Locale('en')),
   /// 简体中文
   zhHans('zh_Hans', '简体中文', 'Simplified Chinese', Locale('zh', 'CN')),
-  /// English
-  en('en', 'English', 'English', Locale('en')),
   /// Español
-  es('es', 'Español', 'Spanish', Locale('es'));
+  es('es', 'Español', 'Spanish', Locale('es')),
+  /// हिन्दी
+  hi('hi', 'हिन्दी', 'Hindi', Locale('hi')),
+  /// Français
+  fr('fr', 'Français', 'French', Locale('fr'));
 
   const AppLocale(this.code, this.nativeName, this.englishName, this.locale);
 
@@ -29,23 +34,18 @@ enum AppLocale {
     for (final l in AppLocale.values) {
       if (l.code == code) return l;
     }
-    return AppLocale.zhHant;
+    return AppLocale.en;
   }
 
-  /// 依據系統語系推測最合適的語系，無法匹配時回傳 [AppLocale.zhHant]。
+  /// 依據系統語系推測最合適的語系，無法匹配時回傳 [AppLocale.en]。
   static AppLocale fromLocale(Locale? locale) {
-    if (locale == null) return AppLocale.zhHant;
+    if (locale == null) return AppLocale.en;
     final lang = locale.languageCode.toLowerCase();
-    final script = locale.scriptCode?.toLowerCase();
-    final country = locale.countryCode?.toUpperCase();
-    if (lang == 'zh') {
-      if (script == 'hans' || country == 'CN' || country == 'SG') {
-        return AppLocale.zhHans;
-      }
-      return AppLocale.zhHant;
-    }
+    // 繁體中文已移除，所有 zh 一律落到簡體中文。
+    if (lang == 'zh') return AppLocale.zhHans;
     if (lang == 'es') return AppLocale.es;
-    if (lang == 'en') return AppLocale.en;
-    return AppLocale.zhHant;
+    if (lang == 'hi') return AppLocale.hi;
+    if (lang == 'fr') return AppLocale.fr;
+    return AppLocale.en;
   }
 }

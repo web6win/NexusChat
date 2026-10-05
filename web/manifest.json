@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#6C5CE7",
     "theme_color": "#6C5CE7",
-    "description": "NexusChat — 去中心化聊天，基於 Waku 網路、DID 身份與端到端加密。",
+    "description": "NexusChat — 去中心化聊天，基于 Waku 网路、DID 身份与端到端加密。",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
