@@ -10,6 +10,8 @@ import '../features/onboarding/create_identity_page.dart';
 import '../features/onboarding/restore_page.dart';
 import '../features/onboarding/welcome_page.dart';
 import '../features/chats/chats_page.dart';
+import '../features/chats/group_create_page.dart';
+import '../features/chats/group_info_page.dart';
 import '../features/security/migrate_page.dart';
 import '../features/settings/about_settings_page.dart';
 import '../features/settings/appearance_settings_page.dart';
@@ -137,6 +139,19 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (BuildContext context, GoRouterState state) =>
                     ChatsPage(
                   peerDid: state.uri.queryParameters['peer'],
+                  groupId: state.uri.queryParameters['group'],
+                ),
+              ),
+              GoRoute(
+                path: '/group-create',
+                builder: (BuildContext context, GoRouterState state) =>
+                    const GroupCreatePage(),
+              ),
+              GoRoute(
+                path: '/group-info',
+                builder: (BuildContext context, GoRouterState state) =>
+                    GroupInfoPage(
+                  groupId: state.uri.queryParameters['group'] ?? '',
                 ),
               ),
             ],

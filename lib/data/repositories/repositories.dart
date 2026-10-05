@@ -3,6 +3,7 @@ import '../models/app_settings.dart';
 import '../models/chat_models.dart';
 import '../models/identity_hint.dart';
 import '../models/security_settings.dart';
+import '../models/group_models.dart';
 import '../security/vault.dart';
 import '../storage/local_store.dart';
 
@@ -195,4 +196,37 @@ class MessagesRepository {
   }
 
   Future<void> clear() => _store.deletePrefix(LocalStore.kMessagePrefix);
+}
+
+/// 群組聊天存取。
+class GroupsRepository {
+  GroupsRepository(this._store);
+
+  final LocalStore _store;
+
+  List<GroupChat> all() {
+    final list = _store
+        .readPrefix(LocalStore.kGroupPrefix)
+        .map((raw) => raw is Map ? GroupChat.fromJson(raw) : null)
+        .whereType<GroupChat>()
+        .toList();
+    list.sort((a, b) {
+      if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+      return b.lastTsMs.compareTo(a.lastTsMs);
+    });
+    return list;
+  }
+
+  GroupChat? byId(String id) {
+    final raw = _store.read('${LocalStore.kGroupPrefix}$id');
+    return raw is Map ? GroupChat.fromJson(raw) : null;
+  }
+
+  Future<void> save(GroupChat group) =>
+      _store.write('${LocalStore.kGroupPrefix}${group.id}', group.toJson());
+
+  Future<void> remove(String id) =>
+      _store.delete('${LocalStore.kGroupPrefix}$id');
+
+  Future<void> clear() => _store.deletePrefix(LocalStore.kGroupPrefix);
 }

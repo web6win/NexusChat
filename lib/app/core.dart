@@ -42,6 +42,7 @@ class Core {
   late final ConversationsRepository conversationsRepo =
       ConversationsRepository(store);
   late final MessagesRepository messagesRepo = MessagesRepository(store);
+  late final GroupsRepository groupsRepo = GroupsRepository(store);
 
   /// 身份的公開提示（明文，鎖定時仍存在，用於顯示與路由）。
   IdentityHint? hint;

@@ -155,6 +155,61 @@ class CryptoService {
     }
   }
 
+  // ------------------------------------------------------------------ 對稱加密（群組）
+
+  /// 產生一組新的群組對稱金鑰（32 位元組）。
+  static Uint8List newSymmetricKey() {
+    final bytes = Uint8List(32);
+    for (var i = 0; i < bytes.length; i++) {
+      bytes[i] = _random.nextInt(256);
+    }
+    return bytes;
+  }
+
+  /// 用原始對稱金鑰加密（群組訊息）。[key] 為 32 位元組。
+  Future<EncryptedBlob> sealSymmetric(
+    String plaintext,
+    List<int> key, {
+    List<int> aad = const <int>[],
+  }) async {
+    final nonce = _randomNonce();
+    final box = await _aesGcm.encrypt(
+      utf8.encode(plaintext),
+      secretKey: SecretKey(key),
+      nonce: nonce,
+      aad: aad,
+    );
+    return EncryptedBlob(
+      cipherText: B64.encode(box.cipherText),
+      mac: B64.encode(box.mac.bytes),
+      nonce: B64.encode(nonce),
+      // 對稱加密無需一次性金鑰，留空以與 ECDH 封包區分。
+      ephemeralPublicKey: '',
+    );
+  }
+
+  /// 用原始對稱金鑰解密（群組訊息）。失敗回傳 null。
+  Future<String?> openSymmetric(
+    EncryptedBlob blob,
+    List<int> key, {
+    List<int> aad = const <int>[],
+  }) async {
+    try {
+      final clear = await _aesGcm.decrypt(
+        SecretBox(
+          B64.decode(blob.cipherText),
+          nonce: B64.decode(blob.nonce),
+          mac: Mac(B64.decode(blob.mac)),
+        ),
+        secretKey: SecretKey(key),
+        aad: aad,
+      );
+      return utf8.decode(clear);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<SecretKey> _deriveKey(SecretKey shared) async {
     return _hkdf.deriveKey(
       secretKey: shared,

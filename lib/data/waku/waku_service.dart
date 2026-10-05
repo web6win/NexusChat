@@ -1,6 +1,7 @@
 import '../crypto/app_identity.dart';
 import '../crypto/crypto_service.dart';
 import '../models/chat_models.dart';
+import '../models/group_models.dart';
 import 'content_topics.dart';
 import 'envelope.dart';
 import 'message_content.dart';
@@ -147,6 +148,80 @@ class WakuService {
       await publishEnvelope(envelope, topic: topic);
     }
     return envelope;
+  }
+
+  /// 傳送群組邀請：把群組金鑰用收件人公鑰加密，發到其收件匣與一對一頻道。
+  Future<NexusChatEnvelope> sendGroupInvite({
+    required String toDid,
+    required Map<String, dynamic> invite,
+    required String recipientPublicKeyB64,
+  }) async {
+    final envelope = await sealer.sealGroupInvite(
+      from: identity.did,
+      to: toDid,
+      payload: invite,
+      recipientPublicKeyB64: recipientPublicKeyB64,
+    );
+    for (final topic in <String>{
+      ContentTopics.directMessage(identity.did, toDid),
+      ContentTopics.inbox(toDid),
+    }) {
+      await publishEnvelope(envelope, topic: topic);
+    }
+    return envelope;
+  }
+
+  /// 傳送群組訊息：用共享對稱金鑰加密，發到群組專屬頻道。
+  Future<NexusChatEnvelope> sendGroupContent({
+    required String groupId,
+    required List<int> key,
+    required MessageContent content,
+    String? senderName,
+  }) async {
+    final envelope = await sealer.sealGroup(
+      from: identity.did,
+      groupId: groupId,
+      key: key,
+      plaintext: content.encode(),
+      publicData: <String, dynamic>{
+        'enc': identity.encPublicKeyB64,
+        if (senderName != null && senderName.isNotEmpty) 'name': senderName,
+      },
+    );
+    await publishEnvelope(
+      envelope,
+      topic: ContentTopics.group(groupId),
+    );
+    return envelope;
+  }
+
+  /// 廣播群組內的撤回通知：發到群組頻道，[to] 為 `grp:<groupId>`。
+  Future<NexusChatEnvelope> sendGroupRecall({
+    required String groupId,
+    required String targetMessageId,
+  }) async {
+    final envelope = sealer.sealPublic(
+      type: EnvelopeType.recall,
+      from: identity.did,
+      publicData: <String, dynamic>{
+        'target': targetMessageId,
+        'to': 'grp:$groupId',
+      },
+    );
+    await publishEnvelope(
+      envelope,
+      topic: ContentTopics.group(groupId),
+    );
+    return envelope;
+  }
+
+  /// 需要輪詢的群組頻道（成員所屬的群組）。
+  List<String> topicsForGroups(Iterable<GroupChat> groups) {
+    final topics = <String>{};
+    for (final group in groups) {
+      topics.add(ContentTopics.group(group.id));
+    }
+    return topics.toList(growable: false);
   }
 
   Future<void> publishEnvelope(

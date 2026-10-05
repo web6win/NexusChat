@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../app/core.dart';
 import '../data/crypto/app_identity.dart';
+import '../data/crypto/crypto_service.dart';
 import '../data/crypto/did.dart';
 import '../data/ethereum/ethereum_service.dart';
 import '../data/ethereum/tron_service.dart';
@@ -17,6 +18,7 @@ import '../data/models/chain.dart';
 import '../data/models/token_def.dart';
 import '../data/tokens/token_tx_history.dart';
 import '../data/models/chat_models.dart';
+import '../data/models/group_models.dart';
 import '../data/models/security_settings.dart';
 import '../data/security/vault.dart';
 import '../data/waku/content_topics.dart';
@@ -642,21 +644,25 @@ final nodeStatusProvider = FutureProvider<List<NodeStatus>>((ref) async {
 class ChatState {
   const ChatState({
     this.conversations = const <Conversation>[],
+    this.groups = const <GroupChat>[],
     this.messages = const <String, List<ChatMessage>>{},
     this.loading = false,
   });
 
   final List<Conversation> conversations;
+  final List<GroupChat> groups;
   final Map<String, List<ChatMessage>> messages;
   final bool loading;
 
   ChatState copyWith({
     List<Conversation>? conversations,
+    List<GroupChat>? groups,
     Map<String, List<ChatMessage>>? messages,
     bool? loading,
   }) {
     return ChatState(
       conversations: conversations ?? this.conversations,
+      groups: groups ?? this.groups,
       messages: messages ?? this.messages,
       loading: loading ?? this.loading,
     );
@@ -664,6 +670,16 @@ class ChatState {
 
   List<ChatMessage> forPeer(String peerDid) =>
       messages[peerDid] ?? const <ChatMessage>[];
+
+  /// 由會話鍵（`grp:<id>`）找出群組。
+  GroupChat? groupByPeerKey(String peerKey) {
+    if (!peerKey.startsWith('grp:')) return null;
+    final id = peerKey.substring(4);
+    for (final group in groups) {
+      if (group.id == id) return group;
+    }
+    return null;
+  }
 }
 
 /// 聊天控制器：負責同步 Waku、收發訊息與維護對話列表。
@@ -695,6 +711,7 @@ class ChatController extends Notifier<ChatState> {
   ChatState build() {
     final core = ref.read(coreProvider);
     final conversations = core.conversationsRepo.all();
+    final groups = core.groupsRepo.all();
     final all = core.messagesRepo.all();
     final grouped = <String, List<ChatMessage>>{};
     for (final message in all) {
@@ -703,7 +720,11 @@ class ChatController extends Notifier<ChatState> {
     for (final key in grouped.keys) {
       _seen.addAll(grouped[key]!.map((m) => m.id));
     }
-    return ChatState(conversations: conversations, messages: grouped);
+    return ChatState(
+      conversations: conversations,
+      groups: groups,
+      messages: grouped,
+    );
   }
 
   Core get _core => ref.read(coreProvider);
@@ -750,7 +771,10 @@ class ChatController extends Notifier<ChatState> {
         ...state.conversations.map((c) => c.peerDid),
         ...state.messages.keys,
       };
-      final topics = waku.topicsFor(peers);
+      final topics = <String>{
+        ...waku.topicsFor(peers),
+        ...waku.topicsForGroups(state.groups),
+      }.toList(growable: false);
       // 先確保節點已把這些頻道推播給我們：之後每輪只是去取節點收好的快取，
       // 不需要等下一輪才有機會命中，達到即時接收。
       await waku.subscribe(topics);
@@ -820,22 +844,44 @@ class ChatController extends Notifier<ChatState> {
       _seen.add(envelope.id);
       return _applyIncomingRecall(envelope);
     }
+    if (envelope.type == EnvelopeType.groupInvite) {
+      _seen.add(envelope.id);
+      return _applyIncomingGroupInvite(envelope);
+    }
     if (envelope.type != EnvelopeType.chat) return false;
 
     final myDid = _core.did;
+    final to = envelope.to;
+    final isGroup = to.startsWith('grp:');
     final outgoing = envelope.from.toLowerCase() == myDid.toLowerCase();
-    final peerDid = outgoing ? envelope.to : envelope.from;
+    final peerDid = isGroup ? to : (outgoing ? to : envelope.from);
     if (peerDid.isEmpty || peerDid == '*') return false;
 
-    final opened = await waku.sealer.open(envelope);
-    if (opened == null) return false;
-    final content = MessageContent.decode(opened.plaintext ?? '');
+    final String? plaintext;
+    final String? senderDid;
+    if (isGroup) {
+      final group = state.groupByPeerKey(peerDid);
+      if (group == null) return false;
+      final opened = await waku.sealer.openGroup(
+        envelope,
+        base64Decode(group.keyB64),
+      );
+      if (opened == null) return false;
+      plaintext = opened.plaintext;
+      senderDid = envelope.from;
+    } else {
+      final opened = await waku.sealer.open(envelope);
+      if (opened == null) return false;
+      plaintext = opened.plaintext;
+      senderDid = null;
+    }
+    final content = MessageContent.decode(plaintext ?? '');
     if (content.kind == MediaKind.text && content.text.isEmpty) return false;
     _seen.add(envelope.id);
 
     // 第一次收到某人訊息時自動建立名片：對方不需要事先加你為聯絡人，
-    // 你這邊也不會因為沒加他而看不到人。
-    if (!outgoing) await _ensureContact(peerDid, envelope);
+    // 你這邊也不會因為沒加他而看不到人。（群組成員不在此列，名稱走通訊錄解析）
+    if (!outgoing && !isGroup) await _ensureContact(peerDid, envelope);
 
     final chatMessage = ChatMessage(
       id: envelope.id,
@@ -850,11 +896,17 @@ class ChatController extends Notifier<ChatState> {
       mediaMime: content.mediaMime,
       mediaDurationMs: content.mediaDurationMs,
       mediaName: content.mediaName,
+      senderDid: senderDid,
       // 撤回通知比原始訊息先到時，這裡直接補上撤回標記。
       recalledAtMs: _pendingRecalls.remove(envelope.id),
     );
     await _core.messagesRepo.save(chatMessage);
-    await _upsertConversation(peerDid, chatMessage, incrementUnread: !outgoing);
+    if (isGroup) {
+      await _upsertGroupConversation(peerDid, chatMessage,
+          incrementUnread: !outgoing);
+    } else {
+      await _upsertConversation(peerDid, chatMessage, incrementUnread: !outgoing);
+    }
     return true;
   }
 
@@ -924,7 +976,9 @@ class ChatController extends Notifier<ChatState> {
     if (targetId == null || targetId.isEmpty) return false;
 
     final fromMe = envelope.from.toLowerCase() == _core.did.toLowerCase();
-    final peerDid = fromMe ? (to ?? '') : envelope.from;
+    final peerDid = (to ?? '').startsWith('grp:')
+        ? (to ?? '')
+        : (fromMe ? (to ?? '') : envelope.from);
     if (peerDid.isEmpty || peerDid == '*') return false;
 
     final target = _findMessage(targetId);
@@ -1017,13 +1071,292 @@ class ChatController extends Notifier<ChatState> {
 
   void _reload() {
     final conversations = _core.conversationsRepo.all();
+    final groups = _core.groupsRepo.all();
     final all = _core.messagesRepo.all();
     final grouped = <String, List<ChatMessage>>{};
     for (final message in all) {
       grouped.putIfAbsent(message.peerDid, () => <ChatMessage>[]).add(message);
       _seen.add(message.id);
     }
-    state = state.copyWith(conversations: conversations, messages: grouped);
+    state = state.copyWith(
+      conversations: conversations,
+      groups: groups,
+      messages: grouped,
+    );
+  }
+
+  void _reloadGroups() {
+    state = state.copyWith(groups: _core.groupsRepo.all());
+  }
+
+  // ------------------------------------------------------------ 群組
+
+  /// 處理收到的群組邀請：解密取得群組金鑰與成員清單，建立或更新本機群組。
+  Future<bool> _applyIncomingGroupInvite(NexusChatEnvelope envelope) async {
+    final waku = _core.waku;
+    if (waku == null) return false;
+    final opened = await waku.sealer.open(envelope);
+    if (opened == null) return false;
+    Map<String, dynamic> payload;
+    try {
+      payload = jsonDecode(opened.plaintext ?? '') as Map<String, dynamic>;
+    } catch (_) {
+      return false;
+    }
+    final groupId = payload['groupId'] as String?;
+    final name = payload['name'] as String?;
+    final keyB64 = payload['keyB64'] as String?;
+    final creator = (payload['creator'] as String?)?.toLowerCase();
+    final membersRaw = payload['members'];
+    if (groupId == null || keyB64 == null || name == null) return false;
+    final members = membersRaw is List
+        ? membersRaw.map((e) => '$e'.toLowerCase()).toList()
+        : <String>[];
+    if (members.isEmpty) return false;
+
+    final existing = state.groupByPeerKey('grp:$groupId');
+    final group = existing == null
+        ? GroupChat(
+            id: groupId,
+            name: name,
+            memberDids: members,
+            creatorDid: creator ?? '',
+            keyB64: keyB64,
+            createdAtMs: envelope.timestampMs,
+          )
+        : existing.copyWith(name: name, memberDids: members);
+    await _core.groupsRepo.save(group);
+    _reloadGroups();
+    // 建立者不是自己時，補抓一次群組主題，確保即時收到後續訊息。
+    unawaited(sync());
+    return true;
+  }
+
+  /// 更新群組在列表的預覽（最後一則訊息）。
+  Future<void> _upsertGroupConversation(
+    String peerKey,
+    ChatMessage message, {
+    required bool incrementUnread,
+  }) async {
+    final group = state.groupByPeerKey(peerKey);
+    if (group == null) return;
+    final hidden = message.recalledAtMs != null;
+    final next = group.copyWith(
+      lastText: hidden
+          ? ''
+          : (message.kind == MediaKind.text
+              ? message.text
+              : (message.text.isNotEmpty ? message.text : '')),
+      lastMedia: hidden
+          ? null
+          : (message.kind == MediaKind.text ? null : message.kind.value),
+      lastTsMs: message.timestampMs,
+      unread: incrementUnread ? group.unread + 1 : group.unread,
+    );
+    await _core.groupsRepo.save(next);
+    _reloadGroups();
+  }
+
+  /// 重新計算某個群組的列表預覽（刪除／撤回後）。
+  Future<void> _refreshGroupPreview(String peerKey) async {
+    final group = state.groupByPeerKey(peerKey);
+    if (group == null) return;
+    final remaining = _core.messagesRepo.forPeer(peerKey);
+    if (remaining.isEmpty) {
+      await _core.groupsRepo.remove(group.id);
+      _reloadGroups();
+      return;
+    }
+    final last = remaining.last;
+    final hidden = last.recalledAtMs != null;
+    await _core.groupsRepo.save(
+      group.copyWith(
+        lastText: hidden ? '' : (last.kind == MediaKind.text ? last.text : ''),
+        lastMedia:
+            hidden ? null : (last.kind == MediaKind.text ? null : last.kind.value),
+        lastTsMs: last.timestampMs,
+      ),
+    );
+    _reloadGroups();
+  }
+
+  /// 取得某個 DID 的加密公鑰：先查聯絡人，沒有再去金鑰包頻道補。
+  Future<String?> _recipientKeyFor(String did) async {
+    final contacts = ref.read(contactsProvider);
+    final index =
+        contacts.indexWhere((c) => c.did.toLowerCase() == did.toLowerCase());
+    if (index >= 0) {
+      final key = contacts[index].encPublicKeyB64;
+      if (key != null && key.isNotEmpty) return key;
+    }
+    return _findKeyOnNetwork(did);
+  }
+
+  /// 建立群組：產生共享金鑰，儲存本機群組，並把金鑰用每位成員公鑰加密分發。
+  ///
+  /// 回傳新建的群組 id；成員公鑰暫時取不到時會略過該成員。
+  Future<String?> createGroup({
+    required String name,
+    required List<String> memberDids,
+  }) async {
+    final waku = _core.waku;
+    if (waku == null || memberDids.isEmpty) return null;
+    final myDid = _core.did.toLowerCase();
+    final groupId = const Uuid().v4();
+    final keyB64 = base64Encode(CryptoService.newSymmetricKey());
+    final members = <String>{myDid, ...memberDids.map((d) => d.toLowerCase())}
+        .toList(growable: false);
+    final group = GroupChat(
+      id: groupId,
+      name: name.trim(),
+      memberDids: members,
+      creatorDid: myDid,
+      keyB64: keyB64,
+      createdAtMs: DateTime.now().millisecondsSinceEpoch,
+    );
+    await _core.groupsRepo.save(group);
+    _reloadGroups();
+
+    final payload = <String, dynamic>{
+      'groupId': groupId,
+      'name': group.name,
+      'members': members,
+      'creator': myDid,
+      'keyB64': keyB64,
+    };
+    for (final did in memberDids) {
+      final normalized = did.toLowerCase();
+      final encKey = await _recipientKeyFor(normalized);
+      if (encKey == null || encKey.isEmpty) continue;
+      try {
+        await waku.sendGroupInvite(
+          toDid: normalized,
+          invite: payload,
+          recipientPublicKeyB64: encKey,
+        );
+      } catch (_) {
+        // 單一成員邀請失敗不影響整體；其餘成員仍會收到，稍後可重新邀請。
+      }
+    }
+    return groupId;
+  }
+
+  /// 邀請新成員加入既有群組（用既有金鑰重新分發邀請）。
+  Future<bool> addGroupMember(String groupId, String did) async {
+    final waku = _core.waku;
+    final group = _core.groupsRepo.byId(groupId);
+    if (waku == null || group == null) return false;
+    final normalized = did.toLowerCase();
+    if (group.memberDids.contains(normalized)) return false;
+    final encKey = await _recipientKeyFor(normalized);
+    if (encKey == null || encKey.isEmpty) return false;
+    final members = <String>[...group.memberDids, normalized];
+    await _core.groupsRepo.save(group.copyWith(memberDids: members));
+    _reloadGroups();
+    final payload = <String, dynamic>{
+      'groupId': groupId,
+      'name': group.name,
+      'members': members,
+      'creator': group.creatorDid,
+      'keyB64': group.keyB64,
+    };
+    try {
+      await waku.sendGroupInvite(
+        toDid: normalized,
+        invite: payload,
+        recipientPublicKeyB64: encKey,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 退出群組：移除本機群組與其訊息（去中心化網路無法通知他人）。
+  Future<void> leaveGroup(String groupId) async {
+    final peerKey = 'grp:$groupId';
+    await _core.messagesRepo.removeByPeer(peerKey);
+    await _core.groupsRepo.remove(groupId);
+    _reloadGroups();
+  }
+
+  /// 刪除群組（只刪本機，語意等同 [leaveGroup]）。
+  Future<void> deleteGroup(String groupId) async => leaveGroup(groupId);
+
+  /// 傳送群組訊息（樂觀更新）。
+  Future<void> sendGroupContent(String groupId, MessageContent content) async {
+    if (content.kind == MediaKind.text && content.text.trim().isEmpty) return;
+    final waku = _core.waku;
+    final group = _core.groupsRepo.byId(groupId);
+    if (waku == null || group == null) return;
+
+    final peerKey = 'grp:$groupId';
+    final mediaB64 = content.mediaBytes == null
+        ? null
+        : base64Encode(content.mediaBytes!);
+
+    if (content.mediaBytes != null &&
+        content.mediaBytes!.length > kMaxMediaBytes) {
+      final failed = ChatMessage(
+        id: 'tmp-${const Uuid().v4()}',
+        peerDid: peerKey,
+        text: content.text,
+        timestampMs: DateTime.now().millisecondsSinceEpoch,
+        outgoing: true,
+        status: MessageStatus.failed,
+        error: 'media-too-large',
+        kind: content.kind,
+        mediaB64: mediaB64,
+        mediaMime: content.mediaMime,
+        mediaDurationMs: content.mediaDurationMs,
+        mediaName: content.mediaName,
+      );
+      await _core.messagesRepo.save(failed);
+      await _upsertGroupConversation(peerKey, failed, incrementUnread: false);
+      _reload();
+      return;
+    }
+
+    final tempId = 'tmp-${const Uuid().v4()}';
+    final pending = ChatMessage(
+      id: tempId,
+      peerDid: peerKey,
+      text: content.text,
+      timestampMs: DateTime.now().millisecondsSinceEpoch,
+      outgoing: true,
+      status: MessageStatus.sending,
+      kind: content.kind,
+      mediaB64: mediaB64,
+      mediaMime: content.mediaMime,
+      mediaDurationMs: content.mediaDurationMs,
+      mediaName: content.mediaName,
+      senderDid: _core.did,
+    );
+    _insertLocal(pending);
+
+    try {
+      final envelope = await waku.sendGroupContent(
+        groupId: groupId,
+        key: base64Decode(group.keyB64),
+        content: content,
+        senderName: _core.settings.nickname,
+      );
+      _seen.add(envelope.id);
+      await _core.messagesRepo.remove(tempId);
+      final sent = pending.copyWith(
+        id: envelope.id,
+        status: MessageStatus.sent,
+        timestampMs: envelope.timestampMs,
+      );
+      await _core.messagesRepo.save(sent);
+      await _upsertGroupConversation(peerKey, sent, incrementUnread: false);
+      _reload();
+    } catch (error) {
+      await _finalizeMessage(
+        tempId,
+        pending.copyWith(status: MessageStatus.failed, error: '$error'),
+      );
+    }
   }
 
   /// 送出訊息（樂觀更新）。[content] 可以是文字、圖片或語音。
@@ -1177,6 +1510,13 @@ class ChatController extends Notifier<ChatState> {
   }
 
   Future<void> markRead(String peerDid) async {
+    if (peerDid.startsWith('grp:')) {
+      final group = state.groupByPeerKey(peerDid);
+      if (group == null || group.unread == 0) return;
+      await _core.groupsRepo.save(group.copyWith(unread: 0));
+      _reloadGroups();
+      return;
+    }
     final list = _core.conversationsRepo
         .all()
         .where((c) => c.peerDid == peerDid)
@@ -1187,6 +1527,13 @@ class ChatController extends Notifier<ChatState> {
   }
 
   Future<void> togglePin(String peerDid) async {
+    if (peerDid.startsWith('grp:')) {
+      final group = state.groupByPeerKey(peerDid);
+      if (group == null) return;
+      await _core.groupsRepo.save(group.copyWith(pinned: !group.pinned));
+      _reloadGroups();
+      return;
+    }
     final list = _core.conversationsRepo
         .all()
         .where((c) => c.peerDid == peerDid)
@@ -1199,6 +1546,11 @@ class ChatController extends Notifier<ChatState> {
 
   Future<void> deleteConversation(String peerDid) async {
     await _core.messagesRepo.removeByPeer(peerDid);
+    if (peerDid.startsWith('grp:')) {
+      await _core.groupsRepo.remove(peerDid.substring(4));
+      _reloadGroups();
+      return;
+    }
     await _core.conversationsRepo.remove(peerDid);
     _reload();
   }
@@ -1233,12 +1585,20 @@ class ChatController extends Notifier<ChatState> {
     if (target.status == MessageStatus.failed) return false;
     if (target.recalledAtMs != null) return false;
 
+    final isGroup = target.peerDid.startsWith('grp:');
     try {
-      final envelope = await waku.sendRecall(
-        toDid: target.peerDid,
-        targetMessageId: messageId,
-      );
-      _seen.add(envelope.id);
+      if (isGroup) {
+        await waku.sendGroupRecall(
+          groupId: target.peerDid.substring(4),
+          targetMessageId: messageId,
+        );
+      } else {
+        final envelope = await waku.sendRecall(
+          toDid: target.peerDid,
+          targetMessageId: messageId,
+        );
+        _seen.add(envelope.id);
+      }
     } catch (error, stackTrace) {
       debugPrint('recall failed: $error\n$stackTrace');
       return false;
@@ -1246,7 +1606,11 @@ class ChatController extends Notifier<ChatState> {
     await _core.messagesRepo.save(
       target.copyWith(recalledAtMs: DateTime.now().millisecondsSinceEpoch),
     );
-    await _refreshConversationPreview(target.peerDid);
+    if (isGroup) {
+      await _refreshGroupPreview(target.peerDid);
+    } else {
+      await _refreshConversationPreview(target.peerDid);
+    }
     _reload();
     return true;
   }

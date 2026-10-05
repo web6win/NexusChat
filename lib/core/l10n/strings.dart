@@ -222,6 +222,34 @@ abstract final class K {
   static const chatPickContact = 'chatPickContact';
   static const chatUnread = 'chatUnread';
 
+  // ------------------------------------------------------------------ 群組
+  static const groupTitle = 'groupTitle';
+  static const groupCreate = 'groupCreate';
+  static const groupCreateDesc = 'groupCreateDesc';
+  static const groupName = 'groupName';
+  static const groupNameHint = 'groupNameHint';
+  static const groupMembers = 'groupMembers';
+  static const groupInfo = 'groupInfo';
+  static const groupLeaveTitle = 'groupLeaveTitle';
+  static const groupLeaveConfirm = 'groupLeaveConfirm';
+  static const groupDeleteTitle = 'groupDeleteTitle';
+  static const groupDeleteConfirm = 'groupDeleteConfirm';
+  static const groupAddMember = 'groupAddMember';
+  static const groupAddMemberDesc = 'groupAddMemberDesc';
+  static const groupCreator = 'groupCreator';
+  static const groupYou = 'groupYou';
+  static const groupIdCopied = 'groupIdCopied';
+  static const groupCreated = 'groupCreated';
+  static const groupLeft = 'groupLeft';
+  static const contactPickerTitle = 'contactPickerTitle';
+  static const selectedCount = 'selectedCount';
+  static const createGroup = 'createGroup';
+  static const groupInviteSending = 'groupInviteSending';
+  static const groupCannotFindKey = 'groupCannotFindKey';
+  static const groupNoContacts = 'groupNoContacts';
+  static const groupMembersLabel = 'groupMembersLabel';
+  static const leave = 'leave';
+
   // ---------------------------------------------------------------- 聯絡人
   static const contactsTitle = 'contactsTitle';
   static const contactsEmpty = 'contactsEmpty';
@@ -851,6 +879,32 @@ const Map<String, Map<String, String>> _bundles = {
     K.timeJustNow: '刚刚',
     K.timeMinutesAgo: '%1\$d 分钟前',
     K.timeHoursAgo: '%1\$d 小时前',
+    K.groupTitle: '群組',
+    K.groupCreate: '新建群組',
+    K.groupCreateDesc: '選擇聯絡人並為群組命名，所有人會共用一把金鑰來讀取訊息。',
+    K.groupName: '群組名稱',
+    K.groupNameHint: '例如：專案小組',
+    K.groupMembers: '%1\$d 名成員',
+    K.groupInfo: '群組資訊',
+    K.groupLeaveTitle: '退出群組',
+    K.groupLeaveConfirm: '確定要退出這個群組嗎？你的訊息會從此裝置移除。',
+    K.groupDeleteTitle: '刪除群組',
+    K.groupDeleteConfirm: '要從此裝置刪除這個群組與其所有訊息嗎？',
+    K.groupAddMember: '新增成員',
+    K.groupAddMemberDesc: '邀請另一位聯絡人加入這個群組。',
+    K.groupCreator: '建立者',
+    K.groupYou: '你',
+    K.groupIdCopied: '已複製群組 ID',
+    K.groupCreated: '群組已建立',
+    K.groupLeft: '已退出群組',
+    K.contactPickerTitle: '選擇聯絡人',
+    K.selectedCount: '已選 %1\$d 人',
+    K.createGroup: '建立',
+    K.groupInviteSending: '正在傳送邀請…',
+    K.groupCannotFindKey: '找不到 %1\$s 的加密公鑰，邀請未送出。',
+    K.groupNoContacts: '沒有可加入的聯絡人',
+    K.groupMembersLabel: '成員',
+    K.leave: '退出',
   },
 
   // ================================================================= English
@@ -1290,6 +1344,32 @@ const Map<String, Map<String, String>> _bundles = {
     K.timeJustNow: 'just now',
     K.timeMinutesAgo: '%1\$d min ago',
     K.timeHoursAgo: '%1\$d h ago',
+    K.groupTitle: 'Groups',
+    K.groupCreate: 'New group',
+    K.groupCreateDesc: 'Pick contacts and name the group. Everyone gets a shared key to read messages.',
+    K.groupName: 'Group name',
+    K.groupNameHint: 'e.g. Project Team',
+    K.groupMembers: '%1\$d members',
+    K.groupInfo: 'Group info',
+    K.groupLeaveTitle: 'Leave group',
+    K.groupLeaveConfirm: 'Leave this group? Your messages will be removed from this device.',
+    K.groupDeleteTitle: 'Delete group',
+    K.groupDeleteConfirm: 'Delete this group and all its messages from this device?',
+    K.groupAddMember: 'Add member',
+    K.groupAddMemberDesc: 'Invite another contact to this group.',
+    K.groupCreator: 'Creator',
+    K.groupYou: 'You',
+    K.groupIdCopied: 'Group ID copied',
+    K.groupCreated: 'Group created',
+    K.groupLeft: 'Left group',
+    K.contactPickerTitle: 'Select contacts',
+    K.selectedCount: '%1\$d selected',
+    K.createGroup: 'Create',
+    K.groupInviteSending: 'Sending invites…',
+    K.groupCannotFindKey: 'Could not find %1\$s encryption key; invite not sent.',
+    K.groupNoContacts: 'No contacts to add',
+    K.groupMembersLabel: 'Members',
+    K.leave: 'Leave',
   },
 
   // ================================================================= Español
@@ -1737,6 +1817,32 @@ const Map<String, Map<String, String>> _bundles = {
     K.timeJustNow: 'ahora mismo',
     K.timeMinutesAgo: 'hace %1\$d min',
     K.timeHoursAgo: 'hace %1\$d h',
+    K.groupTitle: 'Grupos',
+    K.groupCreate: 'Nuevo grupo',
+    K.groupCreateDesc: 'Elige contactos y nombra el grupo. Todos reciben una clave compartida para leer los mensajes.',
+    K.groupName: 'Nombre del grupo',
+    K.groupNameHint: 'p. ej. Equipo del proyecto',
+    K.groupMembers: '%1\$d miembros',
+    K.groupInfo: 'Información del grupo',
+    K.groupLeaveTitle: 'Salir del grupo',
+    K.groupLeaveConfirm: '¿Salir de este grupo? Tus mensajes se eliminarán de este dispositivo.',
+    K.groupDeleteTitle: 'Eliminar grupo',
+    K.groupDeleteConfirm: '¿Eliminar este grupo y todos sus mensajes de este dispositivo?',
+    K.groupAddMember: 'Añadir miembro',
+    K.groupAddMemberDesc: 'Invita a otro contacto a este grupo.',
+    K.groupCreator: 'Creador',
+    K.groupYou: 'Tú',
+    K.groupIdCopied: 'ID del grupo copiado',
+    K.groupCreated: 'Grupo creado',
+    K.groupLeft: 'Saliste del grupo',
+    K.contactPickerTitle: 'Seleccionar contactos',
+    K.selectedCount: '%1\$d seleccionados',
+    K.createGroup: 'Crear',
+    K.groupInviteSending: 'Enviando invitaciones…',
+    K.groupCannotFindKey: 'No se encontró la clave de cifrado de %1\$s; invitación no enviada.',
+    K.groupNoContacts: 'No hay contactos para añadir',
+    K.groupMembersLabel: 'Miembros',
+    K.leave: 'Salir',
   },
 
   // ================================================================ हिन्दी
@@ -2164,6 +2270,32 @@ const Map<String, Map<String, String>> _bundles = {
     K.timeJustNow: 'अभी',
     K.timeMinutesAgo: '%1\$d मिनट पहले',
     K.timeHoursAgo: '%1\$d घंटे पहले',
+    K.groupTitle: 'समूह',
+    K.groupCreate: 'नया समूह',
+    K.groupCreateDesc: 'संपर्क चुनें और समूह का नाम दें। सभी को संदेश पढ़ने के लिए एक साझा कुंजी मिलती है।',
+    K.groupName: 'समूह का नाम',
+    K.groupNameHint: 'जैसे, प्रोजेक्ट टीम',
+    K.groupMembers: '%1\$d सदस्य',
+    K.groupInfo: 'समूह की जानकारी',
+    K.groupLeaveTitle: 'समूह छोड़ें',
+    K.groupLeaveConfirm: 'क्या आप इस समूह को छोड़ना चाहते हैं? आपके संदेश इस डिवाइस से हट जाएंगे।',
+    K.groupDeleteTitle: 'समूह हटाएं',
+    K.groupDeleteConfirm: 'क्या इस समूह और इसके सभी संदेश इस डिवाडिस से हटाए जाएं?',
+    K.groupAddMember: 'सदस्य जोड़ें',
+    K.groupAddMemberDesc: 'इस समूह में किसी अन्य संपर्क को आमंत्रित करें।',
+    K.groupCreator: 'निर्माता',
+    K.groupYou: 'आप',
+    K.groupIdCopied: 'समूह ID कॉपी किया गया',
+    K.groupCreated: 'समूह बनाया गया',
+    K.groupLeft: 'समूह छोड़ा',
+    K.contactPickerTitle: 'संपर्क चुनें',
+    K.selectedCount: '%1\$d चयनित',
+    K.createGroup: 'बनाएं',
+    K.groupInviteSending: 'आमंत्रण भेजे जा रहे हैं…',
+    K.groupCannotFindKey: '%1\$s की एन्क्रिप्शन कुंजी नहीं मिली; आमंत्रण नहीं भेजा गया।',
+    K.groupNoContacts: 'जोड़ने के लिए कोई संपर्क नहीं',
+    K.groupMembersLabel: 'सदस्य',
+    K.leave: 'छोड़ें',
   },
 
   // =============================================================== Français
@@ -2599,6 +2731,32 @@ const Map<String, Map<String, String>> _bundles = {
     K.timeJustNow: 'à l’instant',
     K.timeMinutesAgo: 'il y a %1\$d min',
     K.timeHoursAgo: 'il y a %1\$d h',
+    K.groupTitle: 'Groupes',
+    K.groupCreate: 'Nouveau groupe',
+    K.groupCreateDesc: 'Choisissez des contacts et nommez le groupe. Chacun reçoit une clé partagée pour lire les messages.',
+    K.groupName: 'Nom du groupe',
+    K.groupNameHint: 'ex. Équipe projet',
+    K.groupMembers: '%1\$d membres',
+    K.groupInfo: 'Infos du groupe',
+    K.groupLeaveTitle: 'Quitter le groupe',
+    K.groupLeaveConfirm: 'Quitter ce groupe ? Vos messages seront supprimés de cet appareil.',
+    K.groupDeleteTitle: 'Supprimer le groupe',
+    K.groupDeleteConfirm: 'Supprimer ce groupe et tous ses messages de cet appareil ?',
+    K.groupAddMember: 'Ajouter un membre',
+    K.groupAddMemberDesc: 'Invitez un autre contact dans ce groupe.',
+    K.groupCreator: 'Créateur',
+    K.groupYou: 'Vous',
+    K.groupIdCopied: 'ID de groupe copié',
+    K.groupCreated: 'Groupe créé',
+    K.groupLeft: 'Groupe quitté',
+    K.contactPickerTitle: 'Sélectionner des contacts',
+    K.selectedCount: '%1\$d sélectionnés',
+    K.createGroup: 'Créer',
+    K.groupInviteSending: 'Envoi des invitations…',
+    K.groupCannotFindKey: 'Clé de chiffrement de %1\$s introuvable ; invitation non envoyée.',
+    K.groupNoContacts: 'Aucun contact à ajouter',
+    K.groupMembersLabel: 'Membres',
+    K.leave: 'Quitter',
   },
 };
 
@@ -2849,6 +3007,34 @@ class Strings {
   String get chatSecureDesc => get(K.chatSecureDesc);
   String get chatPickContact => get(K.chatPickContact);
   String get chatUnread => get(K.chatUnread);
+
+  // ------------------------------------------------------------------ 群組
+  String get groupTitle => get(K.groupTitle);
+  String get groupCreate => get(K.groupCreate);
+  String get groupCreateDesc => get(K.groupCreateDesc);
+  String get groupName => get(K.groupName);
+  String get groupNameHint => get(K.groupNameHint);
+  String groupMembers(int count) => format(K.groupMembers, [count]);
+  String get groupInfo => get(K.groupInfo);
+  String get groupLeaveTitle => get(K.groupLeaveTitle);
+  String get groupLeaveConfirm => get(K.groupLeaveConfirm);
+  String get groupDeleteTitle => get(K.groupDeleteTitle);
+  String get groupDeleteConfirm => get(K.groupDeleteConfirm);
+  String get groupAddMember => get(K.groupAddMember);
+  String get groupAddMemberDesc => get(K.groupAddMemberDesc);
+  String get groupCreator => get(K.groupCreator);
+  String get groupYou => get(K.groupYou);
+  String get groupIdCopied => get(K.groupIdCopied);
+  String get groupCreated => get(K.groupCreated);
+  String get groupLeft => get(K.groupLeft);
+  String get contactPickerTitle => get(K.contactPickerTitle);
+  String selectedCount(int count) => format(K.selectedCount, [count]);
+  String get createGroup => get(K.createGroup);
+  String get groupInviteSending => get(K.groupInviteSending);
+  String get groupCannotFindKey => get(K.groupCannotFindKey);
+  String get groupNoContacts => get(K.groupNoContacts);
+  String get groupMembersLabel => get(K.groupMembersLabel);
+  String get leave => get(K.leave);
 
   String get contactsTitle => get(K.contactsTitle);
   String get contactsEmpty => get(K.contactsEmpty);

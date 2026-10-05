@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/format.dart';
 import '../../data/crypto/did.dart';
 import '../../data/models/chat_models.dart';
+import '../../data/models/group_models.dart';
 import '../../shared/layout.dart';
 import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
@@ -14,10 +15,13 @@ import 'chat_view.dart';
 
 /// 對話列表頁；寬螢幕時右側同時展開對話內容。
 class ChatsPage extends ConsumerStatefulWidget {
-  const ChatsPage({this.peerDid, super.key});
+  const ChatsPage({this.peerDid, this.groupId, super.key});
 
   /// 由網址 `?peer=` 帶入的對話（寬螢幕用於右欄）。
   final String? peerDid;
+
+  /// 由網址 `?group=` 帶入的群組對話。
+  final String? groupId;
 
   @override
   ConsumerState<ChatsPage> createState() => _ChatsPageState();
@@ -41,6 +45,13 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
     final state = ref.watch(chatControllerProvider);
     final contacts = ref.watch(contactsProvider);
 
+    final groups = state.groups.where((g) {
+      if (_query.isEmpty) return true;
+      final q = _query.toLowerCase();
+      return g.name.toLowerCase().contains(q) ||
+          g.lastText.toLowerCase().contains(q);
+    }).toList();
+
     final conversations = state.conversations.where((c) {
       if (_query.isEmpty) return true;
       final q = _query.toLowerCase();
@@ -50,12 +61,15 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
     }).toList();
 
     final list = _ConversationList(
+      groups: groups,
       conversations: conversations,
       contacts: contacts,
       searchController: _search,
       onQueryChanged: (value) => setState(() => _query = value),
       selectedPeerDid: widget.peerDid,
+      selectedGroupId: widget.groupId,
       onSelect: (did) => context.go('/chats?peer=${Uri.encodeComponent(did)}'),
+      onSelectGroup: (id) => context.go('/chats?group=${Uri.encodeComponent(id)}'),
     );
 
     if (isWide) {
@@ -65,16 +79,33 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
             SizedBox(width: AppBreakpoints.conversationList, child: list),
             const VerticalDivider(width: 1),
             Expanded(
-              child: widget.peerDid != null
-                  ? ChatView(key: ValueKey(widget.peerDid), peerDid: widget.peerDid!)
-                  : EmptyState(
-                      icon: Icons.forum_rounded,
-                      title: s.chatPickContact,
-                      description: s.chatEmptyDesc,
-                    ),
+              child: widget.groupId != null
+                  ? ChatView(
+                      key: ValueKey('g-${widget.groupId}'),
+                      groupId: widget.groupId!,
+                    )
+                  : widget.peerDid != null
+                      ? ChatView(
+                          key: ValueKey(widget.peerDid),
+                          peerDid: widget.peerDid!,
+                        )
+                      : EmptyState(
+                          icon: Icons.forum_rounded,
+                          title: s.chatPickContact,
+                          description: s.chatEmptyDesc,
+                        ),
             ),
           ],
         ),
+      );
+    }
+
+    if (widget.groupId != null) {
+      return ChatView(
+        key: ValueKey('g-${widget.groupId}'),
+        groupId: widget.groupId!,
+        showBack: true,
+        onBack: () => context.go('/chats'),
       );
     }
 
@@ -100,20 +131,26 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
 
 class _ConversationList extends ConsumerWidget {
   const _ConversationList({
+    required this.groups,
     required this.conversations,
     required this.contacts,
     required this.searchController,
     required this.onQueryChanged,
     required this.onSelect,
+    required this.onSelectGroup,
     this.selectedPeerDid,
+    this.selectedGroupId,
   });
 
+  final List<GroupChat> groups;
   final List<Conversation> conversations;
   final List<Contact> contacts;
   final TextEditingController searchController;
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<String> onSelect;
+  final ValueChanged<String> onSelectGroup;
   final String? selectedPeerDid;
+  final String? selectedGroupId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -131,6 +168,11 @@ class _ConversationList extends ConsumerWidget {
                 title: s.chatTitle,
                 padding: const EdgeInsets.fromLTRB(20, 10, 12, 8),
                 actions: <Widget>[
+                  IconButton(
+                    tooltip: s.groupCreate,
+                    onPressed: () => context.go('/group-create'),
+                    icon: const Icon(Icons.group_add_rounded),
+                  ),
                   IconButton(
                     tooltip: s.refresh,
                     onPressed: () async {
@@ -154,7 +196,7 @@ class _ConversationList extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (conversations.isEmpty)
+              if (groups.isEmpty && conversations.isEmpty)
                 Expanded(
                   child: EmptyState(
                     icon: Icons.forum_outlined,
@@ -164,32 +206,44 @@ class _ConversationList extends ConsumerWidget {
                 )
               else
                 Expanded(
-                  child: ListView.separated(
+                  child: ListView(
                     padding: const EdgeInsets.only(bottom: 96),
-                    itemCount: conversations.length,
-                    separatorBuilder: (context, index) => Divider(
-                      height: 1,
-                      indent: 82,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-                    ),
-                    itemBuilder: (context, index) {
-                      final conversation = conversations[index];
-                      final contact = contacts
-                          .where((c) =>
-                              c.did.toLowerCase() ==
-                              conversation.peerDid.toLowerCase())
-                          .toList();
-                      final selected = selectedPeerDid != null &&
-                          selectedPeerDid == conversation.peerDid;
-                      return _ConversationTile(
-                        conversation: conversation,
-                        color: contact.isNotEmpty
-                            ? contact.first.accent
-                            : AppColors.brand,
-                        selected: selected,
-                        onTap: () => onSelect(conversation.peerDid),
-                      );
-                    },
+                    children: <Widget>[
+                      if (groups.isNotEmpty) ...<Widget>[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 10, 16, 4),
+                          child: Text(
+                            s.groupTitle,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ),
+                        for (final group in groups)
+                          _ConversationTile(
+                            group: group,
+                            selected: selectedGroupId == group.id,
+                            onTap: () => onSelectGroup(group.id),
+                          ),
+                        Divider(
+                          height: 1,
+                          indent: 20,
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.06),
+                        ),
+                      ],
+                      for (final conversation in conversations)
+                        _ConversationTile(
+                          conversation: conversation,
+                          color: _avatarColor(conversation.peerDid, contacts),
+                          selected: selectedPeerDid != null &&
+                              selectedPeerDid == conversation.peerDid,
+                          onTap: () => onSelect(conversation.peerDid),
+                        ),
+                    ],
                   ),
                 ),
             ],
@@ -202,14 +256,16 @@ class _ConversationList extends ConsumerWidget {
 
 class _ConversationTile extends StatelessWidget {
   const _ConversationTile({
-    required this.conversation,
-    required this.color,
-    required this.selected,
+    this.conversation,
+    this.group,
+    this.color,
+    this.selected = false,
     required this.onTap,
   });
 
-  final Conversation conversation;
-  final Color color;
+  final Conversation? conversation;
+  final GroupChat? group;
+  final Color? color;
   final bool selected;
   final VoidCallback onTap;
 
@@ -217,7 +273,15 @@ class _ConversationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.s;
     final theme = Theme.of(context);
-    final unread = conversation.unread > 0;
+    final isGroup = group != null;
+    final title = isGroup ? group!.name : conversation!.title;
+    final lastText = isGroup ? group!.lastText : conversation!.lastText;
+    final lastMedia = isGroup ? group!.lastMedia : conversation!.lastMedia;
+    final lastTsMs = isGroup ? group!.lastTsMs : conversation!.lastTsMs;
+    final peerKey = isGroup ? group!.peerKey : conversation!.peerDid;
+    final unread = isGroup ? group!.unread : conversation!.unread;
+    final accent = color ?? AppColors.brand;
+    final unreadActive = unread > 0;
 
     return Material(
       color: selected
@@ -230,10 +294,10 @@ class _ConversationTile extends StatelessWidget {
           child: Row(
             children: <Widget>[
               AppAvatar(
-                name: conversation.title,
-                color: color,
+                name: title,
+                color: accent,
                 size: 50,
-                showPresence: true,
+                showPresence: !isGroup,
                 present: true,
               ),
               const SizedBox(width: 13),
@@ -245,24 +309,23 @@ class _ConversationTile extends StatelessWidget {
                       children: <Widget>[
                         Expanded(
                           child: Text(
-                            conversation.title,
+                            title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 14.5,
-                              fontWeight:
-                                  unread ? FontWeight.w800 : FontWeight.w700,
+                              fontWeight: unreadActive
+                                  ? FontWeight.w800
+                                  : FontWeight.w700,
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          conversation.lastTsMs == 0
+                          lastTsMs == 0
                               ? ''
                               : Formatters.conversationTime(
-                                  DateTime.fromMillisecondsSinceEpoch(
-                                    conversation.lastTsMs,
-                                  ),
+                                  DateTime.fromMillisecondsSinceEpoch(lastTsMs),
                                   s,
                                 ),
                           style: TextStyle(
@@ -277,6 +340,14 @@ class _ConversationTile extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: <Widget>[
+                        if (isGroup)
+                          Icon(
+                            Icons.group_rounded,
+                            size: 13,
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.45),
+                          ),
+                        if (isGroup) const SizedBox(width: 4),
                         Icon(
                           Icons.lock_rounded,
                           size: 11,
@@ -287,9 +358,9 @@ class _ConversationTile extends StatelessWidget {
                         Expanded(
                           child: Row(
                             children: <Widget>[
-                              if (conversation.lastMedia != null) ...<Widget>[
+                              if (lastMedia != null) ...<Widget>[
                                 Icon(
-                                  conversation.lastMedia == 'image'
+                                  lastMedia == 'image'
                                       ? Icons.image_rounded
                                       : Icons.mic_rounded,
                                   size: 14,
@@ -300,23 +371,30 @@ class _ConversationTile extends StatelessWidget {
                               ],
                               Expanded(
                                 child: Text(
-                                  _conversationPreview(conversation, s),
+                                  _conversationPreview(
+                                    lastText,
+                                    lastMedia,
+                                    peerKey,
+                                    s,
+                                    isGroup: isGroup,
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 13.5,
-                                    fontWeight: unread
+                                    fontWeight: unreadActive
                                         ? FontWeight.w600
                                         : FontWeight.w400,
                                     color: theme.colorScheme.onSurface
-                                        .withValues(alpha: unread ? 0.78 : 0.55),
+                                        .withValues(
+                                            alpha: unreadActive ? 0.78 : 0.55),
                                   ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        if (unread) ...<Widget>[
+                        if (unreadActive) ...<Widget>[
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -329,7 +407,7 @@ class _ConversationTile extends StatelessWidget {
                                   BorderRadius.all(Radius.circular(999)),
                             ),
                             child: Text(
-                              '${conversation.unread}',
+                              '$unread',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
@@ -352,13 +430,26 @@ class _ConversationTile extends StatelessWidget {
 }
 
 /// 對話列表中的最後一則預覽文字；媒體訊息顯示對應標籤。
-String _conversationPreview(Conversation conversation, Strings s) {
-  if (conversation.lastMedia == null) {
-    return conversation.lastText.isEmpty
-        ? Did.shortDid(conversation.peerDid)
-        : conversation.lastText;
+String _conversationPreview(
+  String lastText,
+  String? lastMedia,
+  String fallbackId,
+  Strings s, {
+  bool isGroup = false,
+}) {
+  if (lastMedia == null) {
+    if (lastText.isEmpty) return isGroup ? '' : Did.shortDid(fallbackId);
+    return lastText;
   }
-  final label =
-      conversation.lastMedia == 'image' ? s.chatImage : s.chatVoice;
-  return conversation.lastText.isNotEmpty ? conversation.lastText : label;
+  final label = lastMedia == 'image' ? s.chatImage : s.chatVoice;
+  return lastText.isNotEmpty ? lastText : label;
+}
+
+Color _avatarColor(String peerDid, List<Contact> contacts) {
+  for (final contact in contacts) {
+    if (contact.did.toLowerCase() == peerDid.toLowerCase()) {
+      return contact.accent;
+    }
+  }
+  return AppColors.brand;
 }

@@ -72,6 +72,7 @@ class ChatMessage {
     this.mediaDurationMs,
     this.mediaName,
     this.recalledAtMs,
+    this.senderDid,
   });
 
   /// 封包 ID（同時作為去重鍵）。
@@ -110,6 +111,9 @@ class ChatMessage {
   /// 撤回時間（毫秒）。非 null 表示這則訊息已被撤回，內容不再顯示。
   final int? recalledAtMs;
 
+  /// 群組訊息的發送者 DID（一對一訊息為 null，由 [peerDid] 隱含）。
+  final String? senderDid;
+
   DateTime get timestamp =>
       DateTime.fromMillisecondsSinceEpoch(timestampMs, isUtc: true);
 
@@ -127,6 +131,7 @@ class ChatMessage {
         if (mediaName != null) 'mname': mediaName,
         if (error != null) 'error': error,
         if (recalledAtMs != null) 'recalledAt': recalledAtMs,
+        if (senderDid != null) 'sender': senderDid,
       };
 
   static ChatMessage? fromJson(Map<dynamic, dynamic>? json) {
@@ -149,6 +154,7 @@ class ChatMessage {
       mediaName: json['mname'] as String?,
       error: json['error'] as String?,
       recalledAtMs: json['recalledAt'] as int?,
+      senderDid: json['sender'] as String?,
     );
   }
 
@@ -166,6 +172,7 @@ class ChatMessage {
     int? mediaDurationMs,
     String? mediaName,
     int? recalledAtMs,
+    String? senderDid,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -181,6 +188,7 @@ class ChatMessage {
       mediaDurationMs: mediaDurationMs ?? this.mediaDurationMs,
       mediaName: mediaName ?? this.mediaName,
       recalledAtMs: recalledAtMs ?? this.recalledAtMs,
+      senderDid: senderDid ?? this.senderDid,
     );
   }
 }

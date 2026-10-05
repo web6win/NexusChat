@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
@@ -21,6 +22,7 @@ import '../../data/media/audio_source.dart';
 import '../../data/media/image_util.dart';
 import '../../data/media/media_size.dart';
 import '../../data/models/chat_models.dart';
+import '../../data/models/group_models.dart';
 import '../../data/waku/message_content.dart';
 import '../../shared/feedback.dart';
 import '../../shared/layout.dart';
@@ -31,13 +33,18 @@ import 'image_viewer_page.dart';
 /// 單一對話的完整畫面：訊息串 + 輸入框（含圖片 / 語音）。
 class ChatView extends ConsumerStatefulWidget {
   const ChatView({
-    required this.peerDid,
+    this.peerDid,
+    this.groupId,
     super.key,
     this.showBack = false,
     this.onBack,
   });
 
-  final String peerDid;
+  /// 一對一對話的對方 DID。群組模式時為 null。
+  final String? peerDid;
+
+  /// 群組模式時的群組 id（網址 `?group=` 帶入）。
+  final String? groupId;
   final bool showBack;
   final VoidCallback? onBack;
 
@@ -88,12 +95,18 @@ class _ChatViewState extends ConsumerState<ChatView> {
   /// 距離底部多少 px 內都算「在底部」。
   static const _bottomThreshold = 120.0;
 
+  bool get _isGroup => widget.groupId != null;
+
+  /// 統一的會話鍵：群組為 `grp:<id>`，一對一為對方 DID。
+  String get _peerKey =>
+      _isGroup ? 'grp:${widget.groupId}' : (widget.peerDid ?? '');
+
   @override
   void initState() {
     super.initState();
     _scroll.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(chatControllerProvider.notifier).markRead(widget.peerDid);
+      ref.read(chatControllerProvider.notifier).markRead(_peerKey);
       _scrollToEnd();
     });
   }
@@ -101,7 +114,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
   @override
   void didUpdateWidget(covariant ChatView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.peerDid != widget.peerDid) {
+    if (oldWidget.peerDid != widget.peerDid ||
+        oldWidget.groupId != widget.groupId) {
       // 換了對話：重新開始追蹤，並直接落在最新一則。
       _lastMessageId = null;
       _pendingNew = 0;
@@ -109,7 +123,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
       _seenSeeded = false;
       _seenMessageIds.clear();
       _clearPending();
-      ref.read(chatControllerProvider.notifier).markRead(widget.peerDid);
+      ref.read(chatControllerProvider.notifier).markRead(_peerKey);
       _scrollToEnd();
     }
   }
@@ -256,7 +270,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
   void _scrollToEnd() {
     if (!_scroll.hasClients) return;
     // 畫面已經帶到最新，順手標為已讀。
-    ref.read(chatControllerProvider.notifier).markRead(widget.peerDid);
+    ref.read(chatControllerProvider.notifier).markRead(_peerKey);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scroll.hasClients) return;
       final target = _scroll.position.maxScrollExtent;
@@ -285,11 +299,17 @@ class _ChatViewState extends ConsumerState<ChatView> {
       if (!mounted) return;
       if (_controller.text.trim().isEmpty) _controller.clear();
     });
-    await ref
-        .read(chatControllerProvider.notifier)
-        .sendContent(widget.peerDid, MessageContent.text(text));
+    final controller = ref.read(chatControllerProvider.notifier);
+    if (_isGroup) {
+      await controller.sendGroupContent(
+        widget.groupId!,
+        MessageContent.text(text),
+      );
+    } else {
+      await controller.sendContent(widget.peerDid!, MessageContent.text(text));
+    }
     _scrollToEnd();
-    ref.read(chatControllerProvider.notifier).markRead(widget.peerDid);
+    ref.read(chatControllerProvider.notifier).markRead(_peerKey);
   }
 
   // ------------------------------------------------------------------ 圖片
@@ -343,9 +363,12 @@ class _ChatViewState extends ConsumerState<ChatView> {
       mediaName: _pendingImageName,
     );
     _clearPending();
-    await ref
-        .read(chatControllerProvider.notifier)
-        .sendContent(widget.peerDid, content);
+    final controller = ref.read(chatControllerProvider.notifier);
+    if (_isGroup) {
+      await controller.sendGroupContent(widget.groupId!, content);
+    } else {
+      await controller.sendContent(widget.peerDid!, content);
+    }
     _scrollToEnd();
   }
 
@@ -436,9 +459,12 @@ class _ChatViewState extends ConsumerState<ChatView> {
       mediaName: _pendingAudioName,
     );
     _clearPending();
-    await ref
-        .read(chatControllerProvider.notifier)
-        .sendContent(widget.peerDid, content);
+    final controller = ref.read(chatControllerProvider.notifier);
+    if (_isGroup) {
+      await controller.sendGroupContent(widget.groupId!, content);
+    } else {
+      await controller.sendContent(widget.peerDid!, content);
+    }
     _scrollToEnd();
   }
 
@@ -466,17 +492,25 @@ class _ChatViewState extends ConsumerState<ChatView> {
     final theme = Theme.of(context);
     final state = ref.watch(chatControllerProvider);
     final contacts = ref.watch(contactsProvider);
+    final groupChats = _isGroup
+        ? state.groups.where((g) => g.id == widget.groupId).toList()
+        : const <GroupChat>[];
+    final group = groupChats.isNotEmpty ? groupChats.first : null;
     final contact = contacts
-        .where((c) => c.did.toLowerCase() == widget.peerDid.toLowerCase())
+        .where(
+          (c) => c.did.toLowerCase() == (widget.peerDid ?? '').toLowerCase(),
+        )
         .toList();
-    final name = contact.isNotEmpty
-        ? contact.first.name
-        : Did.shortDid(widget.peerDid);
-    final color = contact.isNotEmpty
-        ? contact.first.accent
-        : AppColors.brand;
+    final name = _isGroup
+        ? (group != null && group.name.isNotEmpty ? group.name : s.groupTitle)
+        : (contact.isNotEmpty
+            ? contact.first.name
+            : Did.shortDid(widget.peerDid ?? ''));
+    final color = _isGroup
+        ? AppColors.brand
+        : (contact.isNotEmpty ? contact.first.accent : AppColors.brand);
 
-    final messages = state.forPeer(widget.peerDid);
+    final messages = state.forPeer(_peerKey);
 
     // 初次進場把所有既存訊息標記為「已見」，避免一進頁面就整批播放入場動畫；
     // 之後新送達的訊息才會有淡入上滑的入場效果。
@@ -488,8 +522,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
     // 用 ref.listen 偵測訊息列表變化，不要直接在 build() 裡捲動，
     // 否則圖片載入、鍵盤彈出等重建都會干擾使用者手勢。
     ref.listen<ChatState>(chatControllerProvider, (previous, next) {
-      final prevMessages = previous?.forPeer(widget.peerDid) ?? [];
-      final nextMessages = next.forPeer(widget.peerDid);
+      final prevMessages = previous?.forPeer(_peerKey) ?? [];
+      final nextMessages = next.forPeer(_peerKey);
       final changed = prevMessages.length != nextMessages.length ||
           (prevMessages.isNotEmpty &&
               nextMessages.isNotEmpty &&
@@ -542,7 +576,9 @@ class _ChatViewState extends ConsumerState<ChatView> {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          s.chatEncrypted,
+                          _isGroup
+                              ? s.groupMembers(group?.memberDids.length ?? 0)
+                              : s.chatEncrypted,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -566,15 +602,50 @@ class _ChatViewState extends ConsumerState<ChatView> {
             onSelected: (value) async {
               final controller = ref.read(chatControllerProvider.notifier);
               switch (value) {
+                case 'info':
+                  context.go('/group-info?group=${widget.groupId}');
+                  break;
+                case 'leave':
+                  final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text(s.groupLeaveTitle),
+                          content: Text(s.groupLeaveConfirm),
+                          actions: <Widget>[
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: Text(s.cancel),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: Text(
+                                s.leave,
+                                style:
+                                    const TextStyle(color: AppColors.danger),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ) ??
+                      false;
+                  if (confirmed) {
+                    await controller.leaveGroup(widget.groupId!);
+                    if (widget.onBack != null) widget.onBack!();
+                  }
+                  break;
                 case 'pin':
-                  await controller.togglePin(widget.peerDid);
+                  await controller.togglePin(_peerKey);
                   break;
                 case 'delete':
                   final confirmed = await showDialog<bool>(
                         context: context,
                         builder: (context) => AlertDialog(
-                          title: Text(s.chatDeleteTitle),
-                          content: Text(s.chatDeleteConfirm(name)),
+                          title: Text(_isGroup
+                              ? s.groupDeleteTitle
+                              : s.chatDeleteTitle),
+                          content: Text(_isGroup
+                              ? s.groupDeleteConfirm
+                              : s.chatDeleteConfirm(name)),
                           actions: <Widget>[
                             TextButton(
                               onPressed: () => Navigator.pop(context, false),
@@ -593,23 +664,52 @@ class _ChatViewState extends ConsumerState<ChatView> {
                       ) ??
                       false;
                   if (confirmed) {
-                    await controller.deleteConversation(widget.peerDid);
+                    if (_isGroup) {
+                      await controller.deleteGroup(widget.groupId!);
+                    } else {
+                      await controller.deleteConversation(widget.peerDid!);
+                    }
                     if (widget.onBack != null) widget.onBack!();
                   }
                   break;
               }
             },
             itemBuilder: (context) => <PopupMenuEntry<String>>[
-              PopupMenuItem<String>(
-                value: 'pin',
-                child: Row(
-                  children: <Widget>[
-                    const Icon(Icons.push_pin_outlined, size: 19),
-                    const SizedBox(width: 12),
-                    Text(s.edit),
-                  ],
+              if (_isGroup)
+                PopupMenuItem<String>(
+                  value: 'info',
+                  child: Row(
+                    children: <Widget>[
+                      const Icon(Icons.info_outline_rounded, size: 19),
+                      const SizedBox(width: 12),
+                      Text(s.groupInfo),
+                    ],
+                  ),
                 ),
-              ),
+              if (_isGroup)
+                PopupMenuItem<String>(
+                  value: 'leave',
+                  child: Row(
+                    children: <Widget>[
+                      const Icon(Icons.exit_to_app_rounded,
+                          size: 19, color: AppColors.danger),
+                      const SizedBox(width: 12),
+                      Text(s.leave,
+                          style: const TextStyle(color: AppColors.danger)),
+                    ],
+                  ),
+                ),
+              if (!_isGroup)
+                PopupMenuItem<String>(
+                  value: 'pin',
+                  child: Row(
+                    children: <Widget>[
+                      const Icon(Icons.push_pin_outlined, size: 19),
+                      const SizedBox(width: 12),
+                      Text(s.edit),
+                    ],
+                  ),
+                ),
               PopupMenuItem<String>(
                 value: 'delete',
                 child: Row(
@@ -704,9 +804,16 @@ class _ChatViewState extends ConsumerState<ChatView> {
                                     _AnimatedAppear(
                                       animate: animate,
                                       child: MessageBubble(
-                                        message: current,
-                                        color: color,
-                                        showMeta: showMeta,
+                                      message: current,
+                                      color: color,
+                                      senderName: _isGroup && !current.outgoing
+                                          ? _senderName(
+                                              current.senderDid,
+                                              contacts,
+                                              s,
+                                            )
+                                          : null,
+                                      showMeta: showMeta,
                                         groupedWithPrevious: groupedWithPrevious,
                                         groupedWithNext: groupedWithNext,
                                         onRetry: () => ref
@@ -917,6 +1024,18 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
   String _dayKey(DateTime time) =>
       '${time.year}-${time.month}-${time.day}';
+
+  /// 群組訊息用的發送者顯示名：自己顯示「你」，其餘取通訊錄名稱，否則取短 DID。
+  String _senderName(String? did, List<Contact> contacts, Strings s) {
+    if (did == null) return '';
+    if (did.toLowerCase() == ref.read(coreProvider).did.toLowerCase()) {
+      return s.groupYou;
+    }
+    final match =
+        contacts.where((c) => c.did.toLowerCase() == did.toLowerCase());
+    if (match.isNotEmpty) return match.first.name;
+    return Did.shortDid(did);
+  }
 }
 
 /// 解碼已保存的媒體 Base64。
@@ -995,6 +1114,7 @@ class MessageBubble extends StatelessWidget {
   const MessageBubble({
     required this.message,
     required this.color,
+    this.senderName,
     super.key,
     this.onRetry,
     this.onDelete,
@@ -1006,6 +1126,9 @@ class MessageBubble extends StatelessWidget {
 
   final ChatMessage message;
   final Color color;
+
+  /// 群組訊息中顯示的發送者名稱；為 null 時不顯示（一對一訊息用不到）。
+  final String? senderName;
   final VoidCallback? onRetry;
 
   /// 刪除本機訊息（確認對話框由父層處理）。
@@ -1039,6 +1162,20 @@ class MessageBubble extends StatelessWidget {
           crossAxisAlignment:
               outgoing ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: <Widget>[
+            if (senderName != null && senderName!.isNotEmpty && !outgoing)
+              Padding(
+                padding: const EdgeInsets.only(left: 6, bottom: 2),
+                child: Text(
+                  senderName!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ),
             GestureDetector(
               // 長按開啟操作選單：複製 / 撤回 / 刪除。
               onLongPress: () => _showMessageMenu(context, s),

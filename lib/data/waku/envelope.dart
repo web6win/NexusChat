@@ -21,7 +21,10 @@ enum EnvelopeType {
   keyBundle('keybundle'),
 
   /// 撤回某則訊息（墓碑通知）：攜帶要撤回的訊息 ID。
-  recall('recall');
+  recall('recall'),
+
+  /// 群組邀請：攜帶群組金鑰與成員清單，用收件人公鑰加密。
+  groupInvite('groupinvite');
 
   const EnvelopeType(this.value);
 
@@ -230,6 +233,83 @@ class EnvelopeSealer {
       // 純公開封包（例如金鑰包）
       return EnvelopeOpenResult(envelope: envelope, plaintext: null);
     }
+    if (text == null) return null;
+    return EnvelopeOpenResult(envelope: envelope, plaintext: text);
+  }
+
+  /// 群組邀請：把 [payload]（含群組金鑰）用收件人公鑰加密後送出。
+  Future<NexusChatEnvelope> sealGroupInvite({
+    required String from,
+    required String to,
+    required Map<String, dynamic> payload,
+    required String recipientPublicKeyB64,
+  }) async {
+    final timestamp = DateTime.now().toUtc().millisecondsSinceEpoch;
+    final id = _newId();
+    final body = await _crypto.seal(
+      jsonEncode(payload),
+      recipientPublicKeyB64,
+      aad: utf8.encode('$to|$id'),
+    );
+    final envelope = NexusChatEnvelope(
+      id: id,
+      type: EnvelopeType.groupInvite,
+      from: from,
+      to: to,
+      timestampMs: timestamp,
+      body: body,
+    );
+    return envelope.copyWith(signature: _crypto.signHex(envelope.signingPayload));
+  }
+
+  /// 群組訊息：用共享對稱金鑰加密，[to] 為 `grp:<groupId>`。
+  Future<NexusChatEnvelope> sealGroup({
+    required String from,
+    required String groupId,
+    required List<int> key,
+    required String plaintext,
+    Map<String, dynamic>? publicData,
+  }) async {
+    final timestamp = DateTime.now().toUtc().millisecondsSinceEpoch;
+    final id = _newId();
+    final body = await _crypto.sealSymmetric(
+      plaintext,
+      key,
+      aad: utf8.encode('$groupId|$timestamp'),
+    );
+    final envelope = NexusChatEnvelope(
+      id: id,
+      type: EnvelopeType.chat,
+      from: from,
+      to: 'grp:$groupId',
+      timestampMs: timestamp,
+      body: body,
+      publicData: publicData,
+    );
+    return envelope.copyWith(signature: _crypto.signHex(envelope.signingPayload));
+  }
+
+  /// 解開群組訊息：驗章後用共享對稱金鑰解密。失敗回傳 null。
+  Future<EnvelopeOpenResult?> openGroup(
+    NexusChatEnvelope envelope,
+    List<int> key,
+  ) async {
+    final signature = envelope.signature;
+    if (signature == null) return null;
+    final groupId = envelope.to.startsWith('grp:')
+        ? envelope.to.substring(4)
+        : envelope.to;
+    if (!CryptoService.verifyDid(
+      envelope.from,
+      envelope.signingPayload,
+      signature,
+    )) {
+      return null;
+    }
+    final aad = utf8.encode('$groupId|${envelope.timestampMs}');
+    final body = envelope.body;
+    if (body == null) return null;
+    final text = await _crypto.openSymmetric(body, key, aad: aad);
     if (text == null) return null;
     return EnvelopeOpenResult(envelope: envelope, plaintext: text);
   }
