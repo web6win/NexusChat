@@ -137,19 +137,6 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
                     onPressed: _showMyQr,
                     icon: const Icon(Icons.qr_code_2_rounded),
                   ),
-                  IconButton(
-                    tooltip: s.refresh,
-                    onPressed: () async {
-                      final ok = await ref
-                          .read(contactsProvider.notifier)
-                          .refreshKeys();
-                      if (!context.mounted) return;
-                      // 有補到金鑰才提示成功；沒有變化或失敗就不打擾使用者，
-                      // 失敗原因已由 debugPrint 印到主控台。
-                      if (ok) showAppSnack(context, s.contactsKeysSynced);
-                    },
-                    icon: const Icon(Icons.key_rounded),
-                  ),
                 ],
               ),
               Padding(

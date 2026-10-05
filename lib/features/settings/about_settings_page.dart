@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/l10n/strings.dart';
 import '../../core/update/update_check.dart';
@@ -32,6 +33,30 @@ class AboutSettingsPage extends ConsumerWidget {
     }
   }
 
+  /// GPL-3.0 官方全文（不打包進 App，改連 FSF 的正式頁面）。
+  static const String _gplUrl = 'https://www.gnu.org/licenses/gpl-3.0.html';
+
+  /// 倉庫裡的第三方授權清單。
+  ///
+  /// 刻意不打包進安裝档：清單有 25 KB 且只會在更新依賴時變動，
+  /// 直接連 GitHub 上的檔案即可，省下這份體積。
+  static const String _thirdPartyLicensesUrl =
+      'https://github.com/web6win/NexusChat/blob/main/THIRD_PARTY_LICENSES.md';
+
+  /// 用外部瀏覽器開啟 [url]，失敗時給提示，避免靜默無反應。
+  Future<void> _openUrl(BuildContext context, String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok && context.mounted) {
+        showAppSnack(context, context.s.errorGeneric);
+      }
+    } catch (_) {
+      if (context.mounted) showAppSnack(context, context.s.errorGeneric);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = context.s;
@@ -60,6 +85,21 @@ class AboutSettingsPage extends ConsumerWidget {
                       // 由 CI 以 --dart-define 注入，每次建置自動遞增。
                       subtitle: AppVersion.display,
                       onTap: null,
+                    ),
+                    // GPL 建議 GUI 程式在「關於」中提供授權資訊，這裡直接開官方全文。
+                    SettingsTile(
+                      icon: Icons.balance_rounded,
+                      title: s.settingsLicense,
+                      subtitle: 'GNU GPL v3.0',
+                      onTap: () => _openUrl(context, _gplUrl),
+                    ),
+                    // 相依套件各有自己的授權；GPL 要求保留這些聲明。
+                    // 清單留在倉庫，這裡直接開 GitHub 上的檔案。
+                    SettingsTile(
+                      icon: Icons.description_outlined,
+                      title: s.settingsThirdPartyLicenses,
+                      subtitle: 'MIT · BSD-3 · Apache-2.0',
+                      onTap: () => _openUrl(context, _thirdPartyLicensesUrl),
                     ),
                     SettingsTile(
                       icon: Icons.system_update_rounded,

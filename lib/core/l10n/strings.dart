@@ -211,6 +211,11 @@ abstract final class K {
   static const chatSearch = 'chatSearch';
   static const chatTyping = 'chatTyping';
   static const chatDeleteTitle = 'chatDeleteTitle';
+  static const chatRecall = 'chatRecall';
+  static const chatRecallConfirm = 'chatRecallConfirm';
+  static const chatRecalled = 'chatRecalled';
+  static const chatDeleteMessageConfirm = 'chatDeleteMessageConfirm';
+  static const chatMessageDeleted = 'chatMessageDeleted';
   static const chatDeleteConfirm = 'chatDeleteConfirm';
   static const chatSecureTitle = 'chatSecureTitle';
   static const chatSecureDesc = 'chatSecureDesc';
@@ -228,7 +233,6 @@ abstract final class K {
   static const contactsPasteDid = 'contactsPasteDid';
   static const contactsInvalidDid = 'contactsInvalidDid';
   static const contactsAdded = 'contactsAdded';
-  static const contactsKeysSynced = 'contactsKeysSynced';
   static const contactsRequest = 'contactsRequest';
   static const contactsRemove = 'contactsRemove';
   static const contactsRemoveConfirm = 'contactsRemoveConfirm';
@@ -334,6 +338,7 @@ abstract final class K {
   static const chatMediaTooLarge = 'chatMediaTooLarge';
   static const chatPermissionMicrophone = 'chatPermissionMicrophone';
   static const chatPermissionPhotos = 'chatPermissionPhotos';
+  static const chatImagePickFailed = 'chatImagePickFailed';
   static const chatImageUnavailable = 'chatImageUnavailable';
   static const chatImageUnsupported = 'chatImageUnsupported';
   static const chatImageDownload = 'chatImageDownload';
@@ -376,6 +381,8 @@ abstract final class K {
   static const settingsDelete = 'settingsDelete';
   static const settingsDeleteConfirm = 'settingsDeleteConfirm';
   static const settingsAbout = 'settingsAbout';
+  static const settingsLicense = 'settingsLicense';
+  static const settingsThirdPartyLicenses = 'settingsThirdPartyLicenses';
   static const settingsVersion = 'settingsVersion';
   static const settingsAdvanced = 'settingsAdvanced';
 
@@ -631,6 +638,11 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatSearch: '搜尋對話或 DID',
     K.chatTyping: '正在輸入…',
     K.chatDeleteTitle: '刪除對話',
+    K.chatRecall: '撤回',
+    K.chatRecallConfirm: '撤回後雙方都會顯示「訊息已撤回」。確定嗎？',
+    K.chatRecalled: '訊息已撤回',
+    K.chatDeleteMessageConfirm: '刪除後本機不再顯示這則訊息，對方仍看得到。確定嗎？',
+    K.chatMessageDeleted: '訊息已刪除',
     K.chatDeleteConfirm: '確定要刪除與 %1\$s 的對話嗎？此動作無法復原。',
     K.chatSecureTitle: '這段對話是私密的',
     K.chatSecureDesc: '訊息在裝置上加密後才送入 Waku 網路，只有對方持有金鑰能解密。',
@@ -646,7 +658,6 @@ const Map<String, Map<String, String>> _bundles = {
     K.contactsPasteDid: '貼上 DID、0x 地址或 ENS 名稱',
     K.contactsInvalidDid: '格式無法辨識，請確認後再試。',
     K.contactsAdded: '已加入聯絡人',
-    K.contactsKeysSynced: '已同步加密金鑰',
     K.contactsRequest: '好友邀請',
     K.contactsRemove: '移除聯絡人',
     K.contactsRemoveConfirm: '確定移除 %1\$s 嗎？',
@@ -746,6 +757,7 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatMediaTooLarge: '媒體過大，請選擇較小的圖片或縮短錄音長度。',
     K.chatPermissionMicrophone: '需要麥克風權限才能錄音。',
     K.chatPermissionPhotos: '需要相簿權限才能選取圖片。',
+    K.chatImagePickFailed: '無法讀取所選圖片，請改用 JPG / PNG。',
     K.chatImageUnavailable: '圖片無法顯示',
     K.chatImageUnsupported: '無法處理這張圖片，請改用 JPG 或 PNG。',
     K.chatImageDownload: '下載圖片',
@@ -786,6 +798,8 @@ const Map<String, Map<String, String>> _bundles = {
     K.settingsDelete: '刪除此裝置上的身份',
     K.settingsDeleteConfirm: '這會清除本機身份與所有對話，且無法復原。確定嗎？',
     K.settingsAbout: '關於',
+    K.settingsLicense: '開源授權',
+    K.settingsThirdPartyLicenses: '第三方授權',
     K.settingsVersion: '版本',
     K.updateCheck: '檢查更新',
     K.updateChecking: '正在檢查更新…',
@@ -1029,6 +1043,11 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatSearch: '搜索对话或 DID',
     K.chatTyping: '正在输入…',
     K.chatDeleteTitle: '删除对话',
+    K.chatRecall: '撤回',
+    K.chatRecallConfirm: '撤回后双方都会显示「消息已撤回」。确定吗？',
+    K.chatRecalled: '消息已撤回',
+    K.chatDeleteMessageConfirm: '删除后本机不再显示这条消息，对方仍看得到。确定吗？',
+    K.chatMessageDeleted: '消息已删除',
     K.chatDeleteConfirm: '确定要删除与 %1\$s 的对话吗？此操作无法复原。',
     K.chatSecureTitle: '这段对话是私密的',
     K.chatSecureDesc: '消息在设备上加密后才送入 Waku 网络，只有对方持有密钥能解密。',
@@ -1044,7 +1063,6 @@ const Map<String, Map<String, String>> _bundles = {
     K.contactsPasteDid: '粘贴 DID、0x 地址或 ENS 名称',
     K.contactsInvalidDid: '格式无法识别，请确认后再试。',
     K.contactsAdded: '已加入联系人',
-    K.contactsKeysSynced: '已同步加密密钥',
     K.contactsRequest: '好友邀请',
     K.contactsRemove: '移除联系人',
     K.contactsRemoveConfirm: '确定移除 %1\$s 吗？',
@@ -1143,6 +1161,7 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatMediaTooLarge: '媒体过大，请选择较小的图片或缩短录音长度。',
     K.chatPermissionMicrophone: '需要麦克风权限才能录音。',
     K.chatPermissionPhotos: '需要相册权限才能选取图片。',
+    K.chatImagePickFailed: '无法读取所选图片，请改用 JPG / PNG。',
     K.chatImageUnavailable: '图片无法显示',
     K.chatImageUnsupported: '无法处理这张图片，请改用 JPG 或 PNG。',
     K.chatImageDownload: '下载图片',
@@ -1183,6 +1202,8 @@ const Map<String, Map<String, String>> _bundles = {
     K.settingsDelete: '删除此设备上的身份',
     K.settingsDeleteConfirm: '这会清除本机身份与所有对话，且无法复原。确定吗？',
     K.settingsAbout: '关于',
+    K.settingsLicense: '开源许可',
+    K.settingsThirdPartyLicenses: '第三方许可',
     K.settingsVersion: '版本',
     K.updateCheck: '检查更新',
     K.updateChecking: '正在检查更新…',
@@ -1448,6 +1469,12 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatSearch: 'Search chats or DID',
     K.chatTyping: 'typing…',
     K.chatDeleteTitle: 'Delete conversation',
+    K.chatRecall: 'Recall',
+    K.chatRecallConfirm: 'After recalling, both sides will see "Message recalled". Continue?',
+    K.chatRecalled: 'Message recalled',
+    K.chatDeleteMessageConfirm:
+        'This removes the message on this device only; the other side keeps it. Continue?',
+    K.chatMessageDeleted: 'Message deleted',
     K.chatDeleteConfirm:
         'Delete the conversation with %1\$s? This cannot be undone.',
     K.chatSecureTitle: 'This conversation is private',
@@ -1465,7 +1492,6 @@ const Map<String, Map<String, String>> _bundles = {
     K.contactsPasteDid: 'Paste a DID, 0x address or ENS name',
     K.contactsInvalidDid: 'Unrecognized format, please check and retry.',
     K.contactsAdded: 'Contact added',
-    K.contactsKeysSynced: 'Encryption keys synced',
     K.contactsRequest: 'Friend request',
     K.contactsRemove: 'Remove contact',
     K.contactsRemoveConfirm: 'Remove %1\$s?',
@@ -1569,6 +1595,7 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatMediaTooLarge: 'Media is too large. Pick a smaller image or shorten the recording.',
     K.chatPermissionMicrophone: 'Microphone permission is required to record audio.',
     K.chatPermissionPhotos: 'Photo library permission is required to pick an image.',
+    K.chatImagePickFailed: 'Could not read the selected image. Please use JPG / PNG.',
     K.chatImageUnavailable: 'Image unavailable',
     K.chatImageUnsupported: 'Unsupported image. Please use JPG or PNG.',
     K.chatImageDownload: 'Download image',
@@ -1611,6 +1638,8 @@ const Map<String, Map<String, String>> _bundles = {
     K.settingsDeleteConfirm:
         'This wipes the local identity and every conversation. Continue?',
     K.settingsAbout: 'About',
+    K.settingsLicense: 'Open source license',
+    K.settingsThirdPartyLicenses: 'Third-party licenses',
     K.settingsVersion: 'Version',
     K.updateCheck: 'Check for updates',
     K.updateChecking: 'Checking for updates…',
@@ -1884,6 +1913,12 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatSearch: 'Buscar chats o DID',
     K.chatTyping: 'escribiendo…',
     K.chatDeleteTitle: 'Eliminar conversación',
+    K.chatRecall: 'Retirar',
+    K.chatRecallConfirm: 'Al retirarlo, ambos verán «Mensaje retirado». ¿Continuar?',
+    K.chatRecalled: 'Mensaje retirado',
+    K.chatDeleteMessageConfirm:
+        'Esto elimina el mensaje solo en este dispositivo; la otra persona lo conserva. ¿Continuar?',
+    K.chatMessageDeleted: 'Mensaje eliminado',
     K.chatDeleteConfirm:
         '¿Eliminar la conversación con %1\$s? No se puede deshacer.',
     K.chatSecureTitle: 'Esta conversación es privada',
@@ -1901,7 +1936,6 @@ const Map<String, Map<String, String>> _bundles = {
     K.contactsPasteDid: 'Pega un DID, dirección 0x o nombre ENS',
     K.contactsInvalidDid: 'Formato no reconocido, revisa e inténtalo de nuevo.',
     K.contactsAdded: 'Contacto añadido',
-    K.contactsKeysSynced: 'Claves de cifrado sincronizadas',
     K.contactsRequest: 'Solicitud de amistad',
     K.contactsRemove: 'Eliminar contacto',
     K.contactsRemoveConfirm: '¿Eliminar a %1\$s?',
@@ -2006,6 +2040,8 @@ const Map<String, Map<String, String>> _bundles = {
     K.chatMediaTooLarge: 'El archivo es demasiado grande. Elige una imagen más pequeña o acorta la grabación.',
     K.chatPermissionMicrophone: 'Se necesita permiso de micrófono para grabar audio.',
     K.chatPermissionPhotos: 'Se necesita permiso de la galería para elegir una imagen.',
+    K.chatImagePickFailed:
+        'No se pudo leer la imagen seleccionada. Usa JPG / PNG.',
     K.chatImageUnavailable: 'Imagen no disponible',
     K.chatImageUnsupported: 'Imagen no compatible. Usa JPG o PNG.',
     K.chatImageDownload: 'Descargar imagen',
@@ -2049,6 +2085,8 @@ const Map<String, Map<String, String>> _bundles = {
     K.settingsDeleteConfirm:
         'Esto borra la identidad local y todas las conversaciones. ¿Continuar?',
     K.settingsAbout: 'Acerca de',
+    K.settingsLicense: 'Licencia de código abierto',
+    K.settingsThirdPartyLicenses: 'Licencias de terceros',
     K.settingsVersion: 'Versión',
     K.updateCheck: 'Buscar actualizaciones',
     K.updateChecking: 'Buscando actualizaciones…',
@@ -2343,6 +2381,11 @@ class Strings {
   String get chatSearch => get(K.chatSearch);
   String get chatTyping => get(K.chatTyping);
   String get chatDeleteTitle => get(K.chatDeleteTitle);
+  String get chatRecall => get(K.chatRecall);
+  String get chatRecallConfirm => get(K.chatRecallConfirm);
+  String get chatRecalled => get(K.chatRecalled);
+  String get chatDeleteMessageConfirm => get(K.chatDeleteMessageConfirm);
+  String get chatMessageDeleted => get(K.chatMessageDeleted);
   String chatDeleteConfirm(String name) =>
       format(K.chatDeleteConfirm, [name]);
   String get chatSecureTitle => get(K.chatSecureTitle);
@@ -2360,7 +2403,6 @@ class Strings {
   String get contactsPasteDid => get(K.contactsPasteDid);
   String get contactsInvalidDid => get(K.contactsInvalidDid);
   String get contactsAdded => get(K.contactsAdded);
-  String get contactsKeysSynced => get(K.contactsKeysSynced);
   String get contactsRequest => get(K.contactsRequest);
   String get contactsRemove => get(K.contactsRemove);
   String contactsRemoveConfirm(String name) =>
@@ -2466,6 +2508,7 @@ class Strings {
   String get chatMediaTooLarge => get(K.chatMediaTooLarge);
   String get chatPermissionMicrophone => get(K.chatPermissionMicrophone);
   String get chatPermissionPhotos => get(K.chatPermissionPhotos);
+  String get chatImagePickFailed => get(K.chatImagePickFailed);
   String get chatImageUnavailable => get(K.chatImageUnavailable);
   String get chatImageUnsupported => get(K.chatImageUnsupported);
   String get chatImageDownload => get(K.chatImageDownload);
@@ -2508,6 +2551,8 @@ class Strings {
   String get settingsDelete => get(K.settingsDelete);
   String get settingsDeleteConfirm => get(K.settingsDeleteConfirm);
   String get settingsAbout => get(K.settingsAbout);
+  String get settingsLicense => get(K.settingsLicense);
+  String get settingsThirdPartyLicenses => get(K.settingsThirdPartyLicenses);
   String get settingsVersion => get(K.settingsVersion);
   String get settingsAdvanced => get(K.settingsAdvanced);
   String get settingsGroupGeneral => get(K.settingsGroupGeneral);

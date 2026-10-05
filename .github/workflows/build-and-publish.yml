@@ -84,12 +84,20 @@ jobs:
         run: |
           dart run tool/bump_version.dart --${{ github.event.inputs.bump || 'build' }}
 
+      # 版本異動時一併重產生第三方授權清單，讓它與 pubspec.lock 同步。
+      # 必須先 pub get：工具是從 pub 快取讀各套件的 LICENSE，
+      # 沒下載過的話整份清單會變成 UNKNOWN。
+      - name: Regenerate third-party licenses
+        run: |
+          flutter pub get
+          dart run tool/gen_licenses.dart
+
       - name: Commit bumped version
         # 提交失敗不中斷建構：版本號已經算出來，只是沒有持久化。
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add pubspec.yaml
+          git add pubspec.yaml THIRD_PARTY_LICENSES.md
           git diff --staged --quiet && echo "version unchanged" || \
             git commit -m "ci: bump version [skip ci]"
           git pull --rebase --autostash origin "${{ github.ref_name }}" || true

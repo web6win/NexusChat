@@ -27,6 +27,9 @@ class LocalStore {
   static const String kConversationPrefix = 'conv:';
   static const String kMessagePrefix = 'msg:';
 
+  /// 已刪除訊息的墓碑（`delmsg:<id>` → 刪除時間）。
+  static const String kDeletedMessagePrefix = 'delmsg:';
+
   Box<dynamic>? _box;
 
   bool get isReady => _box?.isOpen ?? false;
@@ -76,6 +79,7 @@ class LocalStore {
     await deletePrefix(kContactPrefix);
     await deletePrefix(kConversationPrefix);
     await deletePrefix(kMessagePrefix);
+    await deletePrefix(kDeletedMessagePrefix);
     // 身份三件套一併清除：舊明文、密文保險庫、公開提示。
     await delete(kIdentity);
     await delete(kIdentityVault);

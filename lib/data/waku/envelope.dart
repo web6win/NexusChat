@@ -18,7 +18,10 @@ enum EnvelopeType {
   typing('typing'),
 
   /// 金鑰包公布。
-  keyBundle('keybundle');
+  keyBundle('keybundle'),
+
+  /// 撤回某則訊息（墓碑通知）：攜帶要撤回的訊息 ID。
+  recall('recall');
 
   const EnvelopeType(this.value);
 

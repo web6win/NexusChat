@@ -120,6 +120,35 @@ class WakuService {
     );
   }
 
+  /// 廣播「撤回某則訊息」的通知。
+  ///
+  /// 去中心化網路無法真的把訊息從對方裝置上抹掉，所以撤回的做法是：
+  /// 在一對一頻道與對方收件匣各發一則撤回通知，收到的一端把該訊息
+  /// 標記為已撤回，介面改顯示「訊息已撤回」。
+  ///
+  /// 刻意只簽章、不加密：[publicData] 只帶訊息 ID，且這樣即使對方
+  /// 還沒拿到我們的加密金鑰，撤回也一定送得出去、收得到。
+  Future<NexusChatEnvelope> sendRecall({
+    required String toDid,
+    required String targetMessageId,
+  }) async {
+    final envelope = sealer.sealPublic(
+      type: EnvelopeType.recall,
+      from: identity.did,
+      publicData: <String, dynamic>{
+        'target': targetMessageId,
+        'to': toDid,
+      },
+    );
+    for (final topic in <String>{
+      ContentTopics.directMessage(identity.did, toDid),
+      ContentTopics.inbox(toDid),
+    }) {
+      await publishEnvelope(envelope, topic: topic);
+    }
+    return envelope;
+  }
+
   Future<void> publishEnvelope(
     NexusChatEnvelope envelope, {
     required String topic,

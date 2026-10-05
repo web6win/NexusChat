@@ -71,6 +71,7 @@ class ChatMessage {
     this.mediaMime,
     this.mediaDurationMs,
     this.mediaName,
+    this.recalledAtMs,
   });
 
   /// 封包 ID（同時作為去重鍵）。
@@ -106,6 +107,9 @@ class ChatMessage {
   /// 原始檔名（若有）。
   final String? mediaName;
 
+  /// 撤回時間（毫秒）。非 null 表示這則訊息已被撤回，內容不再顯示。
+  final int? recalledAtMs;
+
   DateTime get timestamp =>
       DateTime.fromMillisecondsSinceEpoch(timestampMs, isUtc: true);
 
@@ -122,6 +126,7 @@ class ChatMessage {
         if (mediaDurationMs != null) 'mdur': mediaDurationMs,
         if (mediaName != null) 'mname': mediaName,
         if (error != null) 'error': error,
+        if (recalledAtMs != null) 'recalledAt': recalledAtMs,
       };
 
   static ChatMessage? fromJson(Map<dynamic, dynamic>? json) {
@@ -143,6 +148,7 @@ class ChatMessage {
       mediaDurationMs: json['mdur'] as int?,
       mediaName: json['mname'] as String?,
       error: json['error'] as String?,
+      recalledAtMs: json['recalledAt'] as int?,
     );
   }
 
@@ -159,6 +165,7 @@ class ChatMessage {
     String? mediaMime,
     int? mediaDurationMs,
     String? mediaName,
+    int? recalledAtMs,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -173,6 +180,7 @@ class ChatMessage {
       mediaMime: mediaMime ?? this.mediaMime,
       mediaDurationMs: mediaDurationMs ?? this.mediaDurationMs,
       mediaName: mediaName ?? this.mediaName,
+      recalledAtMs: recalledAtMs ?? this.recalledAtMs,
     );
   }
 }

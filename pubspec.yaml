@@ -12,8 +12,6 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  cupertino_icons: ^1.0.8
-
   # ------------------------------------------------------------------ 狀態管理
   flutter_riverpod: ^2.6.1
 
@@ -68,3 +66,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/tokens.json
+    # 注意：THIRD_PARTY_LICENSES.md 刻意**不**打包進安裝檔（省體積），
+    # App 內「關於」直接連到 GitHub 上的該檔案；由 tool/gen_licenses.dart 產生。

@@ -399,3 +399,20 @@ dart run tool/e2e_waku.dart <nodeA> <nodeB>   # end-to-end against real nodes (1
 - After exporting your mnemonic, store it immediately. The page hides it automatically after 30 seconds,
   but **the clipboard is not cleared automatically** — overwrite it yourself.
 - This project has not undergone a third-party security audit; do not use it as-is for high-sensitivity production scenarios.
+
+---
+
+## 10. Open Source License
+
+Copyright © 2026 WEB6 contributors
+
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
+See [`LICENSE`](LICENSE) for the full text.
+
+- You may freely use, copy, modify and distribute this software (**including commercial use**).
+- **Derivative works must be released under the same license (GPL-3.0)**, preserving copyright and license notices.
+- When distributing, you must also provide the complete **Corresponding Source** (or a way to obtain it).
+- This software comes with **no warranty whatsoever**; see sections 15 and 16 of the license.
+
+Third-party packages (Flutter plugins, etc.) remain under their own licenses;
+see `pubspec.yaml` and each package's terms.

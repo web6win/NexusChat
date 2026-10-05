@@ -174,6 +174,19 @@ class MessagesRepository {
 
   Future<void> remove(String id) => _store.delete('${LocalStore.kMessagePrefix}$id');
 
+  /// 標記某則訊息為「本機已刪除」（墓碑）。
+  ///
+  /// 去中心化網路下訊息仍留在節點的 store 裡，重開 App 的全量回溯會把它
+  /// 拉回來；沒有墓碑的話「刪除」等於白刪。
+  Future<void> markDeleted(String id) => _store.write(
+        '${LocalStore.kDeletedMessagePrefix}$id',
+        DateTime.now().millisecondsSinceEpoch,
+      );
+
+  /// 某則訊息是否已被本機刪除（見 [markDeleted]）。
+  bool isDeleted(String id) =>
+      _store.read('${LocalStore.kDeletedMessagePrefix}$id') != null;
+
   Future<void> removeByPeer(String peerDid) async {
     final targets = all().where((m) => m.peerDid == peerDid).toList();
     for (final message in targets) {

@@ -673,6 +673,10 @@ final chatControllerProvider =
 class ChatController extends Notifier<ChatState> {
   Timer? _timer;
   final Set<String> _seen = <String>{};
+
+  /// 撤回通知先到、原始訊息還沒到的情況：先把目標 ID 記下來，
+  /// 等訊息真正進來時直接標成已撤回，避免「撤了又冒出來」。
+  final Map<String, int> _pendingRecalls = <String, int>{};
   bool _syncing = false;
   DateTime? _lastKeyPublish;
 
@@ -800,6 +804,8 @@ class ChatController extends Notifier<ChatState> {
     final envelope = NexusChatEnvelope.decodeBase64(message.payloadBase64);
     if (envelope == null) return false;
     if (_seen.contains(envelope.id)) return false;
+    // 本機已刪除的訊息：節點 store 裡還有，重開後的全量回溯不能把它救回來。
+    if (_core.messagesRepo.isDeleted(envelope.id)) return false;
 
     if (envelope.type == EnvelopeType.keyBundle) {
       _seen.add(envelope.id);
@@ -809,6 +815,10 @@ class ChatController extends Notifier<ChatState> {
         return true;
       }
       return false;
+    }
+    if (envelope.type == EnvelopeType.recall) {
+      _seen.add(envelope.id);
+      return _applyIncomingRecall(envelope);
     }
     if (envelope.type != EnvelopeType.chat) return false;
 
@@ -840,6 +850,8 @@ class ChatController extends Notifier<ChatState> {
       mediaMime: content.mediaMime,
       mediaDurationMs: content.mediaDurationMs,
       mediaName: content.mediaName,
+      // 撤回通知比原始訊息先到時，這裡直接補上撤回標記。
+      recalledAtMs: _pendingRecalls.remove(envelope.id),
     );
     await _core.messagesRepo.save(chatMessage);
     await _upsertConversation(peerDid, chatMessage, incrementUnread: !outgoing);
@@ -892,6 +904,82 @@ class ChatController extends Notifier<ChatState> {
       contact.copyWith(encPublicKeyB64: enc),
     );
     return true;
+  }
+
+  /// 處理收到的撤回通知：把目標訊息標記為已撤回。
+  ///
+  /// 有效性有三道關卡，缺一不可，否則任何人都能撤掉別人的訊息：
+  /// 1. 簽章必須正確（[EnvelopeSealer.open] 負責驗簽）——撤回通知的
+  ///    [publicData] 沒有加密，簽章是唯一的信任來源。
+  /// 2. 撤回者必須是訊息作者（`from` 的方向要與訊息一致）。
+  /// 3. 目標訊息必須確實存在於同一個對話中。
+  Future<bool> _applyIncomingRecall(NexusChatEnvelope envelope) async {
+    final waku = _core.waku;
+    if (waku == null) return false;
+    final opened = await waku.sealer.open(envelope);
+    if (opened == null) return false;
+
+    final targetId = envelope.publicData?['target'] as String?;
+    final to = envelope.publicData?['to'] as String?;
+    if (targetId == null || targetId.isEmpty) return false;
+
+    final fromMe = envelope.from.toLowerCase() == _core.did.toLowerCase();
+    final peerDid = fromMe ? (to ?? '') : envelope.from;
+    if (peerDid.isEmpty || peerDid == '*') return false;
+
+    final target = _findMessage(targetId);
+    if (target == null) {
+      // 原始訊息尚未抵達（或本機已刪除）：先記下撤回，等它進來再套用。
+      _pendingRecalls[targetId] = envelope.timestampMs;
+      return false;
+    }
+    if (target.peerDid.toLowerCase() != peerDid.toLowerCase()) return false;
+    // 只有作者能撤：我發的只能由我撤，對方發的只能由對方撤。
+    if (target.outgoing != fromMe) return false;
+    if (target.recalledAtMs != null) return false;
+
+    await _core.messagesRepo.save(
+      target.copyWith(recalledAtMs: envelope.timestampMs),
+    );
+    await _refreshConversationPreview(peerDid);
+    return true;
+  }
+
+  /// 在本機訊息庫裡找出一則訊息。
+  ChatMessage? _findMessage(String messageId) {
+    for (final message in _core.messagesRepo.all()) {
+      if (message.id == messageId) return message;
+    }
+    return null;
+  }
+
+  /// 重新計算某個對話的列表預覽（最後一則訊息）。
+  ///
+  /// 刪除或撤回訊息後，對話列表的摘要可能仍指向那則已不顯示的訊息，
+  /// 這裡用剩下的最後一則重算；整串都空了就把對話一併移除。
+  Future<void> _refreshConversationPreview(String peerDid) async {
+    final existing = _core.conversationsRepo
+        .all()
+        .where((c) => c.peerDid.toLowerCase() == peerDid.toLowerCase())
+        .toList();
+    if (existing.isEmpty) return;
+    final remaining = _core.messagesRepo.forPeer(peerDid);
+    if (remaining.isEmpty) {
+      await _core.conversationsRepo.remove(peerDid);
+      return;
+    }
+    final last = remaining.last;
+    // 已撤回的訊息不該在列表裡洩漏原文，摘要留白。
+    final hidden = last.recalledAtMs != null;
+    await _core.conversationsRepo.save(
+      existing.first.copyWith(
+        lastText: hidden ? '' : (last.kind == MediaKind.text ? last.text : ''),
+        lastMedia:
+            hidden ? null : (last.kind == MediaKind.text ? null : last.kind.value),
+        lastTsMs: last.timestampMs,
+        lastStatus: last.outgoing ? last.status : null,
+      ),
+    );
   }
 
   Future<void> _upsertConversation(
@@ -1113,6 +1201,54 @@ class ChatController extends Notifier<ChatState> {
     await _core.messagesRepo.removeByPeer(peerDid);
     await _core.conversationsRepo.remove(peerDid);
     _reload();
+  }
+
+  /// 刪除單則訊息（**只刪本機**，不通知對方）。
+  ///
+  /// 去中心化網路沒有「把對方那一份也刪掉」的機制，所以這裡只移除本機
+  /// 紀錄；對方仍看得到原訊息。要讓雙方都看不到請用 [recallMessage]。
+  /// 回傳該訊息所屬的 peerDid 供 UI 更新，找不到則回傳 null。
+  Future<String?> deleteMessage(String messageId) async {
+    final target = _findMessage(messageId);
+    if (target == null) return null;
+    await _core.messagesRepo.remove(messageId);
+    // 同時留墓碑與 _seen：前者擋重開後的全量回溯，後者擋本輪重複套用。
+    await _core.messagesRepo.markDeleted(messageId);
+    _seen.add(messageId);
+    await _refreshConversationPreview(target.peerDid);
+    _reload();
+    return target.peerDid;
+  }
+
+  /// 撤回自己發出的訊息：廣播撤回通知，雙方都改顯示「訊息已撤回」。
+  ///
+  /// 限制：只能撤自己發出、已送出（非失敗）且尚未撤回的訊息。
+  /// 去中心化網路下原始內容仍留在雙方儲存裡，撤回只是讓介面不再顯示，
+  /// 這一點與「刪除」的差別必須讓使用者知道（見確認對話框文案）。
+  Future<bool> recallMessage(String messageId) async {
+    final waku = _core.waku;
+    final target = _findMessage(messageId);
+    if (waku == null || target == null) return false;
+    if (!target.outgoing) return false;
+    if (target.status == MessageStatus.failed) return false;
+    if (target.recalledAtMs != null) return false;
+
+    try {
+      final envelope = await waku.sendRecall(
+        toDid: target.peerDid,
+        targetMessageId: messageId,
+      );
+      _seen.add(envelope.id);
+    } catch (error, stackTrace) {
+      debugPrint('recall failed: $error\n$stackTrace');
+      return false;
+    }
+    await _core.messagesRepo.save(
+      target.copyWith(recalledAtMs: DateTime.now().millisecondsSinceEpoch),
+    );
+    await _refreshConversationPreview(target.peerDid);
+    _reload();
+    return true;
   }
 
   /// 廣播自己的金鑰包。

@@ -166,6 +166,68 @@ class _ChatViewState extends ConsumerState<ChatView> {
     return false;
   }
 
+  /// 是否允許撤回：必須是自己發出、已送出（非失敗）且尚未撤回。
+  bool _canRecall(ChatMessage message) =>
+      message.outgoing &&
+      message.status != MessageStatus.failed &&
+      message.recalledAtMs == null;
+
+  /// 共用的確認對話框，回傳使用者是否按下確認。
+  Future<bool?> _confirm({
+    required String title,
+    required String body,
+    required String confirmLabel,
+  }) {
+    final s = context.s;
+    return showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(s.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(confirmLabel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 刪除單則訊息（只刪本機，對方仍看得到）。
+  Future<void> _deleteMessage(ChatMessage message) async {
+    final s = context.s;
+    final ok = await _confirm(
+      title: s.delete,
+      body: s.chatDeleteMessageConfirm,
+      confirmLabel: s.delete,
+    );
+    if (ok != true) return;
+    await ref.read(chatControllerProvider.notifier).deleteMessage(message.id);
+    if (!mounted) return;
+    showAppSnack(context, s.chatMessageDeleted);
+  }
+
+  /// 撤回自己發出的訊息：雙方都改顯示「訊息已撤回」。
+  Future<void> _recallMessage(ChatMessage message) async {
+    final s = context.s;
+    final ok = await _confirm(
+      title: s.chatRecall,
+      body: s.chatRecallConfirm,
+      confirmLabel: s.chatRecall,
+    );
+    if (ok != true) return;
+    final done = await ref
+        .read(chatControllerProvider.notifier)
+        .recallMessage(message.id);
+    if (!mounted) return;
+    if (!done) showAppSnack(context, s.errorGeneric, danger: true);
+  }
+
   void _jumpToBottom() {
     setState(() {
       _pendingNew = 0;
@@ -236,7 +298,10 @@ class _ChatViewState extends ConsumerState<ChatView> {
     try {
       final xfile = await _picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 85,
+        // Web 端刻意不傳 imageQuality：image_picker_for_web 會走 canvas 重新
+        // 編碼，該路徑在部分瀏覽器 / 圖片格式上會直接拋錯（PC 瀏覽器尤其常見）。
+        // 反正後面 compressImage 還會再壓一次，這裡省掉不會有損失。
+        imageQuality: kIsWeb ? null : 85,
       );
       if (xfile == null) return;
       final bytes = await xfile.readAsBytes();
@@ -259,8 +324,13 @@ class _ChatViewState extends ConsumerState<ChatView> {
         _pendingImageMime = 'image/jpeg';
         _pendingImageName = xfile.name;
       });
-    } catch (_) {
-      _showError(context.s.chatPermissionPhotos);
+    } catch (error, stackTrace) {
+      // 這裡會吞掉真實原因，務必留下痕跡，否則只能看到誤導性的權限提示。
+      debugPrint('pickImage failed: $error\n$stackTrace');
+      // 網頁沒有「相簿權限」概念，那條文案在瀏覽器上是錯的。
+      _showError(
+        kIsWeb ? context.s.chatImagePickFailed : context.s.chatPermissionPhotos,
+      );
     }
   }
 
@@ -643,6 +713,10 @@ class _ChatViewState extends ConsumerState<ChatView> {
                                             .read(
                                                 chatControllerProvider.notifier)
                                             .retry(current.id),
+                                        onDelete: () => _deleteMessage(current),
+                                        onRecall: _canRecall(current)
+                                            ? () => _recallMessage(current)
+                                            : null,
                                       ),
                                     ),
                                   ],
@@ -923,6 +997,8 @@ class MessageBubble extends StatelessWidget {
     required this.color,
     super.key,
     this.onRetry,
+    this.onDelete,
+    this.onRecall,
     this.showMeta = true,
     this.groupedWithPrevious = false,
     this.groupedWithNext = false,
@@ -931,6 +1007,12 @@ class MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final Color color;
   final VoidCallback? onRetry;
+
+  /// 刪除本機訊息（確認對話框由父層處理）。
+  final VoidCallback? onDelete;
+
+  /// 撤回訊息；為 null 表示這則不允許撤回（例如對方發的、或已撤回）。
+  final VoidCallback? onRecall;
   final bool showMeta;
   final bool groupedWithPrevious;
   final bool groupedWithNext;
@@ -942,6 +1024,7 @@ class MessageBubble extends StatelessWidget {
     final outgoing = message.outgoing;
     final palette = context.palette;
     final isMedia = message.kind != MediaKind.text;
+    final recalled = message.recalledAtMs != null;
 
     return Align(
       alignment: outgoing ? Alignment.centerRight : Alignment.centerLeft,
@@ -956,32 +1039,38 @@ class MessageBubble extends StatelessWidget {
           crossAxisAlignment:
               outgoing ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: <Widget>[
-            Container(
-              padding: isMedia
-                  ? const EdgeInsets.all(4)
-                  : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                gradient: outgoing ? AppColors.brandGradient : null,
-                color: outgoing ? null : palette.bubbleOther,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(
-                      outgoing ? 18 : (groupedWithPrevious ? 6 : 18)),
-                  topRight: Radius.circular(
-                      outgoing ? (groupedWithPrevious ? 6 : 18) : 18),
-                  bottomLeft: Radius.circular(
-                      outgoing ? 18 : (groupedWithNext ? 6 : 18)),
-                  bottomRight: Radius.circular(
-                      outgoing ? (groupedWithNext ? 6 : 18) : 18),
-                ),
-                boxShadow: <BoxShadow>[
-                  BoxShadow(
-                    color: palette.shadow.withValues(alpha: 0.5),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
+            GestureDetector(
+              // 長按開啟操作選單：複製 / 撤回 / 刪除。
+              onLongPress: () => _showMessageMenu(context, s),
+              child: Container(
+                padding: isMedia && !recalled
+                    ? const EdgeInsets.all(4)
+                    : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: outgoing ? AppColors.brandGradient : null,
+                  color: outgoing ? null : palette.bubbleOther,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(
+                        outgoing ? 18 : (groupedWithPrevious ? 6 : 18)),
+                    topRight: Radius.circular(
+                        outgoing ? (groupedWithPrevious ? 6 : 18) : 18),
+                    bottomLeft: Radius.circular(
+                        outgoing ? 18 : (groupedWithNext ? 6 : 18)),
+                    bottomRight: Radius.circular(
+                        outgoing ? (groupedWithNext ? 6 : 18) : 18),
                   ),
-                ],
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: palette.shadow.withValues(alpha: 0.5),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: recalled
+                    ? _recalledContent(outgoing, palette, s)
+                    : _bubbleContent(context, outgoing, palette, s),
               ),
-              child: _bubbleContent(context, outgoing, palette, s),
             ),
             if (showMeta)
               Padding(
@@ -1027,6 +1116,79 @@ class MessageBubble extends StatelessWidget {
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 已撤回訊息的占位內容：不再顯示原文，只留一行提示。
+  Widget _recalledContent(bool outgoing, palette, Strings s) {
+    final textColor = (outgoing ? palette.bubbleMeText : palette.bubbleOtherText)
+        .withValues(alpha: 0.8);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(Icons.undo_rounded, size: 14, color: textColor),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            s.chatRecalled,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontStyle: FontStyle.italic,
+              color: textColor,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 長按氣泡後的操作選單：複製 / 撤回 / 刪除。
+  ///
+  /// 撤回只對自己發出的訊息出現（[onRecall] 為 null 時不顯示該項）；
+  /// 刪除則一律可用，但它只影響本機，對方仍看得到原訊息。
+  void _showMessageMenu(BuildContext context, Strings s) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      builder: (BuildContext sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            if (message.kind == MediaKind.text && message.text.isNotEmpty)
+              ListTile(
+                leading: const Icon(Icons.copy_rounded),
+                title: Text(s.copy),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Clipboard.setData(ClipboardData(text: message.text));
+                },
+              ),
+            if (onRecall != null)
+              ListTile(
+                leading: const Icon(Icons.undo_rounded),
+                title: Text(s.chatRecall),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  onRecall!();
+                },
+              ),
+            ListTile(
+              leading: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.danger,
+              ),
+              title: Text(
+                s.delete,
+                style: const TextStyle(color: AppColors.danger),
+              ),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                onDelete?.call();
+              },
+            ),
           ],
         ),
       ),
