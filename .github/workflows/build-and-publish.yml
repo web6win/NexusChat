@@ -159,6 +159,44 @@ jobs:
           flutter build apk --release --build-number "$APP_VERSION_BUILD" $DART_DEFINES
           flutter build appbundle --release --build-number "$APP_VERSION_BUILD" $DART_DEFINES
 
+      # 簽章把關：release 包必須由「固定發佈金鑰」簽名，否則舊版本無法覆蓋升級。
+      # 這裡刻意**不**設 continue-on-error：上一步允許 Android 建構失敗（不波及
+      # Web / Linux），但「簽錯鑰匙」比「沒出包」更嚴重，必須讓 workflow 變紅。
+      - name: Verify Android release signing
+        if: ${{ env.HAS_ANDROID_SIGNING == 'true' }}
+        run: |
+          set -euo pipefail
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          if [ ! -f "$APK" ]; then
+            echo "::warning::找不到 release APK（Android 建構可能已失敗），跳過簽章驗證。"
+            exit 0
+          fi
+          # 期望指紋：由本次建構實際使用的 keystore 計算。
+          EXPECTED=$(keytool -list -v \
+            -keystore android/app/upload-keystore.jks \
+            -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            -alias "${{ secrets.ANDROID_KEY_ALIAS }}" \
+            | awk '/SHA-?256:/ {print $2; exit}')
+          # 實際指紋：apksigner 讀取 APK 的簽章憑證（支援 v1 / v2 / v3）。
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          SIGNER=$(find "$SDK/build-tools" -name apksigner -type f 2>/dev/null | head -1)
+          if [ -z "$SIGNER" ]; then
+            echo "::error::找不到 apksigner，無法驗證簽章"
+            exit 1
+          fi
+          ACTUAL=$("$SIGNER" verify --print-certs "$APK" 2>&1 | awk '/SHA-256 digest:/ {print $NF; exit}')
+          if [ -z "$ACTUAL" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
+            echo "::error::release APK 不是由發佈金鑰簽名（預期 $EXPECTED，實際 ${ACTUAL:-無}）"
+            exit 1
+          fi
+          echo "簽章驗證通過（SHA-256: $ACTUAL）"
+
+      # 沒設定簽署時明確警告：這種包每次簽名都不同，使用者必須先卸載才能更新。
+      - name: Warn on debug-signed Android build
+        if: ${{ env.HAS_ANDROID_SIGNING != 'true' }}
+        run: |
+          echo "::warning::未設定 ANDROID_KEYSTORE_BASE64：Android 套件改用一次性 debug 金鑰簽名，新舊版本簽名不同，使用者必須先卸載舊版才能安裝。"
+
       - name: Package Linux bundle
         run: |
           tar -czf build/linux-bundle.tar.gz -C build/linux/x64/release/bundle .
