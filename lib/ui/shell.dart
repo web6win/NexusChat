@@ -67,23 +67,18 @@ class _AppShellState extends ConsumerState<AppShell>
     if (mounted) setState(() {});
   }
 
-  /// 窄萤幕下不需要底部导览的全萤幕页面。
+  /// 窄萤幕下不需要底部导览的情况。
   ///
-  /// 包含：某个对话（`/chats?peer=` / `/chats?group=`）、建立群组与群组资讯页。
+  /// 其余「 Tab 页的子页面」（设置各子页、建立群组、群组资讯）已经把路由搬到
+  /// StatefulShellRoute 之外，壳层根本不会参与渲染，所以这里只剩下
+  /// 必须留在壳层内做左右分栏的「对话」。
   bool _shouldHideBottomNav() {
     final router = _router;
     if (router == null) return false;
     final uri = router.routerDelegate.currentConfiguration.uri;
-    switch (uri.path) {
-      case '/group-create':
-      case '/group-info':
-        return true;
-      case '/chats':
-        return uri.queryParameters.containsKey('peer') ||
-            uri.queryParameters.containsKey('group');
-      default:
-        return false;
-    }
+    if (uri.path != '/chats') return false;
+    return uri.queryParameters.containsKey('peer') ||
+        uri.queryParameters.containsKey('group');
   }
 
   @override
@@ -135,8 +130,8 @@ class _AppShellState extends ConsumerState<AppShell>
       );
     }
 
-    // 对话、建立群组、群组资讯等全萤幕页面隐藏底部导览
-    // （聊天 / 联络人 / 钱包…那一排）；宽萤幕本来就改用左侧导览列，不受影响。
+    // 对话页（窄萤幕）不显示底部导览（聊天 / 联络人 / 钱包…那一排）；
+    // 其余子页已移出壳层，根本不会走到这里。宽萤幕用左侧导览列，不受影响。
     final hideBottomNav = _shouldHideBottomNav();
 
     return Scaffold(

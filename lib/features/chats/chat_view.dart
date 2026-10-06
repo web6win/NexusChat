@@ -603,7 +603,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
               final controller = ref.read(chatControllerProvider.notifier);
               switch (value) {
                 case 'info':
-                  context.go('/group-info?group=${widget.groupId}');
+                  // push 而非 go：保留返回堆叠，返回后可回到原本的对话。
+                  context.push('/group-info?group=${widget.groupId}');
                   break;
                 case 'leave':
                   final confirmed = await showDialog<bool>(

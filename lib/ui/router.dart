@@ -135,6 +135,61 @@ final routerProvider = Provider<GoRouter>((ref) {
           initialAddress: state.uri.queryParameters['address'],
         ),
       ),
+      // 从导览页进入的子页面：刻意放在 StatefulShellRoute **之外**，
+      // 因此它们天生不带底部导览（不是条件隐藏，而是壳层根本没参与）；
+      // 进入时用 push 建立返回堆叠，AppBar 会自动出现左上返回箭头，
+      // 实体返回键与手势返回也都能回到上一页。
+      GoRoute(
+        path: '/group-create',
+        builder: (BuildContext context, GoRouterState state) =>
+            const GroupCreatePage(),
+      ),
+      GoRoute(
+        path: '/group-info',
+        builder: (BuildContext context, GoRouterState state) => GroupInfoPage(
+          groupId: state.uri.queryParameters['group'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: '/settings/appearance',
+        builder: (BuildContext context, GoRouterState state) =>
+            const AppearanceSettingsPage(),
+      ),
+      GoRoute(
+        path: '/settings/security',
+        builder: (BuildContext context, GoRouterState state) =>
+            const SecuritySettingsPage(),
+      ),
+      GoRoute(
+        path: '/settings/network',
+        builder: (BuildContext context, GoRouterState state) =>
+            const NetworkSettingsPage(),
+      ),
+      GoRoute(
+        path: '/settings/blockchain',
+        builder: (BuildContext context, GoRouterState state) =>
+            const BlockchainSettingsPage(),
+      ),
+      GoRoute(
+        path: '/settings/identity',
+        builder: (BuildContext context, GoRouterState state) =>
+            const IdentityPage(),
+      ),
+      GoRoute(
+        path: '/settings/import-key',
+        builder: (BuildContext context, GoRouterState state) =>
+            const IdentityImportPage(),
+      ),
+      GoRoute(
+        path: '/settings/about',
+        builder: (BuildContext context, GoRouterState state) =>
+            const AboutSettingsPage(),
+      ),
+      GoRoute(
+        path: '/settings/danger',
+        builder: (BuildContext context, GoRouterState state) =>
+            const DangerSettingsPage(),
+      ),
       StatefulShellRoute.indexedStack(
         builder:
             (BuildContext context, GoRouterState state, StatefulNavigationShell shell) =>
@@ -149,18 +204,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                     ChatsPage(
                   peerDid: state.uri.queryParameters['peer'],
                   groupId: state.uri.queryParameters['group'],
-                ),
-              ),
-              GoRoute(
-                path: '/group-create',
-                builder: (BuildContext context, GoRouterState state) =>
-                    const GroupCreatePage(),
-              ),
-              GoRoute(
-                path: '/group-info',
-                builder: (BuildContext context, GoRouterState state) =>
-                    GroupInfoPage(
-                  groupId: state.uri.queryParameters['group'] ?? '',
                 ),
               ),
             ],
@@ -202,48 +245,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: '/settings',
                 builder: (BuildContext context, GoRouterState state) =>
                     const MePage(),
-                routes: <RouteBase>[
-                  GoRoute(
-                    path: 'appearance',
-                    builder: (BuildContext context, GoRouterState state) =>
-                        const AppearanceSettingsPage(),
-                  ),
-                  GoRoute(
-                    path: 'security',
-                    builder: (BuildContext context, GoRouterState state) =>
-                        const SecuritySettingsPage(),
-                  ),
-                  GoRoute(
-                    path: 'network',
-                    builder: (BuildContext context, GoRouterState state) =>
-                        const NetworkSettingsPage(),
-                  ),
-                  GoRoute(
-                    path: 'blockchain',
-                    builder: (BuildContext context, GoRouterState state) =>
-                        const BlockchainSettingsPage(),
-                  ),
-                  GoRoute(
-                    path: 'identity',
-                    builder: (BuildContext context, GoRouterState state) =>
-                        const IdentityPage(),
-                  ),
-                  GoRoute(
-                    path: 'import-key',
-                    builder: (BuildContext context, GoRouterState state) =>
-                        const IdentityImportPage(),
-                  ),
-                  GoRoute(
-                    path: 'about',
-                    builder: (BuildContext context, GoRouterState state) =>
-                        const AboutSettingsPage(),
-                  ),
-                  GoRoute(
-                    path: 'danger',
-                    builder: (BuildContext context, GoRouterState state) =>
-                        const DangerSettingsPage(),
-                  ),
-                ],
               ),
             ],
           ),

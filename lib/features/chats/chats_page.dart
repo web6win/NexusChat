@@ -100,21 +100,36 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
       );
     }
 
+    // 对话必须留在壳层内（宽萤幕左右分栏要用），所以它是同一个路由的
+    // query 变化、没有自己的返回堆叠。这里拦下实体返回键与手势返回，
+    // 让它等同左上返回箭头：回到对话清单。
     if (widget.groupId != null) {
-      return ChatView(
-        key: ValueKey('g-${widget.groupId}'),
-        groupId: widget.groupId!,
-        showBack: true,
-        onBack: () => context.go('/chats'),
+      return PopScope<Object?>(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) context.go('/chats');
+        },
+        child: ChatView(
+          key: ValueKey('g-${widget.groupId}'),
+          groupId: widget.groupId!,
+          showBack: true,
+          onBack: () => context.go('/chats'),
+        ),
       );
     }
 
     if (widget.peerDid != null) {
-      return ChatView(
-        key: ValueKey(widget.peerDid),
-        peerDid: widget.peerDid!,
-        showBack: true,
-        onBack: () => context.go('/chats'),
+      return PopScope<Object?>(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) context.go('/chats');
+        },
+        child: ChatView(
+          key: ValueKey(widget.peerDid),
+          peerDid: widget.peerDid!,
+          showBack: true,
+          onBack: () => context.go('/chats'),
+        ),
       );
     }
 
@@ -170,7 +185,8 @@ class _ConversationList extends ConsumerWidget {
                 actions: <Widget>[
                   IconButton(
                     tooltip: s.groupCreate,
-                    onPressed: () => context.go('/group-create'),
+                    // push 而非 go：保留返回堆叠，才有左上返回箭头与返回键可用。
+                    onPressed: () => context.push('/group-create'),
                     icon: const Icon(Icons.group_add_rounded),
                   ),
                   IconButton(
