@@ -135,7 +135,16 @@ class _AppShellState extends ConsumerState<AppShell>
     final hideBottomNav = _shouldHideBottomNav();
 
     return Scaffold(
-      body: widget.shell,
+      body: PopScope<Object?>(
+        // 对话页只是 /chats 的 query 变化、没有自己的返回堆叠。若不在这里
+        // 拦截，返回键会一路弹到根导览器、把 App 直接关掉。这里位于
+        // AppShell（根导览器的那条路由内），才拦得住。
+        canPop: !hideBottomNav,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop && hideBottomNav) context.go('/chats');
+        },
+        child: widget.shell,
+      ),
       bottomNavigationBar: hideBottomNav
           ? null
           : NavigationBar(

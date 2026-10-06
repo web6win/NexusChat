@@ -100,36 +100,24 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
       );
     }
 
-    // 对话必须留在壳层内（宽萤幕左右分栏要用），所以它是同一个路由的
-    // query 变化、没有自己的返回堆叠。这里拦下实体返回键与手势返回，
-    // 让它等同左上返回箭头：回到对话清单。
+    // 对话留在壳层内（宽萤幕左右分栏要用），它没有自己的返回堆叠，
+    // 因此「按返回键回到对话清单」由 AppShell 的 PopScope 统一拦截
+    // （放这里拦不到：PopScope 只注册到所在导览器的那条路由，拦不住根导览器）。
     if (widget.groupId != null) {
-      return PopScope<Object?>(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) context.go('/chats');
-        },
-        child: ChatView(
-          key: ValueKey('g-${widget.groupId}'),
-          groupId: widget.groupId!,
-          showBack: true,
-          onBack: () => context.go('/chats'),
-        ),
+      return ChatView(
+        key: ValueKey('g-${widget.groupId}'),
+        groupId: widget.groupId!,
+        showBack: true,
+        onBack: () => context.go('/chats'),
       );
     }
 
     if (widget.peerDid != null) {
-      return PopScope<Object?>(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) context.go('/chats');
-        },
-        child: ChatView(
-          key: ValueKey(widget.peerDid),
-          peerDid: widget.peerDid!,
-          showBack: true,
-          onBack: () => context.go('/chats'),
-        ),
+      return ChatView(
+        key: ValueKey(widget.peerDid),
+        peerDid: widget.peerDid!,
+        showBack: true,
+        onBack: () => context.go('/chats'),
       );
     }
 
