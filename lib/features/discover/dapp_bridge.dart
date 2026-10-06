@@ -6,8 +6,8 @@ import 'package:eth_sig_util/eth_sig_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:web3dart/crypto.dart' show hexToBytes;
 import 'package:web3dart/web3dart.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/l10n/strings.dart';
 import '../../core/utils/hex.dart';
@@ -118,7 +118,7 @@ class DappWalletBridge {
     required this.controller,
   });
 
-  final Ref ref;
+  final WidgetRef ref;
   final BuildContext context;
   final WebViewController controller;
 
@@ -239,7 +239,7 @@ class DappWalletBridge {
     return EthSigUtil.signTypedData(
       privateKey: privateHex,
       jsonData: parsed.json,
-      version: TypedDataVersion.v4,
+      version: TypedDataVersion.V4,
     );
   }
 
@@ -265,7 +265,7 @@ class DappWalletBridge {
       ],
     );
     if (!approved) throw const DappError('User rejected the request', 4001);
-    return _broadcast(tx, address);
+    return _broadcast(tx);
   }
 
   Future<dynamic> _switchChain(DappRequest req) async {
@@ -299,7 +299,7 @@ class DappWalletBridge {
 
   // ----------------------------------------------------------------- 广播交易
 
-  Future<String> _broadcast(Map<String, dynamic> tx, String address) async {
+  Future<String> _broadcast(Map<String, dynamic> tx) async {
     final chain = _chain();
     final rpcUrl = ref.read(settingsProvider).rpcFor(chain);
     if (rpcUrl.trim().isEmpty) {
@@ -315,15 +315,37 @@ class DappWalletBridge {
       final nonceHex = tx['nonce'] as String?;
       final nonce = nonceHex != null
           ? _hexInt(nonceHex)
-          : (await client
-                .getTransactionCount(credentials.address,
-                    atBlock: BlockNum.pending))
-              .toInt();
+          : await client.getTransactionCount(
+              credentials.address,
+              atBlock: BlockNum.pending(),
+            );
 
       final gasPriceHex = tx['gasPrice'] as String?;
       final maxFeeHex = tx['maxFeePerGas'] as String?;
       final maxPriorityHex = tx['maxPriorityFeePerGas'] as String?;
       final gasHex = tx['gas'] as String?;
+
+      EtherAmount? gasPrice = gasPriceHex != null
+          ? EtherAmount.fromBigInt(EtherUnit.wei, _hexBigInt(gasPriceHex))
+          : null;
+      EtherAmount? maxFee = maxFeeHex != null
+          ? EtherAmount.fromBigInt(EtherUnit.wei, _hexBigInt(maxFeeHex))
+          : null;
+      EtherAmount? maxPriority = maxPriorityHex != null
+          ? EtherAmount.fromBigInt(EtherUnit.wei, _hexBigInt(maxPriorityHex))
+          : null;
+
+      // 旧式交易：既没给 gasPrice 也没给 EIP-1559 费用时，向节点询问 gasPrice。
+      if (maxFee == null && gasPrice == null) {
+        gasPrice = await client.getGasPrice();
+      }
+      // EIP-1559 但缺 maxPriorityFeePerGas：默认取 maxFee 的四分之一。
+      if (maxFee != null && maxPriority == null) {
+        final quarter = maxFee.getInWei ~/ BigInt.from(4);
+        maxPriority = EtherAmount.fromBigInt(
+            EtherUnit.wei,
+            quarter > BigInt.zero ? quarter : maxFee.getInWei);
+      }
 
       final transaction = Transaction(
         to: tx['to'] != null ? EthereumAddress.fromHex(tx['to'] as String) : null,
@@ -335,31 +357,16 @@ class DappWalletBridge {
             ? Hex.decode(tx['data'] as String)
             : Uint8List(0),
         nonce: nonce,
-        gasPrice: gasPriceHex != null
-            ? EtherAmount.fromBigInt(
-                EtherUnit.wei, _hexBigInt(gasPriceHex))
-            : null,
-        maxFeePerGas: maxFeeHex != null
-            ? EtherAmount.fromBigInt(EtherUnit.wei, _hexBigInt(maxFeeHex))
-            : null,
-        maxPriorityFeePerGas: maxPriorityHex != null
-            ? EtherAmount.fromBigInt(
-                EtherUnit.wei, _hexBigInt(maxPriorityHex))
-            : null,
+        gasPrice: gasPrice,
+        maxFeePerGas: maxFee,
+        maxPriorityFeePerGas: maxPriority,
+        // maxGas 为 null 时，web3dart 会自动向节点估算 gas 上限。
+        maxGas: gasHex != null ? _hexInt(gasHex) : null,
       );
 
-      final gasLimit = gasHex != null
-          ? _hexInt(gasHex)
-          : (await client.estimateGas(
-                transaction: transaction,
-                sender: credentials.address,
-              ))
-              .toInt();
-
-      final finalTx = transaction.copyWith(maxGas: gasLimit);
       return await client.sendTransaction(
         credentials,
-        finalTx,
+        transaction,
         chainId: chainId,
       );
     } finally {
@@ -497,16 +504,14 @@ class DappWalletBridge {
       List<dynamic> params) {
     // personal_sign 常见两种参数顺序：[data, address] 或 [address, data]；
     // 取「非地址」的那一项作为消息内容。
-    String? message;
-    for (final p in params) {
-      if (p is String &&
-          !(p.startsWith('0x') && p.length == 42) &&
-          message == null) {
-        message = p;
-      }
-    }
-    message ??= params.first is String ? params.first as String : '';
-    final trimmed = message!.trim();
+    final candidates = params.whereType<String>().toList();
+    final nonAddress = candidates
+        .where((p) => !(p.startsWith('0x') && p.length == 42))
+        .toList();
+    final message = nonAddress.isNotEmpty
+        ? nonAddress.first
+        : (candidates.isNotEmpty ? candidates.first : '');
+    final trimmed = message.trim();
     if (trimmed.startsWith('0x') || trimmed.startsWith('0X')) {
       try {
         final bytes = Hex.decode(trimmed);
@@ -521,16 +526,14 @@ class DappWalletBridge {
   static ({String json, String summary}) _parseTypedDataParams(
       List<dynamic> params) {
     // eth_signTypedData_v4 参数顺序：[address, json] 或 [json, address]。
-    String? json;
-    for (final p in params) {
-      if (p is String && (p.trim().startsWith('{')) && json == null) {
-        json = p as String;
-      }
-    }
-    json ??= params.first is String ? params.first as String : '{}';
+    final candidates = params.whereType<String>().toList();
+    final objects = candidates.where((p) => p.trim().startsWith('{')).toList();
+    final json = objects.isNotEmpty
+        ? objects.first
+        : (candidates.isNotEmpty ? candidates.first : '{}');
     String summary;
     try {
-      final map = jsonDecode(json!) as Map<String, dynamic>;
+      final map = jsonDecode(json) as Map<String, dynamic>;
       final domain = map['domain'] as Map?;
       final primary = map['primaryType'] as String? ?? '';
       final name = (domain?['name'] as String?) ?? '';
@@ -539,7 +542,7 @@ class DappWalletBridge {
     } catch (_) {
       summary = 'EIP-712';
     }
-    return (json: json!, summary: summary);
+    return (json: json, summary: summary);
   }
 
   static BigInt _hexBigInt(String hex) =>

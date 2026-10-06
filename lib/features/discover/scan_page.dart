@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/l10n/strings.dart';
 import '../../core/theme/app_theme.dart';
@@ -157,9 +158,15 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     return bare.chain == ChainType.tron ? ChainType.tron : null;
   }
 
-  /// 扫到网址：在应用内 WebView 新页面开启，扫码页保留在底层。
+  /// 扫到网址：原生端在应用内 WebView 新页面开启；Web 端改用浏览器新窗口。
   /// 从 WebView 返回后再恢复扫描，方便连续扫多个码。
   Future<void> _openLink(Uri uri) async {
+    // Web 端没有 WebView 原生实现，也无法注入钱包 provider，
+    // 因此改用外部浏览器在新窗口 / 新标签页打开。
+    if (kIsWeb) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      return;
+    }
     final router = GoRouter.of(context);
     // push 而非 go：WebView 叠在扫码页之上，关闭后回到扫码页。
     await router.push('/webview?url=${Uri.encodeComponent(uri.toString())}');
