@@ -11,28 +11,28 @@ import '../data/storage/local_store.dart';
 import '../data/waku/nwaku_rest_transport.dart';
 import '../data/waku/waku_service.dart';
 
-/// 應用程式的核心容器：持有本地儲存、身份、密碼學服務與 Waku 連線。
+/// 应用程式的核心容器：持有本地储存、身份、密码学服务与 Waku 连线。
 ///
 /// ## 安全模型
 ///
-/// 秘密材料（助記詞 / 私鑰 / 加密種子）以使用者密碼加密後存放，
-/// **啟動時不解鎖** —— 只有在使用者輸入密碼後才會出現在記憶體中：
+/// 秘密材料（助记词 / 私钥 / 加密种子）以使用者密码加密后存放，
+/// **启动时不解锁** —— 只有在使用者输入密码后才会出现在记忆体中：
 ///
 /// - 未建立身份：`hint == null && identity == null`
-/// - 已建立但鎖定：`hint != null && identity == null`（記憶體中沒有秘密）
-/// - 已解鎖：`identity != null`（才會有 [crypto] / [waku]）
+/// - 已建立但锁定：`hint != null && identity == null`（记忆体中没有秘密）
+/// - 已解锁：`identity != null`（才会有 [crypto] / [waku]）
 ///
-/// 鎖定時會把 [identity]、[crypto]、[waku] 一律歸零並斷開連線，
-/// 讓秘密物件不再被任何可達路徑引用。
+/// 锁定时会把 [identity]、[crypto]、[waku] 一律归零并断开连线，
+/// 让秘密物件不再被任何可达路径引用。
 class Core {
   Core._(this.store);
 
   final LocalStore store;
 
-  /// 目前設定（由 [SettingsRepository] 載入，會被控制器寫回）。
+  /// 目前设定（由 [SettingsRepository] 载入，会被控制器写回）。
   late AppSettings settings;
 
-  /// 安全設定（自動鎖定等；不含秘密）。
+  /// 安全设定（自动锁定等；不含秘密）。
   late SecuritySettings security;
 
   late final SettingsRepository settingsRepo = SettingsRepository(store);
@@ -44,43 +44,43 @@ class Core {
   late final MessagesRepository messagesRepo = MessagesRepository(store);
   late final GroupsRepository groupsRepo = GroupsRepository(store);
 
-  /// 身份的公開提示（明文，鎖定時仍存在，用於顯示與路由）。
+  /// 身份的公开提示（明文，锁定时仍存在，用于显示与路由）。
   IdentityHint? hint;
 
-  /// 已解鎖的身份；鎖定時為 `null`。
+  /// 已解锁的身份；锁定时为 `null`。
   AppIdentity? identity;
 
   CryptoService? crypto;
 
   WakuService? waku;
 
-  /// 本機是否存在身份（不論是否已解鎖）。
+  /// 本机是否存在身份（不论是否已解锁）。
   bool get hasIdentity => hint != null || identityRepo.hasVault;
 
-  /// 是否處於鎖定狀態（有身份但尚未輸入密碼）。
+  /// 是否处于锁定状态（有身份但尚未输入密码）。
   bool get isLocked => hasIdentity && identity == null;
 
-  /// 是否存在舊版明文身份，需要設定密碼完成遷移。
+  /// 是否存在旧版明文身份，需要设定密码完成迁移。
   bool get needsMigration => !hasIdentity && identityRepo.hasLegacyPlaintext;
 
-  /// 保險庫密文是否結構正確可用。
+  /// 保险库密文是否结构正确可用。
   ///
-  /// 正常流程下恆為 true；若為 false 代表本地資料毀損，只能重新建立身份。
+  /// 正常流程下恒为 true；若为 false 代表本地资料毁损，只能重新建立身份。
   bool get vaultUsable => identityRepo.hasVault;
 
-  /// 保險庫目前的 KDF 迭代次數（未加密時為預設值）。
+  /// 保险库目前的 KDF 迭代次数（未加密时为预设值）。
   int get vaultIterations => identityRepo.hasVault
       ? identityRepo.vaultIterations
       : Vault.defaultIterations;
 
-  /// 顯示用的簡短地址（鎖定時取公開提示）。
+  /// 显示用的简短地址（锁定时取公开提示）。
   String get accountAddress => identity?.address ?? hint?.address ?? '';
 
   String get did => identity?.did ?? '';
 
-  /// 啟動流程：初始化儲存、載入設定與公開提示。
+  /// 启动流程：初始化储存、载入设定与公开提示。
   ///
-  /// **刻意不解鎖身份** —— 秘密要等使用者輸入密碼才會載入記憶體。
+  /// **刻意不解锁身份** —— 秘密要等使用者输入密码才会载入记忆体。
   static Future<Core> bootstrap() async {
     final store = LocalStore.instance;
     await store.init();
@@ -88,15 +88,15 @@ class Core {
     core.settings = core.settingsRepo.load();
     core.security = core.securityRepo.load();
     core.hint = core.identityRepo.hint();
-    // 舊版本的本機模擬模式會寫入示範聯絡人；模式已移除，順手清掉殘留，
-    // 避免使用者看到永遠不可能有金鑰的假聯絡人。
+    // 旧版本的本机模拟模式会写入示范联络人；模式已移除，顺手清掉残留，
+    // 避免使用者看到永远不可能有金钥的假联络人。
     await core.purgeDemoContacts();
     return core;
   }
 
-  /// 刪除本機模擬時代遺留的示範聯絡人、對話與訊息。
+  /// 删除本机模拟时代遗留的示范联络人、对话与讯息。
   ///
-  /// 只針對 `isDemo == true` 的資料，不影響真實聯絡人。
+  /// 只针对 `isDemo == true` 的资料，不影响真实联络人。
   Future<void> purgeDemoContacts() async {
     final demos = contactsRepo.all().where((c) => c.isDemo).toList();
     for (final contact in demos) {
@@ -106,11 +106,11 @@ class Core {
     }
   }
 
-  // ------------------------------------------------------------ 建立 / 還原
+  // ------------------------------------------------------------ 建立 / 还原
 
-  /// 建立全新身份（12 個助記詞）並以 [password] 加密保存。
+  /// 建立全新身份（12 个助记词）并以 [password] 加密保存。
   ///
-  /// [passphrase] 為 BIP39 密碼短語（可選）。
+  /// [passphrase] 为 BIP39 密码短语（可选）。
   Future<AppIdentity> createIdentity({
     required String password,
     String passphrase = '',
@@ -121,10 +121,10 @@ class Core {
     return identity;
   }
 
-  /// 由助記詞還原身份並以 [password] 加密保存。
+  /// 由助记词还原身份并以 [password] 加密保存。
   ///
-  /// [passphrase] 為當初建立時使用的 BIP39 密碼短語；打錯不會報錯，
-  /// 只會還原出**另一個**身份，因此呼叫端應先讓使用者核對地址。
+  /// [passphrase] 为当初建立时使用的 BIP39 密码短语；打错不会报错，
+  /// 只会还原出**另一个**身份，因此呼叫端应先让使用者核对地址。
   Future<AppIdentity> restoreIdentity(
     String mnemonic, {
     required String password,
@@ -137,10 +137,10 @@ class Core {
     return identity;
   }
 
-  /// 由私鑰（hex）匯入身份並以 [password] 加密保存。
+  /// 由私钥（hex）汇入身份并以 [password] 加密保存。
   ///
-  /// 匯入後只有私鑰、沒有助記詞，因此無法用助記詞回復；[AppIdentity.hasMnemonic]
-  /// 會是 false，UI 據此改為顯示私鑰備份。
+  /// 汇入后只有私钥、没有助记词，因此无法用助记词回复；[AppIdentity.hasMnemonic]
+  /// 会是 false，UI 据此改为显示私钥备份。
   Future<AppIdentity> importPrivateKey(
     String privateHex, {
     required String password,
@@ -151,22 +151,22 @@ class Core {
     return identity;
   }
 
-  /// 把舊版明文身份遷移進加密保險庫（一次性）。
+  /// 把旧版明文身份迁移进加密保险库（一次性）。
   ///
-  /// 成功後明文鍵會被刪除，[needsMigration] 隨之變為 false。
+  /// 成功后明文键会被删除，[needsMigration] 随之变为 false。
   Future<AppIdentity> migrateToVault(String password) async {
     final legacy = identityRepo.loadLegacy();
     if (legacy == null) {
-      throw StateError('本機沒有可遷移的舊版身份');
+      throw StateError('本机没有可迁移的旧版身份');
     }
     await _persist(legacy, password);
     await _attach(legacy);
     return legacy;
   }
 
-  // ------------------------------------------------------------ 鎖定 / 解鎖
+  // ------------------------------------------------------------ 锁定 / 解锁
 
-  /// 以密碼解鎖身份，失敗時拋出 [VaultException]。
+  /// 以密码解锁身份，失败时抛出 [VaultException]。
   Future<AppIdentity> unlock(String password) async {
     final payload = await Vault.open(
       blob: identityRepo.vaultBlob,
@@ -177,11 +177,11 @@ class Core {
     return identity;
   }
 
-  /// 鎖定：清除記憶體中的秘密並斷開所有連線。
+  /// 锁定：清除记忆体中的秘密并断开所有连线。
   ///
-  /// Dart 的 `String` 不可變，無法真正抹除內容；但把 [identity]、[crypto]、
-  /// [waku] 歸零可讓這些物件失去可達路徑、盡早被回收，同時立即停止
-  /// 任何使用金鑰的後台活動（訊息解密、廣播）。
+  /// Dart 的 `String` 不可变，无法真正抹除内容；但把 [identity]、[crypto]、
+  /// [waku] 归零可让这些物件失去可达路径、尽早被回收，同时立即停止
+  /// 任何使用金钥的后台活动（讯息解密、广播）。
   Future<void> lock() async {
     final service = waku;
     waku = null;
@@ -189,19 +189,19 @@ class Core {
       try {
         await service.dispose();
       } catch (_) {
-        // 斷線失敗不影響鎖定本身。
+        // 断线失败不影响锁定本身。
       }
     }
     crypto = null;
     identity = null;
   }
 
-  /// 以目前密碼驗證後換成新密碼（會重新產生 salt）。
+  /// 以目前密码验证后换成新密码（会重新产生 salt）。
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,
   }) async {
-    // 先驗證舊密碼：解不開就不動任何資料。
+    // 先验证旧密码：解不开就不动任何资料。
     final payload = await Vault.open(
       blob: identityRepo.vaultBlob,
       password: currentPassword,
@@ -209,13 +209,13 @@ class Core {
     await _persist(AppIdentity.fromSecretJson(payload), newPassword);
   }
 
-  /// 驗證密碼是否正確（不改動狀態）。
+  /// 验证密码是否正确（不改动状态）。
   Future<bool> verifyPassword(String password) =>
       Vault.verify(blob: identityRepo.vaultBlob, password: password);
 
-  // ------------------------------------------------------------ 內部
+  // ------------------------------------------------------------ 内部
 
-  /// 加密身份並寫入保險庫，同時更新公開提示。
+  /// 加密身份并写入保险库，同时更新公开提示。
   Future<void> _persist(AppIdentity identity, String password) async {
     final blob = await Vault.seal(
       payload: identity.toSecretJson(),
@@ -225,7 +225,7 @@ class Core {
     hint = IdentityHint.fromJson(identity.toHintJson());
   }
 
-  /// 綁定身份並建立密碼學／Waku 服務。
+  /// 绑定身份并建立密码学／Waku 服务。
   Future<void> _attach(AppIdentity value) async {
     identity = value;
     hint = IdentityHint.fromJson(value.toHintJson());
@@ -233,12 +233,12 @@ class Core {
     await applyTransport(settings.resolvedActiveNodeUrl);
   }
 
-  /// 套用節點設定並（重新）建立 Waku 連線。
+  /// 套用节点设定并（重新）建立 Waku 连线。
   ///
-  /// 一次只連線一台節點：使用者選取的那一台（見
-  /// `AppSettings.resolvedActiveNodeUrl`）。設定頁裡的節點清單只是候選池，
-  /// 切換節點時會呼叫這裡重建連線；其他節點的線上狀態由節點探測器提供，
-  /// 與實際連線無關。
+  /// 一次只连线一台节点：使用者选取的那一台（见
+  /// `AppSettings.resolvedActiveNodeUrl`）。设定页里的节点清单只是候选池，
+  /// 切换节点时会呼叫这里重建连线；其他节点的线上状态由节点探测器提供，
+  /// 与实际连线无关。
   Future<void> applyTransport(String nodeUrl) async {
     final previous = waku;
     waku = null;
@@ -246,7 +246,7 @@ class Core {
       try {
         await previous.dispose();
       } catch (_) {
-        // 舊連線收尾失敗不影響新連線建立。
+        // 旧连线收尾失败不影响新连线建立。
       }
     }
 
@@ -263,14 +263,14 @@ class Core {
     await service.start();
   }
 
-  /// 廣播金鑰包（若尚未建立連線則略過）。
+  /// 广播金钥包（若尚未建立连线则略过）。
   Future<void> publishKeyBundleIfReady(String nickname) async {
     final service = waku;
     if (service == null) return;
     await service.publishKeyBundle(nickname: nickname);
   }
 
-  /// 由 DID 建立聯絡人（沒有金鑰時僅先建立名片）。
+  /// 由 DID 建立联络人（没有金钥时仅先建立名片）。
   Future<Contact> addContactByDid(String did, {String? name, String? ens}) {
     final normalized = Did.isEthrDid(did) ? did : Did.fromAddress(did);
     final contact = Contact(
@@ -292,7 +292,7 @@ class Core {
     await securityRepo.save(value);
   }
 
-  /// 清除本機身份與所有資料。
+  /// 清除本机身份与所有资料。
   Future<void> wipe() async {
     await lock();
     hint = null;

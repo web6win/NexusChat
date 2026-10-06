@@ -9,20 +9,20 @@ import '../../core/theme/app_theme.dart';
 import 'device_abi.dart';
 import 'update_check.dart';
 import 'web_reload_stub.dart' // 非 web 平台的兜底
-    if (dart.library.html) 'web_reload_html.dart'; // web 平台的重新整理實作
+    if (dart.library.html) 'web_reload_html.dart'; // web 平台的重新整理实作
 
-/// 彈出「發現新版本」對話框：顯示版本資訊、下載中心 QR，以及「稍後 / 立即更新」。
+/// 弹出「发现新版本」对话框：显示版本资讯、下载中心 QR，以及「稍后 / 立即更新」。
 ///
-/// 立即更新會依目前平台**與裝置架構**挑對應的下載網址（Android 優先給
-/// 對應 ABI 的分包，沒有才退回通用 APK），用外部瀏覽器開啟；
-/// Android 上使用者下載後需手動允許「未知來源」安裝。
+/// 立即更新会依目前平台**与装置架构**挑对应的下载网址（Android 优先给
+/// 对应 ABI 的分包，没有才退回通用 APK），用外部浏览器开启；
+/// Android 上使用者下载后需手动允许「未知来源」安装。
 void showUpdateDialog(BuildContext context, WidgetRef ref) {
   final remote = ref.read(updateCheckProvider).remote;
   if (remote == null) return;
   final s = context.s;
-  // 只查一次 ABI：對話框與「立即更新」共用同一個結果，避免重複呼叫通道。
+  // 只查一次 ABI：对话框与「立即更新」共用同一个结果，避免重复呼叫通道。
   final abisFuture = DeviceAbi.supportedAbis();
-  // 網頁版不應引導去下載原生 APK：隱藏 QR、按鈕改為「重新整理頁面」。
+  // 网页版不应引导去下载原生 APK：隐藏 QR、按钮改为「重新整理页面」。
   final isWeb = kIsWeb;
 
   showDialog<void>(
@@ -118,13 +118,13 @@ void showUpdateDialog(BuildContext context, WidgetRef ref) {
         FilledButton(
           onPressed: () {
             Navigator.of(dialogContext).pop();
-            // 網頁版由 GitHub Pages 託管，重新整理即為最新版；不應引導去下載
-            // 原生 APK——網頁使用者裝 APK 會因簽名不一致而安裝失敗 (-7)。
+            // 网页版由 GitHub Pages 托管，重新整理即为最新版；不应引导去下载
+            // 原生 APK——网页使用者装 APK 会因签名不一致而安装失败 (-7)。
             if (kIsWeb) {
               reloadPage();
               return;
             }
-            // 原生平台：開啟對應平台與架構的下載連結 / 下載中心。
+            // 原生平台：开启对应平台与架构的下载连结 / 下载中心。
             _launchDownload(context, s, remote, abisFuture);
           },
           child: Text(isWeb ? s.updateRefresh : s.updateNow),
@@ -134,9 +134,9 @@ void showUpdateDialog(BuildContext context, WidgetRef ref) {
   );
 }
 
-/// 原生平台：開啟**對應架構**的下載連結（拿不到架構則退回平台通用包，
-/// 再退回下載中心），失敗時以 SnackBar 提示，避免靜默無反應。
-/// 網頁版不走這條路（見上方按鈕的 kIsWeb 分支）。
+/// 原生平台：开启**对应架构**的下载连结（拿不到架构则退回平台通用包，
+/// 再退回下载中心），失败时以 SnackBar 提示，避免静默无反应。
+/// 网页版不走这条路（见上方按钮的 kIsWeb 分支）。
 Future<void> _launchDownload(
   BuildContext context,
   Strings s,

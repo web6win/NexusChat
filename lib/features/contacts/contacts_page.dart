@@ -13,7 +13,7 @@ import '../../shared/layout.dart';
 import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
 
-/// 聯絡人頁：新增好友、顯示我的 QR Code、直接開始對話。
+/// 联络人页：新增好友、显示我的 QR Code、直接开始对话。
 class ContactsPage extends ConsumerStatefulWidget {
   const ContactsPage({super.key});
 
@@ -283,7 +283,7 @@ class _ContactTile extends ConsumerWidget {
   }
 }
 
-/// 我的 QR Code 底部彈出頁。
+/// 我的 QR Code 底部弹出页。
 class _MyQrSheet extends StatelessWidget {
   const _MyQrSheet({required this.did, required this.title});
 

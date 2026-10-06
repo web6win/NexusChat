@@ -7,7 +7,7 @@ import '../../shared/feedback.dart';
 import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
 
-/// 建立群組：選擇聯絡人並命名，產生共享金鑰後把邀請分發給每位成員。
+/// 建立群组：选择联络人并命名，产生共享金钥后把邀请分发给每位成员。
 class GroupCreatePage extends ConsumerStatefulWidget {
   const GroupCreatePage({super.key});
 

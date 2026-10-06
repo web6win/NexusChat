@@ -13,14 +13,14 @@ import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
 import 'chat_view.dart';
 
-/// 對話列表頁；寬螢幕時右側同時展開對話內容。
+/// 对话列表页；宽萤幕时右侧同时展开对话内容。
 class ChatsPage extends ConsumerStatefulWidget {
   const ChatsPage({this.peerDid, this.groupId, super.key});
 
-  /// 由網址 `?peer=` 帶入的對話（寬螢幕用於右欄）。
+  /// 由网址 `?peer=` 带入的对话（宽萤幕用于右栏）。
   final String? peerDid;
 
-  /// 由網址 `?group=` 帶入的群組對話。
+  /// 由网址 `?group=` 带入的群组对话。
   final String? groupId;
 
   @override
@@ -40,7 +40,7 @@ class _ChatsPageState extends ConsumerState<ChatsPage> {
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    // 與殼層共用同一個門檻：導覽列改成左側時，對話清單也改為雙欄。
+    // 与壳层共用同一个门槛：导览列改成左侧时，对话清单也改为双栏。
     final isWide = AppBreakpoints.usesRail(context);
     final state = ref.watch(chatControllerProvider);
     final contacts = ref.watch(contactsProvider);
@@ -429,7 +429,7 @@ class _ConversationTile extends StatelessWidget {
   }
 }
 
-/// 對話列表中的最後一則預覽文字；媒體訊息顯示對應標籤。
+/// 对话列表中的最后一则预览文字；媒体讯息显示对应标签。
 String _conversationPreview(
   String lastText,
   String? lastMedia,

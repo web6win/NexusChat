@@ -16,11 +16,11 @@ import '../../shared/feedback.dart';
 import 'add_token_sheet.dart';
 import 'send_token_sheet.dart';
 
-/// 通證面板：在轉帳 / 收款按鈕下方，依目前鏈顯示常用通證。
+/// 通证面板：在转帐 / 收款按钮下方，依目前链显示常用通证。
 ///
-/// 以三個 Tab 分類呈現：代幣（ERC-20）、NFT（ERC-721）、資產集（ERC-1155），
-/// 並提供「新增自訂通證」入口。內建清單來自 `assets/tokens.json`，
-/// 自訂清單來自 `customTokensProvider`（持久化於 shared_preferences）。
+/// 以三个 Tab 分类呈现：代币（ERC-20）、NFT（ERC-721）、资产集（ERC-1155），
+/// 并提供「新增自订通证」入口。内建清单来自 `assets/tokens.json`，
+/// 自订清单来自 `customTokensProvider`（持久化于 shared_preferences）。
 class TokenPanel extends ConsumerWidget {
   const TokenPanel({required this.chain, super.key});
 
@@ -157,7 +157,7 @@ class TokenPanel extends ConsumerWidget {
   }
 }
 
-/// 單一 Tab 內的通證清單；沒有任何通證時顯示空狀態。
+/// 单一 Tab 内的通证清单；没有任何通证时显示空状态。
 class _TokenList extends StatelessWidget {
   const _TokenList({required this.tokens, required this.onTap});
 
@@ -209,7 +209,7 @@ class _TokenList extends StatelessWidget {
   }
 }
 
-/// 一個通證的列表項：圖示 + 名稱 + 符號 + 合約地址（可複製）。
+/// 一个通证的列表项：图示 + 名称 + 符号 + 合约地址（可复制）。
 class _TokenTile extends StatelessWidget {
   const _TokenTile({required this.token, required this.onTap});
 
@@ -287,7 +287,7 @@ class _TokenTile extends StatelessWidget {
   }
 }
 
-/// 通證圖示：圓形底色 + emoji 或符號首字母。
+/// 通证图示：圆形底色 + emoji 或符号首字母。
 class TokenIcon extends StatelessWidget {
   const TokenIcon({required this.token, this.size = 38, super.key});
 
@@ -324,7 +324,7 @@ class TokenIcon extends StatelessWidget {
   }
 }
 
-/// 由通證的 `color` 欄位解析底色，解析失敗時退回品牌色。
+/// 由通证的 `color` 栏位解析底色，解析失败时退回品牌色。
 Color _colorOf(TokenDef token) {
   final raw = token.color;
   if (raw != null) {
@@ -337,7 +337,7 @@ Color _colorOf(TokenDef token) {
   return AppColors.brand;
 }
 
-/// 通證標準的中文標籤。
+/// 通证标准的中文标签。
 String tokenStandardLabel(Strings s, TokenStandard standard) =>
     switch (standard) {
       TokenStandard.erc20 => s.tokenTypeErc20,
@@ -346,7 +346,7 @@ String tokenStandardLabel(Strings s, TokenStandard standard) =>
       TokenStandard.native => s.tokenTypeNative,
     };
 
-/// 通證的區塊瀏覽器連結（合約地址不為空時才有意義）。
+/// 通证的区块浏览器连结（合约地址不为空时才有意义）。
 String tokenExplorerUrl(ChainType chain, String address) {
   if (address.isEmpty) return '';
   if (chain == ChainType.tron) {
@@ -355,8 +355,8 @@ String tokenExplorerUrl(ChainType chain, String address) {
   return 'https://${ChainConfig.of(chain).explorerHost}/token/$address';
 }
 
-/// 通證詳情底部面板：名稱、標準、精度、合約地址，並可複製 / 查看瀏覽器 /
-/// 移除（自訂通證）。
+/// 通证详情底部面板：名称、标准、精度、合约地址，并可复制 / 查看浏览器 /
+/// 移除（自订通证）。
 class TokenDetailSheet extends ConsumerWidget {
   const TokenDetailSheet({
     required this.chain,
@@ -448,7 +448,7 @@ class TokenDetailSheet extends ConsumerWidget {
                 ],
               ),
             ),
-            // 發送入口：僅可轉帳的 ERC-20 提供「發送」；NFT 明確標注不可轉帳。
+            // 发送入口：仅可转帐的 ERC-20 提供「发送」；NFT 明确标注不可转帐。
             if (token.standard == TokenStandard.erc20 &&
                 token.address.isNotEmpty)
               SizedBox(
@@ -489,7 +489,7 @@ class TokenDetailSheet extends ConsumerWidget {
                 ),
               ),
             const SizedBox(height: 16),
-            // 本地發送記錄（ERC-20 / TRC-20 通用）。
+            // 本地发送记录（ERC-20 / TRC-20 通用）。
             if (token.standard == TokenStandard.erc20 &&
                 token.address.isNotEmpty)
               _TokenHistorySection(chain: chain, contract: token.address),
@@ -576,7 +576,7 @@ class TokenDetailSheet extends ConsumerWidget {
   }
 }
 
-/// 詳情頁裡的「發送記錄」：列出本 App 對該通證發起的轉帳（本地儲存）。
+/// 详情页里的「发送记录」：列出本 App 对该通证发起的转帐（本地储存）。
 class _TokenHistorySection extends ConsumerWidget {
   const _TokenHistorySection({
     required this.chain,
@@ -625,7 +625,7 @@ class _TokenHistorySection extends ConsumerWidget {
   }
 }
 
-/// 單一歷史記錄：金額 + 收款方 + 時間，點擊開瀏覽器或複製哈希。
+/// 单一历史记录：金额 + 收款方 + 时间，点击开浏览器或复制哈希。
 class _HistoryTile extends StatelessWidget {
   const _HistoryTile({required this.record});
 
@@ -702,7 +702,7 @@ class _HistoryTile extends StatelessWidget {
   }
 }
 
-/// 金額去掉多餘尾數零，便於在歷史列中顯示。
+/// 金额去掉多余尾数零，便于在历史列中显示。
 String _trim(double value) {
   final text = value.toStringAsFixed(6);
   if (!text.contains('.')) return text;
@@ -711,14 +711,14 @@ String _trim(double value) {
       .replaceAll(RegExp(r'\.$'), '');
 }
 
-/// 時間戳記轉成 `YYYY-MM-DD HH:mm`。
+/// 时间戳记转成 `YYYY-MM-DD HH:mm`。
 String _fmtTime(int ts) {
   final d = DateTime.fromMillisecondsSinceEpoch(ts);
   final p = (int n) => n.toString().padLeft(2, '0');
   return '${d.year}-${p(d.month)}-${p(d.day)} ${p(d.hour)}:${p(d.minute)}';
 }
 
-/// 詳情面板中的一列「標籤 / 值」。
+/// 详情面板中的一列「标签 / 值」。
 class _DetailRow extends StatelessWidget {
   const _DetailRow({required this.label, required this.value});
 

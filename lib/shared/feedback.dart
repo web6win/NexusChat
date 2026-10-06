@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
 
-/// 顯示浮動提示（SnackBar）。
+/// 显示浮动提示（SnackBar）。
 ///
-/// 桌面瀏覽器視窗很寬時，SnackBar 預設會橫貫整個畫面，看起來像是壞掉；
-/// 這裡在寬度足夠時收斂成固定寬度並置中，行動裝置則維持滿寬。
+/// 桌面浏览器视窗很宽时，SnackBar 预设会横贯整个画面，看起来像是坏掉；
+/// 这里在宽度足够时收敛成固定宽度并置中，行动装置则维持满宽。
 ///
-/// 同時先關掉目前這一則，避免連續複製時提示排隊堆疊。
+/// 同时先关掉目前这一则，避免连续复制时提示排队堆叠。
 void showAppSnack(
   BuildContext context,
   String message, {

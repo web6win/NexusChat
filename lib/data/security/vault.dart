@@ -4,11 +4,11 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
-/// 保險庫例外。[code] 為穩定錯誤碼，供 UI 對照文案。
+/// 保险库例外。[code] 为稳定错误码，供 UI 对照文案。
 ///
-/// - `bad-password`：認證標籤不符（密碼錯誤，或密文被竄改）。
-/// - `corrupt`：密文結構毀損或無法解析。
-/// - `unsupported`：版本或 KDF 不認識（未來升級用）。
+/// - `bad-password`：认证标签不符（密码错误，或密文被窜改）。
+/// - `corrupt`：密文结构毁损或无法解析。
+/// - `unsupported`：版本或 KDF 不认识（未来升级用）。
 class VaultException implements Exception {
   const VaultException(this.code);
 
@@ -18,19 +18,19 @@ class VaultException implements Exception {
   String toString() => 'VaultException($code)';
 }
 
-/// 以使用者密碼加密敏感資料（助記詞 / 私鑰）的本地保險庫。
+/// 以使用者密码加密敏感资料（助记词 / 私钥）的本地保险库。
 ///
-/// 設計：
-/// - **KDF**：PBKDF2-HMAC-SHA256，預設 21 萬次迭代，每份密文獨立 salt。
-/// - **加密**：AES-256-GCM，16 位元組認證標籤。密碼錯、密文被改、標頭被換，
-///   都會在解密時被偵測到 —— 不存在「解出垃圾明文」的情況。
-/// - **標頭公開**：版本、迭代次數、salt、nonce 以明文存放（它們不是秘密），
-///   其餘一概不落地。
+/// 设计：
+/// - **KDF**：PBKDF2-HMAC-SHA256，预设 21 万次迭代，每份密文独立 salt。
+/// - **加密**：AES-256-GCM，16 位元组认证标签。密码错、密文被改、标头被换，
+///   都会在解密时被侦测到 —— 不存在「解出垃圾明文」的情况。
+/// - **标头公开**：版本、迭代次数、salt、nonce 以明文存放（它们不是秘密），
+///   其余一概不落地。
 ///
-/// 為什麼是「密碼 + KDF」而不是裝置綁定金鑰：
-/// Web 端（IndexedDB）沒有任何可信任的硬體金鑰儲存。凡是「應用能自動解開」
-/// 的方案，攻擊者只要能執行腳本，就能用同一條路徑解開。唯一能真正提高門檻的，
-/// 是「只有人知道」的秘密 —— 因此密碼是這個威脅模型下唯一有效的防線。
+/// 为什么是「密码 + KDF」而不是装置绑定金钥：
+/// Web 端（IndexedDB）没有任何可信任的硬体金钥储存。凡是「应用能自动解开」
+/// 的方案，攻击者只要能执行脚本，就能用同一条路径解开。唯一能真正提高门槛的，
+/// 是「只有人知道」的秘密 —— 因此密码是这个威胁模型下唯一有效的防线。
 class Vault {
   const Vault._();
 
@@ -39,28 +39,28 @@ class Vault {
 
   static const String kdfName = 'pbkdf2-hmac-sha256';
 
-  /// 預設迭代次數。
+  /// 预设迭代次数。
   ///
-  /// OWASP 對 PBKDF2-HMAC-SHA256 的建議是 60 萬次。這裡取 21 萬是為了讓
-  /// 原生（純 Dart 實作，無 WebCrypto 加速）的首次解鎖仍在一秒內完成。
-  /// 迭代次數會寫進密文標頭，未來可在不破壞舊資料的前提下調高。
+  /// OWASP 对 PBKDF2-HMAC-SHA256 的建议是 60 万次。这里取 21 万是为了让
+  /// 原生（纯 Dart 实作，无 WebCrypto 加速）的首次解锁仍在一秒内完成。
+  /// 迭代次数会写进密文标头，未来可在不破坏旧资料的前提下调高。
   static const int defaultIterations = 210000;
 
-  /// 新增密碼時可選的迭代強度。
+  /// 新增密码时可选的迭代强度。
   static const List<int> supportedIterations = <int>[210000, 600000];
 
   static const int _saltBytes = 32;
   static const int _nonceBytes = 12;
   static const int _keyBytes = 32;
 
-  /// 附加認證資料：把密文綁定到「NexusChat 的 v1 保險庫」這個情境，
-  /// 避免同一把金鑰加密的其他內容被移花接木過來。
+  /// 附加认证资料：把密文绑定到「NexusChat 的 v1 保险库」这个情境，
+  /// 避免同一把金钥加密的其他内容被移花接木过来。
   static final List<int> _aad = utf8.encode('nexuschat/vault/v1');
 
   static final AesGcm _aead = AesGcm.with256bits();
   static final Random _random = Random.secure();
 
-  /// 判斷一包資料是否為本保險庫的密文。
+  /// 判断一包资料是否为本保险库的密文。
   static bool looksLikeVault(Object? raw) {
     if (raw is! Map) return false;
     return raw['kdf'] == kdfName &&
@@ -70,14 +70,14 @@ class Vault {
         raw['mac'] is String;
   }
 
-  /// 讀出密文標頭記錄的迭代次數（供 UI 顯示；失敗回傳預設值）。
+  /// 读出密文标头记录的迭代次数（供 UI 显示；失败回传预设值）。
   static int iterationsOf(Object? raw) {
     if (raw is! Map) return defaultIterations;
     final value = raw['iterations'];
     return value is int && value > 0 ? value : defaultIterations;
   }
 
-  /// 以 [password] 加密 [payload]，回傳可直接寫入本地儲存的密文 Map。
+  /// 以 [password] 加密 [payload]，回传可直接写入本地储存的密文 Map。
   static Future<Map<String, dynamic>> seal({
     required Map<String, dynamic> payload,
     required String password,
@@ -103,7 +103,7 @@ class Vault {
     };
   }
 
-  /// 以 [password] 解密 [blob]，失敗時拋出 [VaultException]。
+  /// 以 [password] 解密 [blob]，失败时抛出 [VaultException]。
   static Future<Map<String, dynamic>> open({
     required Object? blob,
     required String password,
@@ -125,7 +125,7 @@ class Vault {
         aad: _aad,
       );
     } catch (_) {
-      // GCM 認證失敗 = 密碼錯誤或密文被動過。不對外區分，避免成為猜測 oracle。
+      // GCM 认证失败 = 密码错误或密文被动过。不对外区分，避免成为猜测 oracle。
       throw const VaultException('bad-password');
     }
 
@@ -139,7 +139,7 @@ class Vault {
     return decoded.map((Object? k, Object? v) => MapEntry('$k', v));
   }
 
-  /// 驗證密碼是否正確（不改動任何狀態）。
+  /// 验证密码是否正确（不改动任何状态）。
   static Future<bool> verify({
     required Object? blob,
     required String password,
@@ -152,14 +152,14 @@ class Vault {
     }
   }
 
-  // ------------------------------------------------------------------ 內部
+  // ------------------------------------------------------------------ 内部
 
   static Future<SecretKey> _deriveKey(
     String password,
     List<int> salt,
     int iterations,
   ) {
-    // 迭代次數必須來自密文標頭，才能在未來提高強度而不破壞舊資料。
+    // 迭代次数必须来自密文标头，才能在未来提高强度而不破坏旧资料。
     final safeIterations =
         iterations < 1 ? defaultIterations : iterations;
     final kdf = Pbkdf2(
@@ -237,26 +237,26 @@ class _ParsedVault {
   final int iterations;
 }
 
-/// 密碼強度評估結果。
+/// 密码强度评估结果。
 class PasswordStrength {
   const PasswordStrength({
     required this.score,
     required this.label,
   });
 
-  /// 0（最弱）～ 4（最強）。
+  /// 0（最弱）～ 4（最强）。
   final int score;
 
-  /// 穩定標籤碼，供 i18n 對照：`weak` / `fair` / `good` / `strong`。
+  /// 稳定标签码，供 i18n 对照：`weak` / `fair` / `good` / `strong`。
   final String label;
 
   bool get isAcceptable => score >= 2;
 }
 
-/// 密碼強度檢查。
+/// 密码强度检查。
 ///
-/// 這裡刻意「拒絕太弱」而不是只給提示：保險庫的安全性完全建立在密碼上，
-/// 一個四位數字密碼會讓 21 萬次迭代的 KDF 形同虛設。
+/// 这里刻意「拒绝太弱」而不是只给提示：保险库的安全性完全建立在密码上，
+/// 一个四位数字密码会让 21 万次迭代的 KDF 形同虚设。
 class PasswordPolicy {
   const PasswordPolicy._();
 
@@ -278,7 +278,7 @@ class PasswordPolicy {
     if (variety >= 2) score++;
     if (variety >= 3) score++;
 
-    // 常見弱密碼、或純數字密碼，直接壓到最低。
+    // 常见弱密码、或纯数字密码，直接压到最低。
     if (_isCommon(password) || _isAllDigits(password)) score = 0;
 
     final label = switch (score) {
@@ -314,16 +314,16 @@ class PasswordPolicy {
   static bool _isCommon(String password) {
     final lower = password.toLowerCase();
     if (_common.contains(lower)) return true;
-    // 單一字元重複（aaaaaaaa）或連續數字（12345678901）。
+    // 单一字元重复（aaaaaaaa）或连续数字（12345678901）。
     if (RegExp(r'^(.)\1+$').hasMatch(lower)) return true;
     if (RegExp(r'^(0123456789|1234567890)+$').hasMatch(lower)) return true;
     return false;
   }
 
-  /// 純數字密碼。
+  /// 纯数字密码。
   ///
-  /// 即使長度足夠，搜尋空間仍遠小於同長度的混合密碼；而且使用者的「數字密碼」
-  /// 幾乎都落在生日、電話、連續序列這些高機率樣式上。一律拒絕。
+  /// 即使长度足够，搜寻空间仍远小于同长度的混合密码；而且使用者的「数字密码」
+  /// 几乎都落在生日、电话、连续序列这些高机率样式上。一律拒绝。
   static bool _isAllDigits(String password) =>
       RegExp(r'^[0-9]+$').hasMatch(password);
 }

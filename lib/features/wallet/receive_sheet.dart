@@ -10,11 +10,11 @@ import '../../shared/feedback.dart';
 import '../../state/controllers.dart';
 import 'chain_selector.dart';
 
-/// 收款面板：顯示目前所選鏈的地址 + QR Code，並支援複製。
+/// 收款面板：显示目前所选链的地址 + QR Code，并支援复制。
 ///
-/// QR 內容是帶 scheme 的支付 URI（`ethereum:0x…` / `tron:T…` /
-/// `besu:0x…`），而不是純地址 —— 掃的一方才能確定「這筆該走哪一條鏈」，
-/// 不會拿著 TRON 的地址跑去以太坊轉帳。
+/// QR 内容是带 scheme 的支付 URI（`ethereum:0x…` / `tron:T…` /
+/// `besu:0x…`），而不是纯地址 —— 扫的一方才能确定「这笔该走哪一条链」，
+/// 不会拿著 TRON 的地址跑去以太坊转帐。
 class ReceiveSheet extends ConsumerWidget {
   const ReceiveSheet({required this.address, super.key});
 
@@ -67,7 +67,7 @@ class ReceiveSheet extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(AppRadius.xl),
                   ),
                   child: QrImageView(
-                    // scheme 用 [ChainType.id]，與 PaymentUri 的解析互為反向操作。
+                    // scheme 用 [ChainType.id]，与 PaymentUri 的解析互为反向操作。
                     data: '${chain.id}:$address',
                     version: QrVersions.auto,
                     size: 210,

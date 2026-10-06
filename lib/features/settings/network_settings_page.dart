@@ -10,7 +10,7 @@ import '../../shared/layout.dart';
 import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
 
-/// 網路：Waku 節點管理、連線測試、重新同步。拆自原本擠在同一頁的設定。
+/// 网路：Waku 节点管理、连线测试、重新同步。拆自原本挤在同一页的设定。
 class NetworkSettingsPage extends ConsumerStatefulWidget {
   const NetworkSettingsPage({super.key});
 
@@ -23,7 +23,7 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
   bool _probing = false;
   bool _resyncing = false;
 
-  /// 重新探測所有節點的連線狀態。
+  /// 重新探测所有节点的连线状态。
   Future<void> _recheckNodes() async {
     setState(() => _probing = true);
     ref.invalidate(nodeStatusProvider);
@@ -31,13 +31,13 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
       await ref.read(nodeStatusProvider.future);
       ref.invalidate(networkStatusProvider);
     } catch (_) {
-      // 探測失敗只反映在清單狀態上，這裡不再額外提示。
+      // 探测失败只反映在清单状态上，这里不再额外提示。
     } finally {
       if (mounted) setState(() => _probing = false);
     }
   }
 
-  /// 新增自訂節點。
+  /// 新增自订节点。
   Future<void> _addNode() async {
     final s = context.s;
     final controller = TextEditingController();
@@ -98,7 +98,7 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
     showAppSnack(context, s.settingsNodeAdded);
   }
 
-  /// 移除自訂節點（內建節點不可移除）。
+  /// 移除自订节点（内建节点不可移除）。
   Future<void> _removeNode(String url) async {
     final s = context.s;
     final confirmed = await showDialog<bool>(
@@ -127,7 +127,7 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
     await _recheckNodes();
   }
 
-  /// 從節點 store 重新補拉最近錯過的訊息與金鑰包。
+  /// 从节点 store 重新补拉最近错过的讯息与金钥包。
   Future<void> _resync() async {
     setState(() => _resyncing = true);
     try {
@@ -189,7 +189,7 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    // 節點清單：點選可切換「使用中」的節點；內建節點不可移除。
+                    // 节点清单：点选可切换「使用中」的节点；内建节点不可移除。
                     for (final url in settings.nodeUrls) ...<Widget>[
                       _NodeTile(
                         key: ValueKey<String>(url),
@@ -256,9 +256,9 @@ class _NetworkSettingsPageState extends ConsumerState<NetworkSettingsPage> {
   }
 }
 
-/// 單一 Waku 節點的列表項：位址、連線狀態、是否使用中，以及（自訂節點的）移除按鈕。
+/// 单一 Waku 节点的列表项：位址、连线状态、是否使用中，以及（自订节点的）移除按钮。
 ///
-/// 一次只連線一台節點，所以點選列表項就會切換實際連線的對象。
+/// 一次只连线一台节点，所以点选列表项就会切换实际连线的对象。
 class _NodeTile extends ConsumerWidget {
   const _NodeTile({
     super.key,
@@ -270,13 +270,13 @@ class _NodeTile extends ConsumerWidget {
 
   final String url;
 
-  /// 是否為目前使用中的節點。
+  /// 是否为目前使用中的节点。
   final bool active;
 
-  /// 點選列表項時切換使用中的節點。
+  /// 点选列表项时切换使用中的节点。
   final VoidCallback onSelect;
 
-  /// 僅自訂節點會提供；內建節點傳入 null 表示不可移除。
+  /// 仅自订节点会提供；内建节点传入 null 表示不可移除。
   final VoidCallback? onRemove;
 
   @override
@@ -299,7 +299,7 @@ class _NodeTile extends ConsumerWidget {
       color = theme.colorScheme.onSurface.withValues(alpha: 0.45);
       label = s.settingsNodeChecking;
     } else if (status.ok && !status.relayReady) {
-      // 可連線但沒有 peer：訊息其實送不出去，不該顯示成綠燈。
+      // 可连线但没有 peer：讯息其实送不出去，不该显示成绿灯。
       color = AppColors.danger;
       label = status.latencyMs == null
           ? s.statusNoPeers

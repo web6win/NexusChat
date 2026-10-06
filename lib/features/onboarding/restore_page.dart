@@ -11,11 +11,11 @@ import '../../data/crypto/did.dart';
 import '../../state/controllers.dart';
 import '../security/password_fields.dart';
 
-/// 匯入既有身份：支援「助記詞」與「私鑰」兩種來源。
+/// 汇入既有身份：支援「助记词」与「私钥」两种来源。
 ///
-/// 兩者都走同一條身份管線（`SessionController`），差別只在於解出私鑰的方式：
-/// - 助記詞 → BIP39/BIP32 派生 `m/44'/60'/0'/0/0`，身份可以再次用助記詞回復。
-/// - 私鑰 → 直接使用，等於外部錢包的同一個帳戶；沒有助記詞可備份。
+/// 两者都走同一条身份管线（`SessionController`），差别只在于解出私钥的方式：
+/// - 助记词 → BIP39/BIP32 派生 `m/44'/60'/0'/0/0`，身份可以再次用助记词回复。
+/// - 私钥 → 直接使用，等于外部钱包的同一个帐户；没有助记词可备份。
 class RestorePage extends ConsumerStatefulWidget {
   const RestorePage({super.key});
 
@@ -23,7 +23,7 @@ class RestorePage extends ConsumerStatefulWidget {
   ConsumerState<RestorePage> createState() => _RestorePageState();
 }
 
-/// 匯入來源。
+/// 汇入来源。
 enum _ImportMode { mnemonic, privateKey }
 
 class _RestorePageState extends ConsumerState<RestorePage> {
@@ -40,13 +40,13 @@ class _RestorePageState extends ConsumerState<RestorePage> {
   String? _passphraseError;
   bool _busy = false;
 
-  /// 私鑰模式下即時預覽解出的地址，讓使用者確認匯入的是哪個帳戶。
+  /// 私钥模式下即时预览解出的地址，让使用者确认汇入的是哪个帐户。
   String? _previewAddress;
 
-  /// 私鑰輸入框是否為明文顯示。
+  /// 私钥输入框是否为明文显示。
   bool _obscure = true;
 
-  /// 助記詞模式的地址預覽計時器：派生要做 PBKDF2，輸入時節流一下。
+  /// 助记词模式的地址预览计时器：派生要做 PBKDF2，输入时节流一下。
   Timer? _previewTimer;
 
   @override
@@ -72,10 +72,10 @@ class _RestorePageState extends ConsumerState<RestorePage> {
     });
   }
 
-  /// 助記詞模式：預覽「助記詞 + 目前短語」會導出的地址。
+  /// 助记词模式：预览「助记词 + 目前短语」会导出的地址。
   ///
-  /// 短語打錯不會有任何錯誤訊息，只會還原出另一個錢包 —— 地址預覽是唯一
-  /// 能在匯入前發現的機會。
+  /// 短语打错不会有任何错误讯息，只会还原出另一个钱包 —— 地址预览是唯一
+  /// 能在汇入前发现的机会。
   void _schedulePreview() {
     _previewTimer?.cancel();
     _previewTimer = Timer(const Duration(milliseconds: 400), _derivePreview);
@@ -96,13 +96,13 @@ class _RestorePageState extends ConsumerState<RestorePage> {
       if (!mounted) return;
       setState(() => _previewAddress = Did.eip55(identity.address));
     } catch (_) {
-      // 助記詞還沒打完（或打錯）時只是沒有預覽，不必打擾使用者。
+      // 助记词还没打完（或打错）时只是没有预览，不必打扰使用者。
       if (!mounted) return;
       setState(() => _previewAddress = null);
     }
   }
 
-  /// 私鑰模式的即時驗證：邊輸入邊顯示對應地址或錯誤。
+  /// 私钥模式的即时验证：边输入边显示对应地址或错误。
   void _onChanged(String value) {
     if (_mode != _ImportMode.privateKey) {
       if (_error != null) setState(() => _error = null);
@@ -124,21 +124,21 @@ class _RestorePageState extends ConsumerState<RestorePage> {
       });
       return;
     }
-    // 位址推導是純計算，量小到可以在輸入時同步做。
+    // 位址推导是纯计算，量小到可以在输入时同步做。
     setState(() {
       _error = null;
       _previewAddress = _deriveAddress(text);
     });
   }
 
-  /// 由私鑰即時推導地址（比建立完整身份輕量：跳過 X25519 派生）。
+  /// 由私钥即时推导地址（比建立完整身份轻量：跳过 X25519 派生）。
   static String _deriveAddress(String privateHex) =>
       Did.eip55(AppIdentity.addressFromPrivateKey(privateHex));
 
   Future<void> _import() async {
     FocusScope.of(context).unfocus();
 
-    // 先檢查密碼：沒有可用的保險庫密碼，身份就不該被匯入。
+    // 先检查密码：没有可用的保险库密码，身份就不该被汇入。
     final passwordCode = validateNewPassword(
       password: _passwordController.text,
       confirm: _confirmController.text,
@@ -147,7 +147,7 @@ class _RestorePageState extends ConsumerState<RestorePage> {
       setState(() => _passwordError = passwordCode);
       return;
     }
-    // 短語只在助記詞模式有意義，且打錯不會報錯 —— 要求輸入兩次。
+    // 短语只在助记词模式有意义，且打错不会报错 —— 要求输入两次。
     final passphrase = _passphraseController.text;
     if (_mode == _ImportMode.mnemonic &&
         passphrase != _confirmPassphraseController.text) {
@@ -184,7 +184,7 @@ class _RestorePageState extends ConsumerState<RestorePage> {
     }
 
     setState(() => _busy = false);
-    // 匯入後在背景發布金鑰包；離線也不阻塞進入主介面，連上網後會自動補發。
+    // 汇入后在背景发布金钥包；离线也不阻塞进入主介面，连上网后会自动补发。
     unawaited(ref.read(chatControllerProvider.notifier).publishKeys());
     if (!mounted) return;
     context.go('/chats');
@@ -222,13 +222,13 @@ class _RestorePageState extends ConsumerState<RestorePage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // --------------------------------------------- 來源切換
+                  // --------------------------------------------- 来源切换
                   _ModeSwitch(
                     mode: _mode,
                     onChanged: _switchMode,
                   ),
                   const SizedBox(height: 20),
-                  // --------------------------------------------- 輸入區
+                  // --------------------------------------------- 输入区
                   if (isPrivateKey)
                     TextField(
                       controller: _controller,
@@ -272,12 +272,12 @@ class _RestorePageState extends ConsumerState<RestorePage> {
                         alignLabelWithHint: true,
                       ),
                     ),
-                  // ------------------------------------- 私鑰地址即時預覽
+                  // ------------------------------------- 私钥地址即时预览
                   if (isPrivateKey && _previewAddress != null) ...<Widget>[
                     const SizedBox(height: 14),
                     _PreviewCard(address: _previewAddress!),
                   ],
-                  // ----------------------------------- 助記詞的 BIP39 短語
+                  // ----------------------------------- 助记词的 BIP39 短语
                   if (!isPrivateKey) ...<Widget>[
                     const SizedBox(height: 6),
                     PassphraseFields(
@@ -289,7 +289,7 @@ class _RestorePageState extends ConsumerState<RestorePage> {
                     ),
                   ],
                   const SizedBox(height: 26),
-                  // ------------------------------------- 保險庫密碼
+                  // ------------------------------------- 保险库密码
                   Text(
                     s.passwordSetupTitle,
                     style: const TextStyle(
@@ -368,7 +368,7 @@ class _RestorePageState extends ConsumerState<RestorePage> {
   }
 }
 
-/// 助記詞 / 私鑰 的來源切換器。
+/// 助记词 / 私钥 的来源切换器。
 class _ModeSwitch extends StatelessWidget {
   const _ModeSwitch({required this.mode, required this.onChanged});
 
@@ -469,7 +469,7 @@ class _Segment extends StatelessWidget {
   }
 }
 
-/// 私鑰對應地址的即時預覽。
+/// 私钥对应地址的即时预览。
 class _PreviewCard extends StatelessWidget {
   const _PreviewCard({required this.address});
 

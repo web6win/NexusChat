@@ -1,9 +1,9 @@
 import 'dart:html' as html;
 import 'dart:typed_data';
 
-/// Web：建立 Blob URL 並以 `<a download>` 觸發瀏覽器下載。
+/// Web：建立 Blob URL 并以 `<a download>` 触发浏览器下载。
 ///
-/// 瀏覽器會把它交給使用者的下載管理員，行為與一般網頁下載一致。
+/// 浏览器会把它交给使用者的下载管理员，行为与一般网页下载一致。
 Future<({bool toGallery, String? path})?> saveImageBytesImpl(
   Uint8List bytes,
   String fileName,

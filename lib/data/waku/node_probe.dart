@@ -2,7 +2,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import 'nwaku_rest_transport.dart';
 
-/// 單一節點的探測結果（設定頁顯示用）。
+/// 单一节点的探测结果（设定页显示用）。
 @immutable
 class NodeStatus {
   const NodeStatus({
@@ -19,23 +19,23 @@ class NodeStatus {
 
   final int? latencyMs;
 
-  /// 可顯示的補充說明（節點版本或錯誤訊息）。
+  /// 可显示的补充说明（节点版本或错误讯息）。
   final String? detail;
 
-  /// 節點是否已入網（relay 可轉發訊息）。
+  /// 节点是否已入网（relay 可转发讯息）。
   ///
-  /// REST 可達不代表可用：沒連上 peer 的節點照樣回 200，但訊息送不出去，
-  /// 因此設定頁必須把「可連線但無 peer」另外標示出來。
+  /// REST 可达不代表可用：没连上 peer 的节点照样回 200，但讯息送不出去，
+  /// 因此设定页必须把「可连线但无 peer」另外标示出来。
   final bool relayReady;
 }
 
-/// 節點探測器：對設定清單中的每一台節點各發一次健康檢查。
+/// 节点探测器：对设定清单中的每一台节点各发一次健康检查。
 ///
-/// NexusChat 實際只連線使用者選取的那一台節點（見 `Core.applyTransport`），
-/// 但設定頁需要在切換前就看出哪一台可用，所以探測刻意獨立於連線之外：
-/// 這裡只讀 `/health`，不發布、不訂閱，也不影響目前使用中的連線。
+/// NexusChat 实际只连线使用者选取的那一台节点（见 `Core.applyTransport`），
+/// 但设定页需要在切换前就看出哪一台可用，所以探测刻意独立于连线之外：
+/// 这里只读 `/health`，不发布、不订阅，也不影响目前使用中的连线。
 ///
-/// 用完務必呼叫 [dispose] 釋放暫時建立的 HTTP 連線。
+/// 用完务必呼叫 [dispose] 释放暂时建立的 HTTP 连线。
 class NodeProbe {
   NodeProbe(List<String> nodeUrls)
       : nodeUrls = List<String>.unmodifiable(nodeUrls),
@@ -43,12 +43,12 @@ class NodeProbe {
           for (final url in nodeUrls) NwakuRestTransport(baseUrl: url),
         ];
 
-  /// 要探測的節點位址（依設定順序）。
+  /// 要探测的节点位址（依设定顺序）。
   final List<String> nodeUrls;
 
   final List<NwakuRestTransport> _nodes;
 
-  /// 探測所有節點，回傳每一台的狀態（順序與 [nodeUrls] 相同）。
+  /// 探测所有节点，回传每一台的状态（顺序与 [nodeUrls] 相同）。
   Future<List<NodeStatus>> probeAll() async {
     if (_nodes.isEmpty) return const <NodeStatus>[];
     return Future.wait(

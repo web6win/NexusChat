@@ -6,11 +6,11 @@ import '../../core/l10n/strings.dart';
 import '../../data/media/image_saver.dart';
 import '../../shared/feedback.dart';
 
-/// 圖片檢視頁：全螢幕顯示，可縮放 / 拖曳，並可下載到裝置。
+/// 图片检视页：全萤幕显示，可缩放 / 拖曳，并可下载到装置。
 ///
-/// - 行動裝置：雙指捏合縮放、單指拖曳（由 [InteractiveViewer] 提供）；
-/// - 桌面：沒有捏合手勢，因此另外提供放大 / 縮小 / 還原按鈕；
-/// - 下載：Web 觸發瀏覽器下載，原生寫入下載目錄（見 [saveImageBytes]）。
+/// - 行动装置：双指捏合缩放、单指拖曳（由 [InteractiveViewer] 提供）；
+/// - 桌面：没有捏合手势，因此另外提供放大 / 缩小 / 还原按钮；
+/// - 下载：Web 触发浏览器下载，原生写入下载目录（见 [saveImageBytes]）。
 class ImageViewerPage extends StatefulWidget {
   const ImageViewerPage({
     required this.bytes,
@@ -20,7 +20,7 @@ class ImageViewerPage extends StatefulWidget {
 
   final Uint8List bytes;
 
-  /// 下載時使用的檔名（已由 [_safeFileName] 處理過）。
+  /// 下载时使用的档名（已由 [_safeFileName] 处理过）。
   final String fileName;
 
   @override
@@ -40,7 +40,7 @@ class _ImageViewerPageState extends State<ImageViewerPage> {
     super.dispose();
   }
 
-  /// 以檢視區中心為基準縮放（給桌面按鈕用；行動裝置直接捏合即可）。
+  /// 以检视区中心为基准缩放（给桌面按钮用；行动装置直接捏合即可）。
   void _zoomBy(double factor) {
     final value = _transform.value;
     final current = value.getMaxScaleOnAxis();
@@ -49,7 +49,7 @@ class _ImageViewerPageState extends State<ImageViewerPage> {
     if ((delta - 1).abs() < 0.001) return;
 
     final size = MediaQuery.sizeOf(context);
-    // 把中心移到原點 → 縮放 → 移回去，畫面才不會往左上角跑。
+    // 把中心移到原点 → 缩放 → 移回去，画面才不会往左上角跑。
     final aboutCenter = Matrix4.identity()
       ..translate(size.width / 2, size.height / 2)
       ..scale(delta)
@@ -73,7 +73,7 @@ class _ImageViewerPageState extends State<ImageViewerPage> {
       showAppSnack(context, context.s.chatImageSaveFailed, danger: true);
       return;
     }
-    // 進了系統相簿要去「照片 / 相簿」App 找；寫檔則提示放在哪裡。
+    // 进了系统相簿要去「照片 / 相簿」App 找；写档则提示放在哪里。
     showAppSnack(
       context,
       result.toGallery
@@ -118,14 +118,14 @@ class _ImageViewerPageState extends State<ImageViewerPage> {
               maxScale: _maxScale,
               child: SizedBox.expand(
                 child: FittedBox(
-                  // 先完整顯示整張圖，放大後才交給 InteractiveViewer 拖曳。
+                  // 先完整显示整张图，放大后才交给 InteractiveViewer 拖曳。
                   fit: BoxFit.contain,
                   child: Image.memory(widget.bytes),
                 ),
               ),
             ),
           ),
-          // 桌面沒有捏合手勢，給一組明確的縮放控制。
+          // 桌面没有捏合手势，给一组明确的缩放控制。
           SafeArea(
             top: false,
             child: Container(
@@ -176,7 +176,7 @@ class _ImageViewerPageState extends State<ImageViewerPage> {
   }
 }
 
-/// 產生安全的下載檔名：去掉路徑分隔符與 Windows 保留字元，並補上副檔名。
+/// 产生安全的下载档名：去掉路径分隔符与 Windows 保留字元，并补上副档名。
 String imageFileNameFor(String? rawName, int timestampMs) {
   final base = (rawName == null || rawName.trim().isEmpty)
       ? 'nexuschat-$timestampMs'

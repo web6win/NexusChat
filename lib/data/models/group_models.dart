@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart' show immutable;
 
-/// 一個群組聊天。
+/// 一个群组聊天。
 ///
-/// 群組以「共享對稱金鑰」做端到端加密：所有成員都用同一把 32 位元組 AES 金鑰
-/// 加密／解密群訊息，訊息發到群組專屬的 Waku content topic。建立者產生金鑰後，
-/// 用每位成員的 X25519 公鑰把它加密，透過一對一邀請封包分發給大家。
+/// 群组以「共享对称金钥」做端到端加密：所有成员都用同一把 32 位元组 AES 金钥
+/// 加密／解密群讯息，讯息发到群组专属的 Waku content topic。建立者产生金钥后，
+/// 用每位成员的 X25519 公钥把它加密，透过一对一邀请封包分发给大家。
 @immutable
 class GroupChat {
   const GroupChat({
@@ -22,25 +22,25 @@ class GroupChat {
     this.lastMedia,
   });
 
-  /// 群組唯一識別碼（UUID）。
+  /// 群组唯一识别码（UUID）。
   final String id;
 
-  /// 顯示名稱。
+  /// 显示名称。
   final String name;
 
-  /// 成員 DID（小寫，含建立者與自己）。
+  /// 成员 DID（小写，含建立者与自己）。
   final List<String> memberDids;
 
   /// 建立者 DID。
   final String creatorDid;
 
-  /// 群組共享對稱金鑰（原始 32 位元組，Base64）。本機已解密存放，
-  /// 與訊息內容同級，不進一步加密。
+  /// 群组共享对称金钥（原始 32 位元组，Base64）。本机已解密存放，
+  /// 与讯息内容同级，不进一步加密。
   final String keyB64;
 
   final int createdAtMs;
 
-  /// 最後一則訊息的文字（用於列表預覽）。
+  /// 最后一则讯息的文字（用于列表预览）。
   final String lastText;
 
   final int lastTsMs;
@@ -52,10 +52,10 @@ class GroupChat {
   /// 尚未送出的草稿。
   final String draft;
 
-  /// 最後一則訊息的媒體種類（'image' / 'audio' / null）。
+  /// 最后一则讯息的媒体种类（'image' / 'audio' / null）。
   final String? lastMedia;
 
-  /// 會話列表用的穩定鍵（與 [id] 相同，方便直接作為 key）。
+  /// 会话列表用的稳定键（与 [id] 相同，方便直接作为 key）。
   String get peerKey => 'grp:$id';
 
   bool get isMember => memberDids.isNotEmpty;

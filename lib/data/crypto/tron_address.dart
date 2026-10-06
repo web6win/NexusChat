@@ -5,21 +5,21 @@ import 'package:web3dart/crypto.dart' show keccak256;
 
 import '../../core/utils/hex.dart';
 
-/// TRON 地址（Base58Check）編解碼。
+/// TRON 地址（Base58Check）编解码。
 ///
-/// TRON 主網地址 = `Base58Check(0x41 ‖ keccak256(公鑰)[12:32])`，
-/// 其中 `keccak256(公鑰)[12:32]` 恰好就是以太坊地址的那 20 個位元組。
-/// 因此同一把 secp256k1 公鑰會同時對應一個 0x 以太坊地址與一個 T 開頭的
-/// TRON 地址——兩者是同一個帳戶的兩種編碼。
+/// TRON 主网地址 = `Base58Check(0x41 ‖ keccak256(公钥)[12:32])`，
+/// 其中 `keccak256(公钥)[12:32]` 恰好就是以太坊地址的那 20 个位元组。
+/// 因此同一把 secp256k1 公钥会同时对应一个 0x 以太坊地址与一个 T 开头的
+/// TRON 地址——两者是同一个帐户的两种编码。
 abstract final class TronAddress {
-  /// 主網版本位元組。
+  /// 主网版本位元组。
   static const int _version = 0x41;
 
-  /// 由未壓縮公鑰（64 位元組 hex，不含 0x04 前綴）推導 TRON 地址。
+  /// 由未压缩公钥（64 位元组 hex，不含 0x04 前缀）推导 TRON 地址。
   static String fromPublicKeyHex(String uncompressedPublicKeyHex) {
     final pub = _decodeHex(uncompressedPublicKeyHex);
     final hash = keccak256(pub);
-    // keccak256 輸出 32 位元組，取末 20 位元組作為地址主體。
+    // keccak256 输出 32 位元组，取末 20 位元组作为地址主体。
     final addressBytes = hash.sublist(12, 32);
     final payload = Uint8List(21)..[0] = _version;
     payload.setRange(1, 21, addressBytes);
@@ -30,7 +30,7 @@ abstract final class TronAddress {
     return _base58Encode(full);
   }
 
-  /// 是否為合法的 TRON 主網地址（T 開頭、25 位元組、校驗和通過）。
+  /// 是否为合法的 TRON 主网地址（T 开头、25 位元组、校验和通过）。
   static bool isValid(String address) {
     if (address.length != 34 || !address.startsWith('T')) return false;
     final bytes = _base58Decode(address);
@@ -45,10 +45,10 @@ abstract final class TronAddress {
     return true;
   }
 
-  /// 把 Base58Check 地址轉成節點 API 用的 41 開頭 hex（不含 0x）。
+  /// 把 Base58Check 地址转成节点 API 用的 41 开头 hex（不含 0x）。
   ///
   /// TRON 的 `/wallet/createtransaction` 需要 `41...` 格式的地址，
-  /// 而非 T 開頭的顯示形式。非法地址時回傳原字串。
+  /// 而非 T 开头的显示形式。非法地址时回传原字串。
   static String toHex(String address) {
     final bytes = _base58Decode(address);
     if (bytes == null || bytes.length != 25) return address;
@@ -72,7 +72,7 @@ abstract final class TronAddress {
     return result;
   }
 
-  /// Base58 編碼（不含前綴字元）。
+  /// Base58 编码（不含前缀字元）。
   static String _base58Encode(Uint8List input) {
     const alphabet =
         '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -86,7 +86,7 @@ abstract final class TronAddress {
       num ~/= BigInt.from(58);
       result.write(alphabet[remainder.toInt()]);
     }
-    // 還原前導零（0x00）為 '1'。
+    // 还原前导零（0x00）为 '1'。
     for (var i = 0; i < input.length && input[i] == 0; i++) {
       result.write('1');
     }
@@ -109,7 +109,7 @@ abstract final class TronAddress {
     var hex = num.toRadixString(16);
     if (hex.length.isOdd) hex = '0$hex';
     var bytes = _decodeHex(hex);
-    // 補足 25 位元組，並還原前導 '1' 對應的 0x00。
+    // 补足 25 位元组，并还原前导 '1' 对应的 0x00。
     final leadingOnes =
         input.runes.takeWhile((r) => r == '1'.runes.first).length;
     if (leadingOnes > 0) {
@@ -118,7 +118,7 @@ abstract final class TronAddress {
         ...bytes,
       ]);
     }
-    // 去掉多餘的高位 0x00（Base58 解碼可能多補）。
+    // 去掉多余的高位 0x00（Base58 解码可能多补）。
     while (bytes.length > 25 && bytes[0] == 0) {
       bytes = bytes.sublist(1);
     }

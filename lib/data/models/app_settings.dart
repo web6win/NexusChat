@@ -4,7 +4,7 @@ import 'package:flutter/material.dart' show Brightness, ThemeMode;
 import '../waku/waku_transport.dart' show TransportKind;
 import 'chain.dart';
 
-/// 使用者的主題偏好。
+/// 使用者的主题偏好。
 enum ThemePreference {
   system('system'),
   light('light'),
@@ -32,15 +32,15 @@ enum ThemePreference {
     }
   }
 
-  /// 用於偏好預覽的亮度（system 時交給系統，這裡給日間）。
+  /// 用于偏好预览的亮度（system 时交给系统，这里给日间）。
   Brightness get previewBrightness =>
       this == ThemePreference.dark ? Brightness.dark : Brightness.light;
 }
 
-/// 全站設定，持久化於本地儲存。
+/// 全站设定，持久化于本地储存。
 @immutable
 class AppSettings {
-  /// 預設的區塊鏈：WEB6 聯盟鏈（Contribution / CNT）。
+  /// 预设的区块链：WEB6 联盟链（Contribution / CNT）。
   static const ChainType defaultChain = ChainType.besu;
 
   const AppSettings({
@@ -58,45 +58,45 @@ class AppSettings {
 
   final ThemePreference theme;
 
-  /// 空字串代表跟隨系統。
+  /// 空字串代表跟随系统。
   final String localeCode;
 
   final TransportKind transport;
 
-  /// 已設定的 nwaku REST 節點清單（內建 + 使用者自訂）。
+  /// 已设定的 nwaku REST 节点清单（内建 + 使用者自订）。
   ///
-  /// 這是「可用節點池」，只是候選清單；實際連線的永遠只有使用者選取的
-  /// 那一台，見 [activeNodeUrl]。[nodeUrls] 只用於設定頁列出節點與探測狀態。
+  /// 这是「可用节点池」，只是候选清单；实际连线的永远只有使用者选取的
+  /// 那一台，见 [activeNodeUrl]。[nodeUrls] 只用于设定页列出节点与探测状态。
   final List<String> nodeUrls;
 
-  /// 目前選取（使用中）的節點，也是唯一會被連線的節點。
+  /// 目前选取（使用中）的节点，也是唯一会被连线的节点。
   final String activeNodeUrl;
 
-  /// 內建節點：不可刪除，永遠存在於節點清單中。
+  /// 内建节点：不可删除，永远存在于节点清单中。
   static const List<String> builtinNodeUrls = <String>[
     'https://waku01.web6.win',
     'https://waku02.web6.win',
   ];
 
-  /// 預設使用中的節點（等於第一個內建節點）。
+  /// 预设使用中的节点（等于第一个内建节点）。
   static const String defaultActiveNodeUrl = 'https://waku01.web6.win';
 
-  /// 實際要被連線的節點。
+  /// 实际要被连线的节点。
   ///
-  /// 通常等於 [activeNodeUrl]；若選取的節點已不在清單中（例如剛被移除），
-  /// 退回清單中的第一台，避免連線指向不存在的節點。
+  /// 通常等于 [activeNodeUrl]；若选取的节点已不在清单中（例如刚被移除），
+  /// 退回清单中的第一台，避免连线指向不存在的节点。
   String get resolvedActiveNodeUrl {
     if (nodeUrls.contains(activeNodeUrl)) return activeNodeUrl;
     return nodeUrls.isEmpty ? defaultActiveNodeUrl : nodeUrls.first;
   }
 
-  /// 是否為內建節點（內建節點不可移除）。
+  /// 是否为内建节点（内建节点不可移除）。
   static bool isBuiltinNode(String url) => builtinNodeUrls.contains(url);
 
-  /// 正規化使用者輸入的節點位址：補上 scheme、移除結尾斜線。
+  /// 正规化使用者输入的节点位址：补上 scheme、移除结尾斜线。
   ///
-  /// 無法解析、沒有主機名稱，或主機名稱含非法字元時回傳空字串，
-  /// 呼叫端據此顯示「節點位址無效」。
+  /// 无法解析、没有主机名称，或主机名称含非法字元时回传空字串，
+  /// 呼叫端据此显示「节点位址无效」。
   static String normalizeNodeUrl(String raw) {
     var value = raw.trim();
     if (value.isEmpty) return '';
@@ -106,31 +106,31 @@ class AppSettings {
     }
     final uri = Uri.tryParse(value);
     if (uri == null || uri.host.isEmpty) return '';
-    // `Uri.parse` 相當寬鬆，連空白都會當成主機名稱的一部分，所以這裡再檢查
-    // 一次字元集合，避免「not a url」這類亂輸入被存成節點。
+    // `Uri.parse` 相当宽松，连空白都会当成主机名称的一部分，所以这里再检查
+    // 一次字元集合，避免「not a url」这类乱输入被存成节点。
     final host = uri.host;
     if (!RegExp(r'^[A-Za-z0-9._:\[\]-]+$').hasMatch(host)) return '';
     return value;
   }
 
-  /// 使用者自訂的 RPC / API 端點，鍵為 [ChainType.id]。
+  /// 使用者自订的 RPC / API 端点，键为 [ChainType.id]。
   ///
-  /// 用 map 而不是「每條鏈一個欄位」，新增鏈時才不用一路改
-  /// `copyWith` / `toJson` / `fromJson`；沒設定的鏈就用
+  /// 用 map 而不是「每条链一个栏位」，新增链时才不用一路改
+  /// `copyWith` / `toJson` / `fromJson`；没设定的链就用
   /// [ChainConfig.defaultRpc]。
   final Map<String, String> rpcOverrides;
 
-  /// 錢包目前顯示的區塊鏈（僅影響錢包頁，不影響聊天身份 did:ethr）。
+  /// 钱包目前显示的区块链（仅影响钱包页，不影响聊天身份 did:ethr）。
   final ChainType chain;
 
   final String nickname;
 
   final bool onboarded;
 
-  /// 上次同步的時間戳（毫秒），用於增量拉取。
+  /// 上次同步的时间戳（毫秒），用于增量拉取。
   final int lastSyncMs;
 
-  /// 目前選定鏈所使用的 RPC / API 端點：使用者自訂值，否則用鏈的預設值。
+  /// 目前选定链所使用的 RPC / API 端点：使用者自订值，否则用链的预设值。
   String rpcFor(ChainType chain) {
     final own = rpcOverrides[chain.id]?.trim() ?? '';
     return own.isEmpty ? ChainConfig.of(chain).defaultRpc : own;
@@ -162,7 +162,7 @@ class AppSettings {
     );
   }
 
-  /// 複寫單一鏈的端點；[url] 為空表示還原成預設值。
+  /// 复写单一链的端点；[url] 为空表示还原成预设值。
   AppSettings withRpc(ChainType chain, String url) {
     final next = Map<String, String>.from(rpcOverrides);
     final value = url.trim();
@@ -187,10 +187,10 @@ class AppSettings {
         'lastSyncMs': lastSyncMs,
       };
 
-  /// 由持久化資料還原節點清單。
+  /// 由持久化资料还原节点清单。
   ///
-  /// 內建節點永遠排在最前面且一定存在；舊版只有單一 `nodeUrl` 時，會被
-  /// 併入自訂節點，避免使用者升級後設定消失。
+  /// 内建节点永远排在最前面且一定存在；旧版只有单一 `nodeUrl` 时，会被
+  /// 并入自订节点，避免使用者升级后设定消失。
   static List<String> _readNodeUrls(Map<dynamic, dynamic> json) {
     final collected = <String>[];
 
@@ -214,20 +214,20 @@ class AppSettings {
     ];
   }
 
-  /// 由持久化資料還原「使用中」的節點。
+  /// 由持久化资料还原「使用中」的节点。
   ///
-  /// 舊版沒有這個欄位時，預設使用清單中的第一台；若記錄的節點已被移除，
-  /// 也一併退回第一台，避免設定指向不存在的節點。
+  /// 旧版没有这个栏位时，预设使用清单中的第一台；若记录的节点已被移除，
+  /// 也一并退回第一台，避免设定指向不存在的节点。
   static String _readActiveNode(Map<dynamic, dynamic> json, List<String> urls) {
     final url = normalizeNodeUrl((json['activeNodeUrl'] as String?) ?? '');
     if (url.isNotEmpty && urls.contains(url)) return url;
     return urls.isEmpty ? defaultActiveNodeUrl : urls.first;
   }
 
-  /// 讀出使用者自訂的 RPC / API 端點。
+  /// 读出使用者自订的 RPC / API 端点。
   ///
-  /// 舊版把端點存在 `rpcUrl` / `tronRpcUrl` / `besuRpcUrl` 三個欄位，這裡
-  /// 一併搬進 [rpcOverrides]，使用者的設定不會因為升級而消失。
+  /// 旧版把端点存在 `rpcUrl` / `tronRpcUrl` / `besuRpcUrl` 三个栏位，这里
+  /// 一并搬进 [rpcOverrides]，使用者的设定不会因为升级而消失。
   static Map<String, String> _readRpcOverrides(Map<dynamic, dynamic> json) {
     final result = <String, String>{};
 
@@ -259,8 +259,8 @@ class AppSettings {
       nodeUrls: nodeUrls,
       activeNodeUrl: _readActiveNode(json, nodeUrls),
       rpcOverrides: _readRpcOverrides(json),
-      // 沒有記錄過鏈別時（首次安裝）用預設的 WEB6；已選過的則照舊，
-      // 不因為改了預設值就把老使用者換到別條鏈上。
+      // 没有记录过链别时（首次安装）用预设的 WEB6；已选过的则照旧，
+      // 不因为改了预设值就把老使用者换到别条链上。
       chain: json.containsKey('chain')
           ? ChainType.fromId(json['chain'] as String?)
           : defaultChain,

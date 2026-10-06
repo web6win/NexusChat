@@ -7,17 +7,17 @@ import '../crypto/tron_address.dart';
 import '../models/chain.dart';
 import 'chain_account.dart';
 
-/// 與 TRON 生態互動的唯讀服務：查 TRX 餘額。
+/// 与 TRON 生态互动的唯读服务：查 TRX 余额。
 ///
-/// 走 TronGrid HTTP API（`/wallet/getaccount`）。餘額以 SUN 回傳，
-/// 1 TRX = 1,000,000 SUN。所有方法都容錯：API 失敗時回傳 null，
-/// 不影響聊天主流程。
+/// 走 TronGrid HTTP API（`/wallet/getaccount`）。余额以 SUN 回传，
+/// 1 TRX = 1,000,000 SUN。所有方法都容错：API 失败时回传 null，
+/// 不影响聊天主流程。
 @immutable
 class TronService {
   TronService({required this.apiUrl, http.Client? client})
       : _client = client ?? http.Client();
 
-  /// TronGrid（或其他相容全節點）的 base URL。
+  /// TronGrid（或其他相容全节点）的 base URL。
   final String apiUrl;
 
   final http.Client _client;
@@ -26,10 +26,10 @@ class TronService {
 
   void dispose() => _client.close();
 
-  /// 取得地址的 TRX 餘額（單位：TRX）。
+  /// 取得地址的 TRX 余额（单位：TRX）。
   ///
-  /// 帳戶未激活（鏈上不存在）時 `getaccount` 不回傳 `balance` 欄位，
-  /// 視為餘額 0。
+  /// 帐户未激活（链上不存在）时 `getaccount` 不回传 `balance` 栏位，
+  /// 视为余额 0。
   Future<double?> getBalanceTrx(String base58Address) async {
     if (!isConfigured) return null;
     try {
@@ -53,7 +53,7 @@ class TronService {
     }
   }
 
-  /// 一次取得餘額，回傳統一結構。
+  /// 一次取得余额，回传统一结构。
   Future<ChainAccountInfo> summary(String base58Address) async {
     if (!isConfigured || !TronAddress.isValid(base58Address)) {
       return ChainAccountInfo(
@@ -66,7 +66,7 @@ class TronService {
     return ChainAccountInfo(
       chain: ChainType.tron,
       address: base58Address,
-      // 查詢失敗視為「無法取得」，保留錯誤狀態；未激活帳戶則為 0。
+      // 查询失败视为「无法取得」，保留错误状态；未激活帐户则为 0。
       balanceNative: balance,
       chainId: null,
       error: balance == null ? 'network' : null,

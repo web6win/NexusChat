@@ -1,6 +1,6 @@
 import 'package:meta/meta.dart' show immutable;
 
-/// Waku 網路上傳遞的最小單位（對應 nwaku 的 WakuMessage）。
+/// Waku 网路上传递的最小单位（对应 nwaku 的 WakuMessage）。
 @immutable
 class WakuMessage {
   const WakuMessage({
@@ -14,10 +14,10 @@ class WakuMessage {
   /// 例：`/nexuschat/1/dm-xxxxxxxx/json`
   final String contentTopic;
 
-  /// Base64 編碼的 payload。
+  /// Base64 编码的 payload。
   final String payloadBase64;
 
-  /// 奈秒時間戳（Waku 協定使用 nanoseconds since epoch）。
+  /// 奈秒时间戳（Waku 协定使用 nanoseconds since epoch）。
   final int timestampNs;
 
   final bool ephemeral;
@@ -43,7 +43,7 @@ class WakuMessage {
         'ephemeral': ephemeral,
       };
 
-  /// 以毫秒時間戳建立。
+  /// 以毫秒时间戳建立。
   factory WakuMessage.fromMillis({
     required String contentTopic,
     required String payloadBase64,

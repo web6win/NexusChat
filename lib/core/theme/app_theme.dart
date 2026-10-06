@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// 品牌色票。介面上所有顏色都從這裡出發，方便一次調整整體調性。
+/// 品牌色票。介面上所有颜色都从这里出发，方便一次调整整体调性。
 abstract final class AppColors {
   /// 主品牌色（紫）
   static const brand = Color(0xFF6C5CE7);
 
-  /// 品牌漸層另一端（藍紫）
+  /// 品牌渐层另一端（蓝紫）
   static const brandAlt = Color(0xFF8E7BFF);
 
-  /// 強調色（青）
+  /// 强调色（青）
   static const accent = Color(0xFF22D3EE);
 
   /// 成功
@@ -18,13 +18,13 @@ abstract final class AppColors {
   /// 警告
   static const warning = Color(0xFFF59E0B);
 
-  /// 危險
+  /// 危险
   static const danger = Color(0xFFEF4444);
 
-  /// 區塊鏈／Web3 標籤色
+  /// 区块链／Web3 标签色
   static const chain = Color(0xFF7C3AED);
 
-  /// 品牌漸層
+  /// 品牌渐层
   static const brandGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -32,7 +32,7 @@ abstract final class AppColors {
   );
 }
 
-/// 隨主題變化的額外調色盤（不以 ColorScheme 表達的語意色）。
+/// 随主题变化的额外调色盘（不以 ColorScheme 表达的语意色）。
 @immutable
 class AppPalette extends ThemeExtension<AppPalette> {
   const AppPalette({
@@ -144,7 +144,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
   }
 }
 
-/// 圓角與間距的統一尺度。
+/// 圆角与间距的统一尺度。
 abstract final class AppRadius {
   static const xs = 8.0;
   static const sm = 12.0;
@@ -165,7 +165,7 @@ abstract final class AppGap {
   static const xxl = 32.0;
 }
 
-/// 依據亮度建立主題。
+/// 依据亮度建立主题。
 abstract final class AppTheme {
   static ThemeData build(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
@@ -342,8 +342,8 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(AppRadius.md),
         ),
       ),
-      // 桌面瀏覽器預設的捲軸既粗又始終可見，跟整體調性不搭；
-      // 這裡收細、改成半透明，滑過時才稍微加深。
+      // 桌面浏览器预设的卷轴既粗又始终可见，跟整体调性不搭；
+      // 这里收细、改成半透明，滑过时才稍微加深。
       scrollbarTheme: ScrollbarThemeData(
         thickness: const WidgetStatePropertyAll<double>(9),
         radius: const Radius.circular(999),

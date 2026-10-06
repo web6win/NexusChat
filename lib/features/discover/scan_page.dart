@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/l10n/strings.dart';
 import '../../core/theme/app_theme.dart';
@@ -16,24 +15,24 @@ import '../../features/wallet/chain_selector.dart';
 import '../../shared/feedback.dart';
 import '../../state/controllers.dart';
 
-/// 掃一掃：以相機讀取 QR Code。
+/// 扫一扫：以相机读取 QR Code。
 ///
-/// 結果處理規則（依序判斷）：
-/// 1. 付款請求（`ethereum:0x…?value=…` / `tron:T…?amount=…`）→ 可直接轉帳。
-/// 2. DID / 0x 地址 / ENS 名稱 → 加入聯絡人、轉帳或複製。
-/// 3. 網址（`http(s)://…` 或以網域開頭的字串）→ 直接以外部瀏覽器開啟。
-/// 4. 其他文字 → 顯示內容並可複製。
+/// 结果处理规则（依序判断）：
+/// 1. 付款请求（`ethereum:0x…?value=…` / `tron:T…?amount=…`）→ 可直接转帐。
+/// 2. DID / 0x 地址 / ENS 名称 → 加入联络人、转帐或复制。
+/// 3. 网址（`http(s)://…` 或以网域开头的字串）→ 在应用内 WebView 新页面开启。
+/// 4. 其他文字 → 显示内容并可复制。
 ///
-/// 相機後端由 mobile_scanner 提供，僅支援 Android / iOS / macOS / 瀏覽器；
-/// 其餘平台（Windows、Linux）改為顯示不支援提示，而不是讓畫面壞掉。
+/// 相机后端由 mobile_scanner 提供，仅支援 Android / iOS / macOS / 浏览器；
+/// 其余平台（Windows、Linux）改为显示不支援提示，而不是让画面坏掉。
 class ScanPage extends ConsumerStatefulWidget {
   const ScanPage({this.pickAddress = false, this.chain, super.key});
 
-  /// 挑選模式：只把「收款地址 / 付款請求」回傳給上一頁（轉帳頁用），
-  /// 不做加入聯絡人等其他動作。
+  /// 挑选模式：只把「收款地址 / 付款请求」回传给上一页（转帐页用），
+  /// 不做加入联络人等其他动作。
   final bool pickAddress;
 
-  /// 期望的鏈；掃到的內容若明顯屬於別條鏈，仍會回傳，由轉帳頁提示並切換。
+  /// 期望的链；扫到的内容若明显属于别条链，仍会回传，由转帐页提示并切换。
   final ChainType? chain;
 
   @override
@@ -43,10 +42,10 @@ class ScanPage extends ConsumerStatefulWidget {
 class _ScanPageState extends ConsumerState<ScanPage> {
   MobileScannerController? _controller;
 
-  /// 是否正在處理某個掃描結果。處理期間停止辨識，避免同一個碼反覆觸發。
+  /// 是否正在处理某个扫描结果。处理期间停止辨识，避免同一个码反复触发。
   bool _busy = false;
 
-  /// 目前平台是否有可用的相機後端。
+  /// 目前平台是否有可用的相机后端。
   static bool get _cameraSupported {
     if (kIsWeb) return true;
     return defaultTargetPlatform == TargetPlatform.android ||
@@ -59,9 +58,9 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     super.initState();
     if (_cameraSupported) {
       _controller = MobileScannerController(
-        // 只認 QR Code：這個頁面不會掃商品條碼，限定格式可減少誤判。
+        // 只认 QR Code：这个页面不会扫商品条码，限定格式可减少误判。
         formats: const <BarcodeFormat>[BarcodeFormat.qrCode],
-        // 同一個碼只回報一次，使用者不必擔心鏡頭晃一下就連續觸發。
+        // 同一个码只回报一次，使用者不必担心镜头晃一下就连续触发。
         detectionSpeed: DetectionSpeed.noDuplicates,
         autoZoom: true,
       );
@@ -94,18 +93,18 @@ class _ScanPageState extends ConsumerState<ScanPage> {
   }
 
   Future<void> _handle(String value) async {
-    // 挑選模式（轉帳頁呼叫）：只收「可以當收款對象」的內容。
+    // 挑选模式（转帐页呼叫）：只收「可以当收款对象」的内容。
     if (widget.pickAddress) {
       await _pickAddress(value);
       return;
     }
-    // 付款請求優先：`ethereum:0x…?value=…` 同時帶地址與金額，比純地址明確。
+    // 付款请求优先：`ethereum:0x…?value=…` 同时带地址与金额，比纯地址明确。
     final payment = PaymentUri.parse(value);
     if (payment != null) {
       await _showPaymentSheet(payment, value);
       return;
     }
-    // 身份類內容優先於網址判斷，否則 `name.eth` 會被當成一般網域開出去。
+    // 身份类内容优先于网址判断，否则 `name.eth` 会被当成一般网域开出去。
     if (_looksLikeIdentity(value)) {
       await _showIdentitySheet(value);
       return;
@@ -118,7 +117,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     await _showTextSheet(value);
   }
 
-  /// 挑選模式：把掃到的內容原樣回傳，由轉帳頁解析地址 / 金額 / 鏈。
+  /// 挑选模式：把扫到的内容原样回传，由转帐页解析地址 / 金额 / 链。
   Future<void> _pickAddress(String value) async {
     final request = PaymentUri.fromScan(value, chain: widget.chain) ??
         PaymentUri.fromScan(value);
@@ -131,52 +130,44 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     Navigator.pop(context, value);
   }
 
-  /// 帶著掃到的內容前往轉帳頁。
+  /// 带著扫到的内容前往转帐页。
   Future<void> _openSend(String value) async {
     final router = GoRouter.of(context);
-    // DID 對轉帳沒有意義，換成地址；ENS 需要線上解析，維持原樣讓使用者處理。
+    // DID 对转帐没有意义，换成地址；ENS 需要线上解析，维持原样让使用者处理。
     final target = Did.isEthrDid(value) ? Did.toAddress(value) : value;
     final chain = _sendChainFor(target);
     final query = Uri(queryParameters: <String, String>{
       'address': target,
-      // 只有能確定時才指定鏈；0x 地址在以太坊與 Besu 都合法，交給使用者
-      // 目前的選擇，不要在背後偷偷換網路。
+      // 只有能确定时才指定链；0x 地址在以太坊与 Besu 都合法，交给使用者
+      // 目前的选择，不要在背后偷偷换网路。
       if (chain != null) 'chain': chain.id,
     }).query;
-    // push 而非 go：保留返回堆疊，轉帳頁才不會變成沒有上一頁的孤島。
+    // push 而非 go：保留返回堆叠，转帐页才不会变成没有上一页的孤岛。
     router.push('/send?$query');
   }
 
-  /// 掃到的內容屬於哪一條鏈；不確定時回傳 null（沿用設定）。
+  /// 扫到的内容属于哪一条链；不确定时回传 null（沿用设定）。
   ChainType? _sendChainFor(String value) {
-    // 帶 scheme 的付款請求已經寫明是哪條鏈。
+    // 带 scheme 的付款请求已经写明是哪条链。
     final uri = PaymentUri.parse(value);
     if (uri != null) return uri.chain;
     final bare = PaymentUri.fromAddress(value);
     if (bare == null) return null;
-    // T 開頭只可能是 TRON；0x 則可能是任一條 EVM 鏈。
+    // T 开头只可能是 TRON；0x 则可能是任一条 EVM 链。
     return bare.chain == ChainType.tron ? ChainType.tron : null;
   }
 
-  /// 掃到網址：直接以外部瀏覽器開啟；成功就關閉掃碼頁，失敗則回到掃描狀態。
+  /// 扫到网址：在应用内 WebView 新页面开启，扫码页保留在底层。
+  /// 从 WebView 返回后再恢复扫描，方便连续扫多个码。
   Future<void> _openLink(Uri uri) async {
     final router = GoRouter.of(context);
-    var opened = false;
-    try {
-      opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      opened = false;
-    }
+    // push 而非 go：WebView 叠在扫码页之上，关闭后回到扫码页。
+    await router.push('/webview?url=${Uri.encodeComponent(uri.toString())}');
     if (!mounted) return;
-    if (opened) {
-      _exit(router);
-      return;
-    }
-    showAppSnack(context, context.s.scanOpenFailed, danger: true);
     await _resume();
   }
 
-  /// 掃到 NexusChat 身份（DID / 地址 / ENS）：加入聯絡人、轉帳或複製。
+  /// 扫到 NexusChat 身份（DID / 地址 / ENS）：加入联络人、转帐或复制。
   Future<void> _showIdentitySheet(String value) async {
     final s = context.s;
     final action = await _showResultSheet(
@@ -217,7 +208,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     }
   }
 
-  /// 掃到付款請求（帶 scheme 的支付 URI）：顯示鏈別與金額，可直接轉帳。
+  /// 扫到付款请求（带 scheme 的支付 URI）：显示链别与金额，可直接转帐。
   Future<void> _showPaymentSheet(PaymentRequest request, String raw) async {
     final s = context.s;
     final config = ChainConfig.of(request.chain);
@@ -255,7 +246,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     await _resume();
   }
 
-  /// 掃到其他文字：單純顯示內容並可複製。
+  /// 扫到其他文字：单纯显示内容并可复制。
   Future<void> _showTextSheet(String value) async {
     final s = context.s;
     final action = await _showResultSheet(
@@ -275,7 +266,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     await _resume();
   }
 
-  /// 共用的掃描結果面板。回傳動作的 id，取消則回傳 null。
+  /// 共用的扫描结果面板。回传动作的 id，取消则回传 null。
   Future<String?> _showResultSheet({
     required String title,
     required String label,
@@ -335,7 +326,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                // 第一個動作是主要動作（實心），其餘為次要（描邊）。
+                // 第一个动作是主要动作（实心），其余为次要（描边）。
                 for (var i = 0; i < actions.length; i++) ...<Widget>[
                   if (i == 0)
                     FilledButton.icon(
@@ -364,7 +355,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     );
   }
 
-  /// 加入聯絡人後直接開啟對話；加入失敗則留在掃描頁並提示原因。
+  /// 加入联络人后直接开启对话；加入失败则留在扫描页并提示原因。
   Future<void> _addContactAndOpenChat(String value) async {
     final router = GoRouter.of(context);
     final error = await ref.read(contactsProvider.notifier).add(value);
@@ -380,20 +371,20 @@ class _ScanPageState extends ConsumerState<ScanPage> {
       return;
     }
 
-    // 先把 DID 解析出來（ENS 要靠剛寫入的聯絡人回查），再離開頁面。
+    // 先把 DID 解析出来（ENS 要靠刚写入的联络人回查），再离开页面。
     final did = _resolveDid(value);
     showAppSnack(context, context.s.contactsAdded);
     if (did != null) {
-      // go 會直接換掉整個堆疊，掃碼頁也一併收掉。
+      // go 会直接换掉整个堆叠，扫码页也一并收掉。
       router.go('/chats?peer=${Uri.encodeComponent(did)}');
     } else {
       _exit(router);
     }
   }
 
-  /// 離開掃碼頁：能 pop 就 pop，否則退回發現頁（例如由深層連結直接進入）。
+  /// 离开扫码页：能 pop 就 pop，否则退回发现页（例如由深层连结直接进入）。
   ///
-  /// 這裡用捕獲的 [router] 而非 `context`：呼叫當下頁面可能已經開始銷毀。
+  /// 这里用捕获的 [router] 而非 `context`：呼叫当下页面可能已经开始销毁。
   void _exit(GoRouter router) {
     if (router.canPop()) {
       router.pop();
@@ -404,7 +395,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
 
   void _close() => _exit(GoRouter.of(context));
 
-  /// 解析掃描到的身份字串對應的 DID；ENS 需先加入聯絡人才能從狀態回查。
+  /// 解析扫描到的身份字串对应的 DID；ENS 需先加入联络人才能从状态回查。
   String? _resolveDid(String value) {
     if (Did.isEthrDid(value)) return value.toLowerCase();
     if (Did.isAddress(value)) return Did.fromAddress(value);
@@ -415,7 +406,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     return null;
   }
 
-  /// 處理完（或使用者取消）後恢復掃描。
+  /// 处理完（或使用者取消）后恢复扫描。
   Future<void> _resume() async {
     if (!mounted) return;
     _busy = false;
@@ -431,15 +422,15 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     return s.scanResultAddress;
   }
 
-  /// 允許的網域：`example.com`、`sub.example.co.uk:8080/path?q=1`。
-  /// 頂級域限定為 2 個以上的英文字母，避免把 `1.5` 這類純數字誤判成網址。
+  /// 允许的网域：`example.com`、`sub.example.co.uk:8080/path?q=1`。
+  /// 顶级域限定为 2 个以上的英文字母，避免把 `1.5` 这类纯数字误判成网址。
   static final RegExp _domainPattern = RegExp(
     r'^[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?'
     r'(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*'
     r'\.[a-zA-Z]{2,}(?::\d{1,5})?(?:[/?#]\S*)?$',
   );
 
-  /// 把掃描到的字串轉成可開啟的 http(s) 網址；不是網址則回傳 null。
+  /// 把扫描到的字串转成可开启的 http(s) 网址；不是网址则回传 null。
   static Uri? _asHttpUri(String value) {
     final text = value.trim();
     if (text.isEmpty || text.contains(RegExp(r'\s'))) return null;
@@ -450,7 +441,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
       return (uri != null && uri.host.isNotEmpty) ? uri : null;
     }
 
-    // 沒有 scheme 的裸網域也視為網址，補上 https。
+    // 没有 scheme 的裸网域也视为网址，补上 https。
     if (_domainPattern.hasMatch(text)) return Uri.tryParse('https://$text');
     return null;
   }
@@ -459,7 +450,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     try {
       await _controller?.switchCamera();
     } catch (_) {
-      // 只有單一鏡頭的裝置會失敗；維持目前鏡頭即可，不需要打擾使用者。
+      // 只有单一镜头的装置会失败；维持目前镜头即可，不需要打扰使用者。
     }
   }
 
@@ -634,7 +625,7 @@ class _ScanPageState extends ConsumerState<ScanPage> {
   }
 }
 
-/// 掃描結果面板上的一個動作（加入聯絡人 / 轉帳 / 複製）。
+/// 扫描结果面板上的一个动作（加入联络人 / 转帐 / 复制）。
 class _SheetAction {
   const _SheetAction({
     required this.id,
@@ -647,7 +638,7 @@ class _SheetAction {
   final String label;
 }
 
-/// 取景遮罩：取景框以外壓暗，並在框線上加一圈強調色。
+/// 取景遮罩：取景框以外压暗，并在框线上加一圈强调色。
 class _ScanFrame extends StatelessWidget {
   const _ScanFrame();
 
@@ -697,7 +688,7 @@ class _ScanFrame extends StatelessWidget {
   }
 }
 
-/// 以 evenOdd 填色畫出「整片半透明 + 中央挖空」的遮罩。
+/// 以 evenOdd 填色画出「整片半透明 + 中央挖空」的遮罩。
 class _ScrimPainter extends CustomPainter {
   const _ScrimPainter({required this.hole, required this.color});
 
@@ -718,7 +709,7 @@ class _ScrimPainter extends CustomPainter {
       oldDelegate.hole != hole || oldDelegate.color != color;
 }
 
-/// 相機初始化失敗（多為權限被拒）時的說明畫面。
+/// 相机初始化失败（多为权限被拒）时的说明画面。
 class _ScanErrorView extends StatelessWidget {
   const _ScanErrorView({required this.error});
 

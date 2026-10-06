@@ -12,7 +12,7 @@ import '../../shared/feedback.dart';
 import '../../state/controllers.dart';
 import '../security/password_fields.dart';
 
-/// 建立身份的三步驟流程：產生助記詞 → 驗證備份 → 設定暱稱。
+/// 建立身份的三步骤流程：产生助记词 → 验证备份 → 设定暱称。
 class CreateIdentityPage extends ConsumerStatefulWidget {
   const CreateIdentityPage({super.key});
 
@@ -22,7 +22,7 @@ class CreateIdentityPage extends ConsumerStatefulWidget {
 }
 
 class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
-  /// 步驟：0 助記詞 → 1 驗證備份 → 2 設定密碼 → 3 暱稱。
+  /// 步骤：0 助记词 → 1 验证备份 → 2 设定密码 → 3 暱称。
   static const int _stepCount = 4;
 
   int _step = 0;
@@ -86,9 +86,9 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
     });
   }
 
-  /// 離開助記詞步驟前先確認短語兩次輸入一致。
+  /// 离开助记词步骤前先确认短语两次输入一致。
   ///
-  /// 短語打錯不會有任何錯誤訊息，只能靠「輸入兩次」擋下筆誤。
+  /// 短语打错不会有任何错误讯息，只能靠「输入两次」挡下笔误。
   void _goToVerify() {
     if (_passphraseController.text != _confirmPassphraseController.text) {
       setState(() => _passphraseError = context.s.passphraseMismatch);
@@ -118,14 +118,14 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
   Future<void> _finish() async {
     setState(() => _busy = true);
     try {
-      // 以「先前顯示並已驗證過的助記詞」建立身份。
+      // 以「先前显示并已验证过的助记词」建立身份。
       //
-      // 注意：這裡必須走 restore（由助記詞派生），而不是 create 重新生成 ——
-      // 重新生成會得到一組完全不同的助記詞，讓使用者備份到無法還原的字串。
+      // 注意：这里必须走 restore（由助记词派生），而不是 create 重新生成 ——
+      // 重新生成会得到一组完全不同的助记词，让使用者备份到无法还原的字串。
       final failure = await ref.read(sessionProvider.notifier).restoreIdentity(
             _mnemonic,
             password: _passwordController.text,
-            // 助記詞配上短語才等於這個身份；建立後就固定下來。
+            // 助记词配上短语才等于这个身份；建立后就固定下来。
             passphrase: _passphraseController.text,
           );
       if (failure != null) {
@@ -142,7 +142,7 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
         await ref.read(settingsProvider.notifier).setNickname(name);
       }
       await ref.read(settingsProvider.notifier).setOnboarded(true);
-      // 後台發布金鑰包；離線也不阻塞進入主介面，連上網後會自動補發。
+      // 后台发布金钥包；离线也不阻塞进入主介面，连上网后会自动补发。
       unawaited(ref.read(chatControllerProvider.notifier).publishKeys());
       if (!mounted) return;
       context.go('/chats');
@@ -226,10 +226,10 @@ class _CreateIdentityPageState extends ConsumerState<CreateIdentityPage> {
   }
 }
 
-/// 第一步：助記詞 + （選填）BIP39 密碼短語。
+/// 第一步：助记词 + （选填）BIP39 密码短语。
 ///
-/// 短語放在助記詞旁邊是有理由的：兩者共同決定身份，備份時本來就该一起抄，
-/// 拆到後面使用者很容易只備份一半。
+/// 短语放在助记词旁边是有理由的：两者共同决定身份，备份时本来就该一起抄，
+/// 拆到后面使用者很容易只备份一半。
 class _MnemonicStep extends StatelessWidget {
   const _MnemonicStep({
     required this.mnemonic,
@@ -289,9 +289,9 @@ class _MnemonicStep extends StatelessWidget {
                 )
               : LayoutBuilder(
                   builder: (context, constraints) {
-                    // 每行固定 3 個：寬度要用**實際可用寬度**來算，不能拿
-                    // MediaQuery 的螢幕寬度 —— 桌機上內容會被 maxWidth 收窄，
-                    // 兩者不相等，照螢幕寬算會擠成每行 2 個。
+                    // 每行固定 3 个：宽度要用**实际可用宽度**来算，不能拿
+                    // MediaQuery 的萤幕宽度 —— 桌机上内容会被 maxWidth 收窄，
+                    // 两者不相等，照萤幕宽算会挤成每行 2 个。
                     const int perRow = 3;
                     const double spacing = 8;
                     final itemWidth =
@@ -364,7 +364,7 @@ class _MnemonicStep extends StatelessWidget {
             ),
           ],
         ),
-        // ------------------------------------------ 選填的 BIP39 密碼短語
+        // ------------------------------------------ 选填的 BIP39 密码短语
         const SizedBox(height: 8),
         PassphraseFields(
           controller: passphraseController,
@@ -448,10 +448,10 @@ class _VerifyStep extends StatelessWidget {
   }
 }
 
-/// 第三步：設定本地保險庫密碼。
+/// 第三步：设定本地保险库密码。
 ///
-/// 密碼是這個威脅模型下唯一有效的防線 —— Web 端沒有可信任的硬體金鑰儲存，
-/// 任何「應用能自動解開」的方案，能執行腳本的攻擊者都能照樣解開。
+/// 密码是这个威胁模型下唯一有效的防线 —— Web 端没有可信任的硬体金钥储存，
+/// 任何「应用能自动解开」的方案，能执行脚本的攻击者都能照样解开。
 class _SecurityStep extends StatelessWidget {
   const _SecurityStep({
     required this.passwordController,

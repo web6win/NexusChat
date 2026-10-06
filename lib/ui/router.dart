@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../features/contacts/contacts_page.dart';
 import '../features/discover/discover_page.dart';
 import '../features/discover/scan_page.dart';
+import '../features/discover/webview_page.dart';
 import '../features/lock/lock_page.dart';
 import '../features/onboarding/create_identity_page.dart';
 import '../features/onboarding/restore_page.dart';
@@ -28,13 +29,13 @@ import '../data/models/chain.dart';
 import '../state/controllers.dart';
 import 'shell.dart';
 
-/// 路由設定。桌面與行動共用同一組路由，由殼層決定排版。
+/// 路由设定。桌面与行动共用同一组路由，由壳层决定排版。
 ///
-/// 導向規則（依序判斷）：
-/// 1. 存在舊版明文身份 → `/migrate`（強制設定密碼，完成加密遷移）。
-/// 2. 已有身份但未解鎖 → `/lock`（記憶體中沒有任何秘密）。
-/// 3. 已解鎖 → 進入主殼層；此時不允許停留在引導 / 鎖屏 / 遷移頁。
-/// 4. 完全沒有身份 → `/welcome`。
+/// 导向规则（依序判断）：
+/// 1. 存在旧版明文身份 → `/migrate`（强制设定密码，完成加密迁移）。
+/// 2. 已有身份但未解锁 → `/lock`（记忆体中没有任何秘密）。
+/// 3. 已解锁 → 进入主壳层；此时不允许停留在引导 / 锁屏 / 迁移页。
+/// 4. 完全没有身份 → `/welcome`。
 final routerProvider = Provider<GoRouter>((ref) {
   final core = ref.read(coreProvider);
 
@@ -50,22 +51,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isMigrate = location == '/migrate';
       final isRecover = location == '/recover';
 
-      // 1) 舊版明文身份：先完成加密遷移，否則不給進。
+      // 1) 旧版明文身份：先完成加密迁移，否则不给进。
       if (core.needsMigration) {
         return isMigrate ? null : '/migrate';
       }
 
-      // 2) 有身份但保險庫不可用（結構毀損）：只能走修復頁。
+      // 2) 有身份但保险库不可用（结构毁损）：只能走修复页。
       if (core.hasIdentity && !core.vaultUsable) {
         return isRecover ? null : '/recover';
       }
 
-      // 3) 已鎖定：只能待在鎖屏。
+      // 3) 已锁定：只能待在锁屏。
       if (core.isLocked) {
         return isLock ? null : '/lock';
       }
 
-      // 4) 已解鎖。
+      // 4) 已解锁。
       if (core.identity != null) {
         if (isOnboarding || isLock || isMigrate || isRecover) return '/chats';
         return null;
@@ -105,18 +106,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (BuildContext context, GoRouterState state) =>
             const VaultUnavailablePage(),
       ),
-      // 掃一掃放在根導覽：全螢幕取景，不被底部導覽與殼層版面干擾。
+      // 扫一扫放在根导览：全萤幕取景，不被底部导览与壳层版面干扰。
+      GoRoute(
+        path: '/webview',
+        builder: (BuildContext context, GoRouterState state) {
+          final raw = state.uri.queryParameters['url'];
+          final url = raw == null || raw.isEmpty ? '' : Uri.decodeComponent(raw);
+          return WebViewPage(url: url);
+        },
+      ),
       GoRoute(
         path: '/scan',
         builder: (BuildContext context, GoRouterState state) => ScanPage(
-          // 轉帳頁呼叫時只挑收款地址；一般掃碼則走完整的結果處理。
+          // 转帐页呼叫时只挑收款地址；一般扫码则走完整的结果处理。
           pickAddress: state.uri.queryParameters['pick'] == '1',
           chain: state.uri.queryParameters['chain'] == null
               ? null
               : ChainType.fromId(state.uri.queryParameters['chain']),
         ),
       ),
-      // 轉帳頁：可由錢包頁進入，也可由掃碼結果直接帶地址與金額進來。
+      // 转帐页：可由钱包页进入，也可由扫码结果直接带地址与金额进来。
       GoRoute(
         path: '/send',
         builder: (BuildContext context, GoRouterState state) => SendPage(
@@ -251,5 +260,5 @@ final GlobalKey<NavigatorState> _walletKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _discoverKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _meKey = GlobalKey<NavigatorState>();
 
-/// 讓外部（例如身份刪除）能跳回引導頁。
+/// 让外部（例如身份删除）能跳回引导页。
 GlobalKey<NavigatorState> get rootNavigatorKey => _rootKey;

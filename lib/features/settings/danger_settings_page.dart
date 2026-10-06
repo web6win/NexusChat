@@ -8,7 +8,7 @@ import '../../shared/layout.dart';
 import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
 
-/// 危險操作：刪除本機身份。拆自原本擠在同一頁的設定。
+/// 危险操作：删除本机身份。拆自原本挤在同一页的设定。
 class DangerSettingsPage extends ConsumerWidget {
   const DangerSettingsPage({super.key});
 

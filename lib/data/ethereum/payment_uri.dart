@@ -1,11 +1,11 @@
 import '../models/chain.dart';
 import 'tx_service.dart';
 
-/// 掃碼解析出的付款請求（原生代幣轉帳）。
+/// 扫码解析出的付款请求（原生代币转帐）。
 ///
-/// 只涵蓋原生代幣（ETH / TRX）：ERC-681 的代幣轉帳會帶
-/// `function=transfer`，超出本錢包範圍，一律不解析，避免使用者
-/// 以為在轉 ETH 卻送出別的東西。
+/// 只涵盖原生代币（ETH / TRX）：ERC-681 的代币转帐会带
+/// `function=transfer`，超出本钱包范围，一律不解析，避免使用者
+/// 以为在转 ETH 却送出别的东西。
 class PaymentRequest {
   const PaymentRequest({
     required this.chain,
@@ -14,29 +14,29 @@ class PaymentRequest {
     this.requestChainId,
   });
 
-  /// URI 指定的鏈（`ethereum:` / `tron:` / `besu:`）。
+  /// URI 指定的链（`ethereum:` / `tron:` / `besu:`）。
   final ChainType chain;
 
   final String address;
 
-  /// 金額，人類可讀單位（ETH / TRX）。URI 未帶金額則為 null。
+  /// 金额，人类可读单位（ETH / TRX）。URI 未带金额则为 null。
   final double? amount;
 
   /// EIP-681 的 `@chainId`（`ethereum:0x…@1`）。
   ///
-  /// 解析時會與 scheme 指出的鏈比對，兩者矛盾就整包拒絕（見 [PaymentUri.parse]）。
+  /// 解析时会与 scheme 指出的链比对，两者矛盾就整包拒绝（见 [PaymentUri.parse]）。
   final int? requestChainId;
 }
 
-/// 支付 URI 解析（ERC-681 / EIP-681 與 TRON 的 `tron:` 形式）。
+/// 支付 URI 解析（ERC-681 / EIP-681 与 TRON 的 `tron:` 形式）。
 ///
 /// 支援的形式：
 /// - `ethereum:0xabc…?value=1000000000000000000`
-/// - `ethereum:0xabc…@1?value=0.5`（帶 chainId）
+/// - `ethereum:0xabc…@1?value=0.5`（带 chainId）
 /// - `tron:T…?amount=100`
 /// - `besu:0xabc…?value=1e18`
 ///
-/// 不支援代幣轉帳（帶 `function` / `uint256` 參數者一律回傳 null）。
+/// 不支援代币转帐（带 `function` / `uint256` 参数者一律回传 null）。
 abstract final class PaymentUri {
   static final RegExp _pattern =
       RegExp(r'^([a-zA-Z][a-zA-Z0-9+.\-]{1,15}):(.+)$');
@@ -45,7 +45,7 @@ abstract final class PaymentUri {
     r'^(0x[0-9a-fA-F]{40}|T[1-9A-HJ-NP-Za-km-z]{33})$',
   );
 
-  /// scheme → 鏈。與收款頁產生的 QR Code（用 [ChainType.id] 當 scheme）對應。
+  /// scheme → 链。与收款页产生的 QR Code（用 [ChainType.id] 当 scheme）对应。
   static ChainType? _chainOf(String scheme) => switch (scheme) {
         'tron' => ChainType.tron,
         'ethereum' || 'eth' => ChainType.ethereum,
@@ -56,7 +56,7 @@ abstract final class PaymentUri {
         _ => null,
       };
 
-  /// 解析帶 scheme 的支付 URI；不是支付 URI 或內容不合法時回傳 null。
+  /// 解析带 scheme 的支付 URI；不是支付 URI 或内容不合法时回传 null。
   static PaymentRequest? parse(String raw) {
     final text = raw.trim();
     if (text.isEmpty || text.contains(RegExp(r'\s'))) return null;
@@ -71,23 +71,23 @@ abstract final class PaymentUri {
     final head = question < 0 ? rest : rest.substring(0, question);
     final query = question < 0 ? '' : rest.substring(question + 1);
 
-    // EIP-681 允許在地址後以 `@chainId` 標註鏈。
+    // EIP-681 允许在地址后以 `@chainId` 标注链。
     final at = head.indexOf('@');
     final address = at < 0 ? head : head.substring(0, at);
     final chainId = at < 0 ? null : int.tryParse(head.substring(at + 1));
 
     if (!TxService.isValidAddress(chain, address)) return null;
 
-    // scheme 與 `@chainId` 必須互相一致。兩者矛盾時無從判斷這筆該走哪條鏈
-    // （例如 `ethereum:0x…@8453`），寧可整包拒絕，也不要讓使用者在錯的
-    // 網路上送出。chainId 由部署決定的鏈（Besu / TRON）為 null，無法比對。
+    // scheme 与 `@chainId` 必须互相一致。两者矛盾时无从判断这笔该走哪条链
+    // （例如 `ethereum:0x…@8453`），宁可整包拒绝，也不要让使用者在错的
+    // 网路上送出。chainId 由部署决定的链（Besu / TRON）为 null，无法比对。
     final expectedChainId = ChainConfig.of(chain).expectedChainId;
     if (chainId != null && expectedChainId != null && chainId != expectedChainId) {
       return null;
     }
 
     final params = _query(query);
-    // 代幣轉帳不在支援範圍內。
+    // 代币转帐不在支援范围内。
     if (params.containsKey('function') || params.containsKey('uint256')) {
       return null;
     }
@@ -99,9 +99,9 @@ abstract final class PaymentUri {
     );
   }
 
-  /// 解析「只印地址」的收款碼。
+  /// 解析「只印地址」的收款码。
   ///
-  /// [chain] 指定時會以該鏈的格式驗證；未指定則由地址外觀推斷
+  /// [chain] 指定时会以该链的格式验证；未指定则由地址外观推断
   /// （0x → EVM，T → TRON）。
   static PaymentRequest? fromAddress(String raw, {ChainType? chain}) {
     final text = raw.trim();
@@ -116,7 +116,7 @@ abstract final class PaymentUri {
     return PaymentRequest(chain: inferred, address: text);
   }
 
-  /// 掃碼內容 → 付款請求（支付 URI 優先，其次純地址）。
+  /// 扫码内容 → 付款请求（支付 URI 优先，其次纯地址）。
   static PaymentRequest? fromScan(String raw, {ChainType? chain}) =>
       parse(raw) ?? fromAddress(raw, chain: chain);
 
@@ -125,31 +125,31 @@ abstract final class PaymentUri {
     try {
       return Uri.splitQueryString(query);
     } catch (_) {
-      // query 編碼不合法時，寧可拿不到金額也不要讓整頁壞掉。
+      // query 编码不合法时，宁可拿不到金额也不要让整页坏掉。
       return const <String, String>{};
     }
   }
 
-  /// 金額換算：EVM 的 `value` 以 wei 為單位，TRON 的 `amount` 以 sun 為單位。
+  /// 金额换算：EVM 的 `value` 以 wei 为单位，TRON 的 `amount` 以 sun 为单位。
   ///
-  /// 單位的判定依據是**字面形式**，不是數量級。舊實作拿「是否大於 1 gwei」
-  /// 來猜，會把 `value=5` 這種合法的 wei 值誤讀成 5 顆幣（放大 1e18 倍），
-  /// 是實實在在的資金風險。規範上 ERC-681 的 `value` 就是整數 wei，因此：
+  /// 单位的判定依据是**字面形式**，不是数量级。旧实作拿「是否大于 1 gwei」
+  /// 来猜，会把 `value=5` 这种合法的 wei 值误读成 5 颗币（放大 1e18 倍），
+  /// 是实实在在的资金风险。规范上 ERC-681 的 `value` 就是整数 wei，因此：
   ///
-  /// - **含小數點** → 人類可讀單位（規範不允許，但實務上常見且語意明確）；
-  /// - **其餘**（十進位整數、科學記號、`0x` 十六進位）→ wei / sun，依規範。
+  /// - **含小数点** → 人类可读单位（规范不允许，但实务上常见且语意明确）；
+  /// - **其余**（十进位整数、科学记号、`0x` 十六进位）→ wei / sun，依规范。
   static double? _amount(ChainType chain, String? raw) {
     final text = raw?.trim() ?? '';
     if (text.isEmpty) return null;
     final lower = text.toLowerCase();
 
-    // 人類可讀：本身就是幣的數量，不再換算。
+    // 人类可读：本身就是币的数量，不再换算。
     if (text.contains('.')) {
       final value = double.tryParse(text);
       return (value == null || value <= 0) ? null : value;
     }
 
-    // 整數（含科學記號與十六進位）→ 最小單位。
+    // 整数（含科学记号与十六进位）→ 最小单位。
     final value = lower.startsWith('0x')
         ? BigInt.tryParse(lower.substring(2), radix: 16)?.toDouble()
         : BigInt.tryParse(text)?.toDouble() ?? double.tryParse(text);

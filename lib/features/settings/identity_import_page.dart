@@ -9,8 +9,8 @@ import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
 import '../security/password_fields.dart';
 
-/// 身份管理：檢視 / 備份身份，以及以私鑰取代目前的身份。
-/// 拆自原本擠在同一頁的「身份」區塊。
+/// 身份管理：检视 / 备份身份，以及以私钥取代目前的身份。
+/// 拆自原本挤在同一页的「身份」区块。
 class IdentityImportPage extends ConsumerStatefulWidget {
   const IdentityImportPage({super.key});
 
@@ -19,10 +19,10 @@ class IdentityImportPage extends ConsumerStatefulWidget {
 }
 
 class _IdentityImportPageState extends ConsumerState<IdentityImportPage> {
-  /// 以私鑰取代目前身份：先警告後輸入，成功則提示並要求重新發布金鑰。
+  /// 以私钥取代目前身份：先警告后输入，成功则提示并要求重新发布金钥。
   ///
-  /// 換身份會讓 DID 改變，舊對話不會消失但對方需要重新認識新 DID，因此這裡
-  /// 明確告知使用者。
+  /// 换身份会让 DID 改变，旧对话不会消失但对方需要重新认识新 DID，因此这里
+  /// 明确告知使用者。
   Future<void> _confirmImportPrivateKey() async {
     final s = context.s;
     final confirmed = await showDialog<bool>(
@@ -53,14 +53,14 @@ class _IdentityImportPageState extends ConsumerState<IdentityImportPage> {
     String? passwordError;
     var busy = false;
 
-    // 用 StatefulBuilder 讓對話框內部能自行 setState（輸入驗證 / 載入狀態）。
+    // 用 StatefulBuilder 让对话框内部能自行 setState（输入验证 / 载入状态）。
     final imported = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           Future<void> submit() async {
-            // 新的身份必須有密碼保護 —— 否則等於又把私鑰明文寫回本地儲存。
+            // 新的身份必须有密码保护 —— 否则等于又把私钥明文写回本地储存。
             final passwordCode = validateNewPassword(
               password: passwordController.text,
               confirm: confirmController.text,
@@ -163,7 +163,7 @@ class _IdentityImportPageState extends ConsumerState<IdentityImportPage> {
     confirmController.dispose();
     if (imported != true || !mounted) return;
 
-    // 新身份的金鑰包需重新發布，否則聯絡人無法加密訊息給自己。
+    // 新身份的金钥包需重新发布，否则联络人无法加密讯息给自己。
     await ref.read(chatControllerProvider.notifier).publishKeys();
     if (!mounted) return;
     showAppSnack(context, s.restoreSuccess);

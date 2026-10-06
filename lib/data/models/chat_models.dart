@@ -3,21 +3,21 @@ import 'package:flutter/material.dart' show Color;
 
 import '../crypto/did.dart';
 
-/// 一則聊天訊息的傳遞狀態。
+/// 一则聊天讯息的传递状态。
 enum MessageStatus {
-  /// 已交給傳輸層，尚未確認。
+  /// 已交给传输层，尚未确认。
   sending('sending'),
 
-  /// 已發布到 Waku。
+  /// 已发布到 Waku。
   sent('sent'),
 
-  /// 對方已收到（保留欄位）。
+  /// 对方已收到（保留栏位）。
   delivered('delivered'),
 
-  /// 對方已讀。
+  /// 对方已读。
   read('read'),
 
-  /// 發送失敗。
+  /// 发送失败。
   failed('failed');
 
   const MessageStatus(this.value);
@@ -32,15 +32,15 @@ enum MessageStatus {
   }
 }
 
-/// 訊息的內容種類。
+/// 讯息的内容种类。
 enum MediaKind {
-  /// 純文字。
+  /// 纯文字。
   text('text'),
 
-  /// 圖片（JPEG/PNG，已加密）。
+  /// 图片（JPEG/PNG，已加密）。
   image('image'),
 
-  /// 語音訊息（AAC/Opus 等，已加密）。
+  /// 语音讯息（AAC/Opus 等，已加密）。
   audio('audio');
 
   const MediaKind(this.value);
@@ -55,7 +55,7 @@ enum MediaKind {
   }
 }
 
-/// 本地保存的訊息。
+/// 本地保存的讯息。
 @immutable
 class ChatMessage {
   const ChatMessage({
@@ -75,13 +75,13 @@ class ChatMessage {
     this.senderDid,
   });
 
-  /// 封包 ID（同時作為去重鍵）。
+  /// 封包 ID（同时作为去重键）。
   final String id;
 
-  /// 對方的 DID（= 對話 ID）。
+  /// 对方的 DID（= 对话 ID）。
   final String peerDid;
 
-  /// 文字內容；圖片/語音時為選用說明（caption）。
+  /// 文字内容；图片/语音时为选用说明（caption）。
   final String text;
 
   final int timestampMs;
@@ -90,28 +90,28 @@ class ChatMessage {
 
   final MessageStatus status;
 
-  /// 失敗原因（若有）。
+  /// 失败原因（若有）。
   final String? error;
 
-  /// 內容種類。
+  /// 内容种类。
   final MediaKind kind;
 
-  /// 媒體原始 bytes 的 Base64（圖片/語音）。文字訊息為 null。
+  /// 媒体原始 bytes 的 Base64（图片/语音）。文字讯息为 null。
   final String? mediaB64;
 
-  /// 媒體 MIME，例如 image/jpeg、audio/aac。
+  /// 媒体 MIME，例如 image/jpeg、audio/aac。
   final String? mediaMime;
 
-  /// 語音時長（毫秒）。
+  /// 语音时长（毫秒）。
   final int? mediaDurationMs;
 
-  /// 原始檔名（若有）。
+  /// 原始档名（若有）。
   final String? mediaName;
 
-  /// 撤回時間（毫秒）。非 null 表示這則訊息已被撤回，內容不再顯示。
+  /// 撤回时间（毫秒）。非 null 表示这则讯息已被撤回，内容不再显示。
   final int? recalledAtMs;
 
-  /// 群組訊息的發送者 DID（一對一訊息為 null，由 [peerDid] 隱含）。
+  /// 群组讯息的发送者 DID（一对一讯息为 null，由 [peerDid] 隐含）。
   final String? senderDid;
 
   DateTime get timestamp =>
@@ -193,7 +193,7 @@ class ChatMessage {
   }
 }
 
-/// 一個聯絡人。
+/// 一个联络人。
 @immutable
 class Contact {
   const Contact({
@@ -209,17 +209,17 @@ class Contact {
 
   final String did;
 
-  /// 顯示名稱（暱稱 → ENS → 短地址）。
+  /// 显示名称（暱称 → ENS → 短地址）。
   final String name;
 
   final String? ens;
 
-  /// 對方的 X25519 公鑰（取得後才能加密訊息）。
+  /// 对方的 X25519 公钥（取得后才能加密讯息）。
   final String? encPublicKeyB64;
 
   final int? addedAtMs;
 
-  /// 是否為內建示範帳號。
+  /// 是否为内建示范帐号。
   final bool isDemo;
 
   final int? accentValue;
@@ -228,7 +228,7 @@ class Contact {
 
   bool get hasKey => encPublicKeyB64 != null && encPublicKeyB64!.isNotEmpty;
 
-  /// 頭像底色：示範帳號用指定色，其餘由 DID 派生。
+  /// 头像底色：示范帐号用指定色，其余由 DID 派生。
   Color get accent {
     if (accentValue != null) return Color(accentValue!);
     const palette = <Color>[
@@ -246,7 +246,7 @@ class Contact {
     return palette[hash % palette.length];
   }
 
-  /// 頭像文字。
+  /// 头像文字。
   String get initials {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return Did.shortAddress(did).substring(2, 4);
@@ -307,7 +307,7 @@ class Contact {
   }
 }
 
-/// 對話列表中的一筆。
+/// 对话列表中的一笔。
 @immutable
 class Conversation {
   const Conversation({
@@ -322,7 +322,7 @@ class Conversation {
     this.lastMedia,
   });
 
-  /// 與 [peerDid] 相同，方便直接作為 key。
+  /// 与 [peerDid] 相同，方便直接作为 key。
   final String peerDid;
 
   final String title;
@@ -340,7 +340,7 @@ class Conversation {
   /// 尚未送出的草稿。
   final String draft;
 
-  /// 最後一則訊息的媒體種類（'image' / 'audio' / null），用於列表預覽。
+  /// 最后一则讯息的媒体种类（'image' / 'audio' / null），用于列表预览。
   final String? lastMedia;
 
   String get id => peerDid;

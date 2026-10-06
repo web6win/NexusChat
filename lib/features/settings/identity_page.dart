@@ -13,10 +13,10 @@ import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
 import '../security/password_fields.dart';
 
-/// 身份頁：DID 細節與助記詞備份。
+/// 身份页：DID 细节与助记词备份。
 ///
-/// 顯示助記詞或私鑰**必須先輸入密碼**，且顯示後會倒數自動隱藏 ——
-/// 避免有人在你離開座位時直接打開這個頁面抄走助記詞。
+/// 显示助记词或私钥**必须先输入密码**，且显示后会倒数自动隐藏 ——
+/// 避免有人在你离开座位时直接打开这个页面抄走助记词。
 class IdentityPage extends ConsumerStatefulWidget {
   const IdentityPage({super.key});
 
@@ -30,10 +30,10 @@ class _IdentityPageState extends ConsumerState<IdentityPage>
   Timer? _hideTimer;
   int _hideLeft = 0;
 
-  /// 複製敏感資料後負責清空剪貼簿的計時器。
+  /// 复制敏感资料后负责清空剪贴簿的计时器。
   ///
-  /// 刻意**不在 dispose 時取消**：即使使用者立刻離開頁面，留在剪貼簿裡的
-  /// 助記詞仍要清掉，那才是這個機制的用意。
+  /// 刻意**不在 dispose 时取消**：即使使用者立刻离开页面，留在剪贴簿里的
+  /// 助记词仍要清掉，那才是这个机制的用意。
   Timer? _clipboardTimer;
 
   @override
@@ -49,10 +49,10 @@ class _IdentityPageState extends ConsumerState<IdentityPage>
     super.dispose();
   }
 
-  /// 進入背景時立刻收起敏感內容。
+  /// 进入背景时立刻收起敏感内容。
   ///
-  /// 系統會替背景中的 App 產生縮圖（工作切換器／多工畫面），助記詞若還
-  /// 顯示在畫面上，等於被寫進磁碟、也可能出現在螢幕錄影裡。
+  /// 系统会替背景中的 App 产生缩图（工作切换器／多工画面），助记词若还
+  /// 显示在画面上，等于被写进磁碟、也可能出现在萤幕录影里。
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.paused &&
@@ -73,11 +73,11 @@ class _IdentityPageState extends ConsumerState<IdentityPage>
     showAppSnack(context, context.s.copied);
   }
 
-  /// 複製**敏感資料**（助記詞 / 私鑰）並排定自動清空剪貼簿。
+  /// 复制**敏感资料**（助记词 / 私钥）并排定自动清空剪贴簿。
   ///
-  /// 剪貼簿可能被雲端同步（跨裝置貼上）或被剪貼簿管理器長期留存，
-  /// 助記詞一旦留在裡面，風險等同於明文外洩。這裡在逾時後清空，且只清
-  /// 「內容仍然是剛才那份」的情況，避免把使用者新複製的東西一併清掉。
+  /// 剪贴簿可能被云端同步（跨装置贴上）或被剪贴簿管理器长期留存，
+  /// 助记词一旦留在里面，风险等同于明文外泄。这里在逾时后清空，且只清
+  /// 「内容仍然是刚才那份」的情况，避免把使用者新复制的东西一并清掉。
   Future<void> _copySecret(String value) async {
     await Clipboard.setData(ClipboardData(text: value));
     if (!mounted) return;
@@ -91,9 +91,9 @@ class _IdentityPageState extends ConsumerState<IdentityPage>
     });
   }
 
-  /// 切換敏感內容的顯示狀態。
+  /// 切换敏感内容的显示状态。
   ///
-  /// 由隱藏轉為顯示時要求重新輸入密碼；由顯示轉為隱藏則直接關閉。
+  /// 由隐藏转为显示时要求重新输入密码；由显示转为隐藏则直接关闭。
   Future<void> _toggleReveal() async {
     if (_revealed) {
       _hideTimer?.cancel();
@@ -123,7 +123,7 @@ class _IdentityPageState extends ConsumerState<IdentityPage>
     _showSecrets();
   }
 
-  /// 顯示敏感內容並啟動自動隱藏倒數。
+  /// 显示敏感内容并启动自动隐藏倒数。
   void _showSecrets() {
     final seconds = ref.read(securityProvider).hideSecretsAfterSeconds;
     _hideTimer?.cancel();
@@ -282,7 +282,7 @@ class _IdentityPageState extends ConsumerState<IdentityPage>
                 ),
               ),
               const SizedBox(height: 16),
-              // ------------------------------------------------------ 金鑰
+              // ------------------------------------------------------ 金钥
               SectionCard(
                 title: s.identityEncKey,
                 child: Column(
@@ -305,7 +305,7 @@ class _IdentityPageState extends ConsumerState<IdentityPage>
                       subtitle: identity.encPublicKeyB64,
                       onTap: () => _copy(identity.encPublicKeyB64),
                     ),
-                    // 私鑰匯入的身份可直接複製私鑰做備份（助記詞身份則靠助記詞）。
+                    // 私钥汇入的身份可直接复制私钥做备份（助记词身份则靠助记词）。
                     if (!identity.hasMnemonic)
                       SettingsTile(
                         icon: Icons.key_rounded,
@@ -321,7 +321,7 @@ class _IdentityPageState extends ConsumerState<IdentityPage>
                   ],
                 ),
               ),
-              // ------------------------------------------------------ 備份
+              // ------------------------------------------------------ 备份
               SectionCard(
                 title: s.identityBackup,
                 padding: const EdgeInsets.all(16),
@@ -369,7 +369,7 @@ class _IdentityPageState extends ConsumerState<IdentityPage>
                         ),
                       )
                     else
-                      // 私鑰匯入的身份沒有助記詞，備份對象就是私鑰本身。
+                      // 私钥汇入的身份没有助记词，备份对象就是私钥本身。
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
@@ -399,8 +399,8 @@ class _IdentityPageState extends ConsumerState<IdentityPage>
                           ],
                         ),
                       ),
-                    // 有密碼短語時一定要跟著備份：少了它，助記詞會還原成
-                    // 另一個身份，而且完全不會有任何錯誤提示。
+                    // 有密码短语时一定要跟著备份：少了它，助记词会还原成
+                    // 另一个身份，而且完全不会有任何错误提示。
                     if (_revealed && identity.hasPassphrase) ...<Widget>[
                       const SizedBox(height: 14),
                       Text(
@@ -493,7 +493,7 @@ class _IdentityPageState extends ConsumerState<IdentityPage>
   }
 }
 
-/// 敏感內容顯示中的自動隱藏倒數提示。
+/// 敏感内容显示中的自动隐藏倒数提示。
 class _AutoHideNotice extends StatelessWidget {
   const _AutoHideNotice({required this.secondsLeft});
 
@@ -522,9 +522,9 @@ class _AutoHideNotice extends StatelessWidget {
   }
 }
 
-/// 匯出敏感資料前的密碼驗證對話框。
+/// 汇出敏感资料前的密码验证对话框。
 ///
-/// 回傳輸入的密碼；取消時回傳 `null`。
+/// 回传输入的密码；取消时回传 `null`。
 class _PasswordPromptDialog extends StatefulWidget {
   const _PasswordPromptDialog({required this.title, required this.desc});
 

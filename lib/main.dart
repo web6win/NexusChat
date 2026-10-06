@@ -17,7 +17,7 @@ Future<void> main() async {
     DeviceOrientation.landscapeRight,
   ]);
 
-  // 只載入設定與公開提示；秘密要等使用者在鎖屏輸入密碼才會進入記憶體。
+  // 只载入设定与公开提示；秘密要等使用者在锁屏输入密码才会进入记忆体。
   final core = await Core.bootstrap();
 
   runApp(
@@ -28,7 +28,7 @@ Future<void> main() async {
   );
 }
 
-/// 應用程式根元件：主題、語系、路由，以及**閒置自動鎖定**的輸入監聽。
+/// 应用程式根元件：主题、语系、路由，以及**闲置自动锁定**的输入监听。
 class NexusChatApp extends ConsumerStatefulWidget {
   const NexusChatApp({super.key});
 
@@ -39,14 +39,14 @@ class NexusChatApp extends ConsumerStatefulWidget {
 class _NexusChatAppState extends ConsumerState<NexusChatApp> {
   late final AppLifecycleListener _lifecycle;
 
-  /// 鍵盤事件處理器：讓「只用鍵盤」的操作也能延後自動鎖定。
+  /// 键盘事件处理器：让「只用键盘」的操作也能延后自动锁定。
   late final KeyEventCallback _keyHandler;
 
   @override
   void initState() {
     super.initState();
 
-    // 頁面切到背景時（若使用者開啟 lockOnHide）立即鎖定。
+    // 页面切到背景时（若使用者开启 lockOnHide）立即锁定。
     _lifecycle = AppLifecycleListener(
       onHide: () => ref.read(sessionProvider.notifier).onAppHidden(),
       onPause: () => ref.read(sessionProvider.notifier).onAppHidden(),
@@ -56,7 +56,7 @@ class _NexusChatAppState extends ConsumerState<NexusChatApp> {
       if (event is KeyDownEvent) {
         ref.read(sessionProvider.notifier).noteActivity();
       }
-      // 回傳 false 表示不消費事件，讓它繼續傳遞給其他處理器。
+      // 回传 false 表示不消费事件，让它继续传递给其他处理器。
       return false;
     };
     HardwareKeyboard.instance.addHandler(_keyHandler);
@@ -77,7 +77,7 @@ class _NexusChatAppState extends ConsumerState<NexusChatApp> {
     final settings = ref.watch(settingsProvider);
     final locale = ref.watch(localeProvider);
 
-    // 指標與鍵盤活動都會重置閒置計時器（控制器內部已做 10 秒節流）。
+    // 指标与键盘活动都会重置闲置计时器（控制器内部已做 10 秒节流）。
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (_) => _noteActivity(),

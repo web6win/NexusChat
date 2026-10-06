@@ -12,11 +12,11 @@ import '../../core/utils/hex.dart';
 import 'did.dart';
 import 'tron_address.dart';
 
-/// 一組完整的本地身份：助記詞 → BIP39 種子 → BIP32 派生 → 以太坊金鑰 + DID。
+/// 一组完整的本地身份：助记词 → BIP39 种子 → BIP32 派生 → 以太坊金钥 + DID。
 ///
-/// 派生路徑：
-/// - `m/44'/60'/0'/0/0`：以太坊帳戶（同時決定 did:ethr 身份）
-/// - `m/10016'/0'`：NexusChat 專用的 X25519 訊息加密金鑰（與 EVM 帳戶路徑隔離）
+/// 派生路径：
+/// - `m/44'/60'/0'/0/0`：以太坊帐户（同时决定 did:ethr 身份）
+/// - `m/10016'/0'`：NexusChat 专用的 X25519 讯息加密金钥（与 EVM 帐户路径隔离）
 @immutable
 class AppIdentity {
   const AppIdentity({
@@ -32,41 +32,41 @@ class AppIdentity {
     required this.createdAt,
   });
 
-  /// BIP39 助記詞（12 / 24 個單字）。
+  /// BIP39 助记词（12 / 24 个单字）。
   final String mnemonic;
 
   /// `did:ethr:0x...`
   final String did;
 
-  /// 以太坊地址（小寫，含 0x）。
+  /// 以太坊地址（小写，含 0x）。
   final String address;
 
-  /// TRON 地址（T 開頭 Base58Check）。
-  /// 由同一把 secp256k1 公鑰派生，與 [address] 指向同一個帳戶。
+  /// TRON 地址（T 开头 Base58Check）。
+  /// 由同一把 secp256k1 公钥派生，与 [address] 指向同一个帐户。
   final String tronAddress;
 
-  /// secp256k1 私鑰（hex，不含 0x）。
+  /// secp256k1 私钥（hex，不含 0x）。
   final String ethPrivateHex;
 
-  /// secp256k1 公鑰（64 位元組未壓縮表示不含前綴，hex）。
+  /// secp256k1 公钥（64 位元组未压缩表示不含前缀，hex）。
   final String ethPublicHex;
 
-  /// X25519 加密金鑰種子（32 位元組，hex）。
+  /// X25519 加密金钥种子（32 位元组，hex）。
   final String encSeedHex;
 
-  /// X25519 公鑰（Base64），會發布到 Waku 供他人加密訊息給自己。
+  /// X25519 公钥（Base64），会发布到 Waku 供他人加密讯息给自己。
   final String encPublicKeyB64;
 
-  /// BIP39 密碼短語（第 13 / 25 個詞），可為空。
+  /// BIP39 密码短语（第 13 / 25 个词），可为空。
   ///
-  /// 助記詞 + 密碼短語共同決定 BIP39 種子：**同一組助記詞配上不同短語，
-  /// 會得到完全不同的身份**。它與助記詞同等重要，必須一起備份；
-  /// 這裡視為秘密材料，只寫進保險庫的密文裡。
+  /// 助记词 + 密码短语共同决定 BIP39 种子：**同一组助记词配上不同短语，
+  /// 会得到完全不同的身份**。它与助记词同等重要，必须一起备份；
+  /// 这里视为秘密材料，只写进保险库的密文里。
   final String passphrase;
 
   final DateTime createdAt;
 
-  /// 熵強度 128 → 12 個助記詞。
+  /// 熵强度 128 → 12 个助记词。
   static Future<AppIdentity> generate({
     int strength = 128,
     String passphrase = '',
@@ -75,9 +75,9 @@ class AppIdentity {
     return fromMnemonic(mnemonic, passphrase: passphrase);
   }
 
-  /// 由助記詞重建身份；助記詞無效時拋出 [FormatException]。
+  /// 由助记词重建身份；助记词无效时抛出 [FormatException]。
   ///
-  /// [passphrase] 為 BIP39 的可選密碼短語（區分大小寫與空白）。
+  /// [passphrase] 为 BIP39 的可选密码短语（区分大小写与空白）。
   static Future<AppIdentity> fromMnemonic(
     String mnemonic, {
     String passphrase = '',
@@ -117,15 +117,15 @@ class AppIdentity {
     );
   }
 
-  /// 由既有私鑰（hex）建立身份，用於匯入外部錢包 / 硬體錢包 / 外部簽章器。
+  /// 由既有私钥（hex）建立身份，用于汇入外部钱包 / 硬体钱包 / 外部签章器。
   ///
-  /// 接受 32 位元組（64 個 hex 字元）的 secp256k1 私鑰，可帶 `0x` 前綴。
-  /// 格式不合法或超出曲線階（N）時拋出 [FormatException]。
+  /// 接受 32 位元组（64 个 hex 字元）的 secp256k1 私钥，可带 `0x` 前缀。
+  /// 格式不合法或超出曲线阶（N）时抛出 [FormatException]。
   static Future<AppIdentity> fromPrivateKeyHex(String privateHex) async {
     final keyBytes = _parsePrivateKey(privateHex);
     final key = EthPrivateKey(keyBytes);
     final address = '0x${Hex.encode(key.address.addressBytes)}';
-    // 以私鑰本身派生一組穩定的加密種子，確保每次結果一致。
+    // 以私钥本身派生一组稳定的加密种子，确保每次结果一致。
     final encSeed = Uint8List.fromList(
       (await Sha256().hash(keyBytes + utf8.encode('nexuschat/enc/v1'))).bytes,
     );
@@ -143,21 +143,21 @@ class AppIdentity {
       ethPublicHex: Hex.encode(privateKeyToPublic(key.privateKeyInt)),
       encSeedHex: Hex.encode(encSeed),
       encPublicKeyB64: B64.encode(encPub.bytes),
-      // 私鑰匯入沒有助記詞，自然也沒有密碼短語。
+      // 私钥汇入没有助记词，自然也没有密码短语。
       passphrase: '',
       createdAt: DateTime.now().toUtc(),
     );
   }
 
-  /// secp256k1 曲線階（N）。私鑰必須落在 `[1, N-1]`。
+  /// secp256k1 曲线阶（N）。私钥必须落在 `[1, N-1]`。
   static final BigInt _curveOrder = BigInt.parse(
     'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141',
     radix: 16,
   );
 
-  /// 寬鬆解析私鑰：容許 `0x` 前綴、空白與大小寫，並驗證長度與範圍。
+  /// 宽松解析私钥：容许 `0x` 前缀、空白与大小写，并验证长度与范围。
   ///
-  /// 回傳 32 位元組的私鑰；不合法時拋出 [FormatException]。
+  /// 回传 32 位元组的私钥；不合法时抛出 [FormatException]。
   static Uint8List _parsePrivateKey(String privateHex) {
     var value = privateHex.trim().replaceAll(RegExp(r'\s+'), '');
     if (value.startsWith('0x') || value.startsWith('0X')) {
@@ -166,7 +166,7 @@ class AppIdentity {
     if (value.isEmpty || !RegExp(r'^[0-9a-fA-F]+$').hasMatch(value)) {
       throw const FormatException('private key must be hexadecimal');
     }
-    // 64 個 hex 字元 = 32 位元組；允許前導零被截短，但不可超過。
+    // 64 个 hex 字元 = 32 位元组；允许前导零被截短，但不可超过。
     if (value.length > 64) {
       throw const FormatException('private key too long');
     }
@@ -178,7 +178,7 @@ class AppIdentity {
     return Hex.decode(padded);
   }
 
-  /// 檢查私鑰字串是否可匯入（供 UI 即時驗證用）。
+  /// 检查私钥字串是否可汇入（供 UI 即时验证用）。
   static bool isValidPrivateKey(String privateHex) {
     try {
       _parsePrivateKey(privateHex);
@@ -188,16 +188,16 @@ class AppIdentity {
     }
   }
 
-  /// 由私鑰推導對應的以太坊地址（小寫含 `0x`）。
+  /// 由私钥推导对应的以太坊地址（小写含 `0x`）。
   ///
-  /// 供匯入頁做即時預覽，比 [fromPrivateKeyHex] 輕量——不做 X25519 派生。
-  /// 私鑰不合法時拋出 [FormatException]。
+  /// 供汇入页做即时预览，比 [fromPrivateKeyHex] 轻量——不做 X25519 派生。
+  /// 私钥不合法时抛出 [FormatException]。
   static String addressFromPrivateKey(String privateHex) {
     final key = EthPrivateKey(_parsePrivateKey(privateHex));
     return '0x${Hex.encode(key.address.addressBytes)}';
   }
 
-  /// 左側補零至 32 位元組，避免 BIP32 丟棄前導零。
+  /// 左侧补零至 32 位元组，避免 BIP32 丢弃前导零。
   static Uint8List _pad32(Uint8List input) {
     if (input.length == 32) return input;
     final out = Uint8List(32);
@@ -214,7 +214,7 @@ class AppIdentity {
         'ethPublicHex': ethPublicHex,
         'encSeedHex': encSeedHex,
         'encPublicKeyB64': encPublicKeyB64,
-        // 秘密材料：只會出現在保險庫的密文裡，絕不進公開提示。
+        // 秘密材料：只会出现在保险库的密文里，绝不进公开提示。
         'passphrase': passphrase,
         'createdAt': createdAt.toIso8601String(),
       };
@@ -223,7 +223,7 @@ class AppIdentity {
     final created = json['createdAt'];
     final ethPublicHex = json['ethPublicHex'] as String;
     final savedTron = json['tronAddress'];
-    // 兼容舊版備份：若沒有 tronAddress，就用公鑰即時派生。
+    // 兼容旧版备份：若没有 tronAddress，就用公钥即时派生。
     final tronAddress = savedTron is String && savedTron.isNotEmpty
         ? savedTron
         : TronAddress.fromPublicKeyHex(ethPublicHex);
@@ -236,7 +236,7 @@ class AppIdentity {
       ethPublicHex: ethPublicHex,
       encSeedHex: json['encSeedHex'] as String,
       encPublicKeyB64: json['encPublicKeyB64'] as String,
-      // 舊版密文沒有這個欄位，視為未使用密碼短語。
+      // 旧版密文没有这个栏位，视为未使用密码短语。
       passphrase: (json['passphrase'] ?? '') as String,
       createdAt: created is String
           ? DateTime.tryParse(created) ?? DateTime.now().toUtc()
@@ -244,30 +244,30 @@ class AppIdentity {
     );
   }
 
-  /// 是否具備可備份的助記詞（私鑰匯入的身份沒有）。
+  /// 是否具备可备份的助记词（私钥汇入的身份没有）。
   bool get hasMnemonic => mnemonic.isNotEmpty;
 
-  /// 是否使用 BIP39 密碼短語。
+  /// 是否使用 BIP39 密码短语。
   ///
-  /// 只有助記詞身份才可能帶短語；備份時必須連同短語一起保存，
-  /// 少了它，助記詞會還原出**另一個**身份。
+  /// 只有助记词身份才可能带短语；备份时必须连同短语一起保存，
+  /// 少了它，助记词会还原出**另一个**身份。
   bool get hasPassphrase => hasMnemonic && passphrase.isNotEmpty;
 
-  /// 是否持有可簽章 / 解密的秘密材料。
+  /// 是否持有可签章 / 解密的秘密材料。
   ///
-  /// 用於「公開提示」物件：只描述身份而不含任何秘密，鎖屏時也能安全顯示。
+  /// 用于「公开提示」物件：只描述身份而不含任何秘密，锁屏时也能安全显示。
   bool get hasSecrets => ethPrivateHex.isNotEmpty && encSeedHex.isNotEmpty;
 
-  /// 完整序列化（**含助記詞與私鑰**）。
+  /// 完整序列化（**含助记词与私钥**）。
   ///
-  /// 這份 JSON 只允許寫進經過 [Vault] 加密的密文裡，絕不可明文落地。
+  /// 这份 JSON 只允许写进经过 [Vault] 加密的密文里，绝不可明文落地。
   Map<String, dynamic> toSecretJson() => toJson();
 
-  /// 公開提示：僅含對外可見、本來就會發布到網路的資訊。
+  /// 公开提示：仅含对外可见、本来就会发布到网路的资讯。
   ///
-  /// 用途是在「尚未解鎖」的狀態下判斷身份是否存在、顯示帳戶地址、
-  /// 以及決定路由。這些欄位即使被讀走也不構成洩漏 ——
-  /// `did` 與 `address` 本來就是公開識別碼，`encPublicKeyB64` 也會廣播給聯絡人。
+  /// 用途是在「尚未解锁」的状态下判断身份是否存在、显示帐户地址、
+  /// 以及决定路由。这些栏位即使被读走也不构成泄漏 ——
+  /// `did` 与 `address` 本来就是公开识别码，`encPublicKeyB64` 也会广播给联络人。
   Map<String, dynamic> toHintJson() => <String, dynamic>{
         'did': did,
         'address': address,
@@ -277,7 +277,7 @@ class AppIdentity {
         'createdAt': createdAt.toIso8601String(),
       };
 
-  /// 由密文解出的完整資料還原身份。
+  /// 由密文解出的完整资料还原身份。
   static AppIdentity fromSecretJson(Map<String, dynamic> json) =>
       fromJson(json);
 }

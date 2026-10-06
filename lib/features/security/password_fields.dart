@@ -4,7 +4,7 @@ import '../../core/l10n/strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/security/vault.dart';
 
-/// 密碼輸入框（含明碼切換與密碼管理器提示）。
+/// 密码输入框（含明码切换与密码管理器提示）。
 class PasswordInput extends StatefulWidget {
   const PasswordInput({
     required this.controller,
@@ -67,7 +67,7 @@ class _PasswordInputState extends State<PasswordInput> {
   }
 }
 
-/// 密碼強度指示條。
+/// 密码强度指示条。
 class PasswordStrengthMeter extends StatelessWidget {
   const PasswordStrengthMeter({required this.password, super.key});
 
@@ -141,7 +141,7 @@ class PasswordStrengthMeter extends StatelessWidget {
   }
 }
 
-/// 「設定新密碼」的輸入組：新密碼 + 確認密碼 + 強度提示。
+/// 「设定新密码」的输入组：新密码 + 确认密码 + 强度提示。
 class PasswordSetupFields extends StatefulWidget {
   const PasswordSetupFields({
     required this.passwordController,
@@ -202,13 +202,13 @@ class _PasswordSetupFieldsState extends State<PasswordSetupFields> {
   }
 }
 
-/// BIP39 密碼短語（第 13 / 25 個詞）的輸入組。
+/// BIP39 密码短语（第 13 / 25 个词）的输入组。
 ///
-/// 這是進階功能，多數人用不到，預設收起以免占住版面；標題（含鑰匙圖示）
-/// 仍然固定顯示，需要的時候點一下就展開。
+/// 这是进阶功能，多数人用不到，预设收起以免占住版面；标题（含钥匙图示）
+/// 仍然固定显示，需要的时候点一下就展开。
 ///
-/// 短語沒有「強度」可言（任何字串都合法），但**打錯不會有任何錯誤提示** ——
-/// 只會還原出另一個身份，所以一定要輸入兩次並顯示警告。
+/// 短语没有「强度」可言（任何字串都合法），但**打错不会有任何错误提示** ——
+/// 只会还原出另一个身份，所以一定要输入两次并显示警告。
 class PassphraseFields extends StatefulWidget {
   const PassphraseFields({
     required this.controller,
@@ -224,13 +224,13 @@ class PassphraseFields extends StatefulWidget {
   final TextEditingController confirmController;
   final String? errorText;
 
-  /// 輸入變動時的回呼（讓呼叫端更新地址預覽）。
+  /// 输入变动时的回呼（让呼叫端更新地址预览）。
   final ValueChanged<String>? onPreview;
 
-  /// 由「助記詞 + 目前短語」派生出的地址；還原時用它核對短語有沒有打錯。
+  /// 由「助记词 + 目前短语」派生出的地址；还原时用它核对短语有没有打错。
   final String? previewAddress;
 
-  /// 是否預設展開。
+  /// 是否预设展开。
   final bool initiallyExpanded;
 
   @override
@@ -243,7 +243,7 @@ class _PassphraseFieldsState extends State<PassphraseFields> {
   @override
   void didUpdateWidget(PassphraseFields oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 錯誤藏在收起的面板裡就等於沒有提示 —— 出現錯誤時自動展開。
+    // 错误藏在收起的面板里就等于没有提示 —— 出现错误时自动展开。
     final appeared =
         oldWidget.errorText == null && widget.errorText != null;
     if (appeared) {
@@ -328,9 +328,9 @@ class _PassphraseFieldsState extends State<PassphraseFields> {
   }
 }
 
-/// 檢查「新密碼 + 確認」是否可提交。
+/// 检查「新密码 + 确认」是否可提交。
 ///
-/// 回傳錯誤代碼，或 `null` 表示合法。
+/// 回传错误代码，或 `null` 表示合法。
 String? validateNewPassword({
   required String password,
   required String confirm,
@@ -341,7 +341,7 @@ String? validateNewPassword({
   return null;
 }
 
-/// 把錯誤代碼轉成可讀文案。
+/// 把错误代码转成可读文案。
 String passwordErrorText(BuildContext context, String? code) {
   final s = context.s;
   return switch (code) {

@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   gal
   record_windows
   url_launcher_windows
+  webview_flutter_windows
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

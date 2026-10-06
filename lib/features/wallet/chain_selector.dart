@@ -4,11 +4,11 @@ import '../../core/l10n/strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/chain.dart';
 
-/// 區塊鏈切換器：點擊彈出清單選擇鏈。
+/// 区块链切换器：点击弹出清单选择链。
 ///
-/// 錢包頁與轉帳頁共用同一份 [ChainType] 狀態（存在設定裡），因此任何一處
-/// 切換，另一處與 [walletSendProvider] 看到的鏈都會一致 —— 轉帳的方向
-/// 絕不能和畫面上顯示的鏈不一致。
+/// 钱包页与转帐页共用同一份 [ChainType] 状态（存在设定里），因此任何一处
+/// 切换，另一处与 [walletSendProvider] 看到的链都会一致 —— 转帐的方向
+/// 绝不能和画面上显示的链不一致。
 class ChainSelector extends StatelessWidget {
   const ChainSelector({
     required this.chain,
@@ -20,7 +20,7 @@ class ChainSelector extends StatelessWidget {
   final ChainType chain;
   final ValueChanged<ChainType> onChanged;
 
-  /// 用於空間較小的位置（例如轉帳頁的網路卡）時稍微壓低高度。
+  /// 用于空间较小的位置（例如转帐页的网路卡）时稍微压低高度。
   final bool dense;
 
   static IconData iconOf(ChainType c) => switch (c) {

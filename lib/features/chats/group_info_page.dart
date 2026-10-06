@@ -11,7 +11,7 @@ import '../../shared/feedback.dart';
 import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
 
-/// 群組資訊頁：查看成員、邀請新成員、複製群組 ID、退出或刪除群組。
+/// 群组资讯页：查看成员、邀请新成员、复制群组 ID、退出或删除群组。
 class GroupInfoPage extends ConsumerStatefulWidget {
   const GroupInfoPage({required this.groupId, super.key});
 
@@ -214,7 +214,7 @@ class _GroupInfoPageState extends ConsumerState<GroupInfoPage> {
             title: Text(s.groupIdCopied),
             subtitle: Text(g.id),
             onTap: () {
-              // 複製群組 ID 到剪貼簿。
+              // 复制群组 ID 到剪贴簿。
               Clipboard.setData(ClipboardData(text: g.id));
               if (mounted) showAppSnack(context, s.copied);
             },

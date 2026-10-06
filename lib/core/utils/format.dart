@@ -2,12 +2,12 @@ import 'package:intl/intl.dart';
 
 import '../l10n/strings.dart';
 
-/// 顯示格式的共用邏輯。
+/// 显示格式的共用逻辑。
 abstract final class Formatters {
-  /// 訊息氣泡上的時間：`14:05`
+  /// 讯息气泡上的时间：`14:05`
   static String clock(DateTime time) => DateFormat('HH:mm').format(time);
 
-  /// 對話列表上的時間：今天顯示時間，昨天顯示「昨天」，否則顯示日期。
+  /// 对话列表上的时间：今天显示时间，昨天显示「昨天」，否则显示日期。
   static String conversationTime(DateTime time, Strings s) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -22,7 +22,7 @@ abstract final class Formatters {
     return DateFormat('yyyy/MM/dd').format(time);
   }
 
-  /// 日期分隔線：今天 / 昨天 / 完整日期。
+  /// 日期分隔线：今天 / 昨天 / 完整日期。
   static String dayLabel(DateTime time, Strings s) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -34,7 +34,7 @@ abstract final class Formatters {
     return DateFormat('yyyy/MM/dd').format(time);
   }
 
-  /// 相對時間（「剛剛」、「3 分鐘前」）。
+  /// 相对时间（「刚刚」、「3 分钟前」）。
   static String relative(DateTime time, Strings s) {
     final diff = DateTime.now().difference(time);
     if (diff.inSeconds < 60) return s.timeJustNow;
@@ -43,7 +43,7 @@ abstract final class Formatters {
     return DateFormat('yyyy/MM/dd').format(time);
   }
 
-  /// ETH 餘額：最多顯示 6 位小數。
+  /// ETH 余额：最多显示 6 位小数。
   static String eth(double? value) {
     if (value == null) return '--';
     if (value == 0) return '0';
@@ -51,7 +51,7 @@ abstract final class Formatters {
     return value.toStringAsFixed(value < 1 ? 6 : 4);
   }
 
-  /// 原生代幣餘額（ETH / TRX 等），依鏈設定小數位數。
+  /// 原生代币余额（ETH / TRX 等），依链设定小数位数。
   static String amount(double? value, int decimals) {
     if (value == null) return '--';
     if (value == 0) return '0';

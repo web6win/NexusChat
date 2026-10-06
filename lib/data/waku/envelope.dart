@@ -6,24 +6,24 @@ import 'package:uuid/uuid.dart';
 import '../../core/utils/hex.dart' show B64;
 import '../crypto/crypto_service.dart';
 
-/// 通訊協定的封包類型。
+/// 通讯协定的封包类型。
 enum EnvelopeType {
-  /// 一般聊天訊息。
+  /// 一般聊天讯息。
   chat('chat'),
 
-  /// 已讀回條。
+  /// 已读回条。
   receipt('receipt'),
 
-  /// 正在輸入（ephemeral）。
+  /// 正在输入（ephemeral）。
   typing('typing'),
 
-  /// 金鑰包公布。
+  /// 金钥包公布。
   keyBundle('keybundle'),
 
-  /// 撤回某則訊息（墓碑通知）：攜帶要撤回的訊息 ID。
+  /// 撤回某则讯息（墓碑通知）：携带要撤回的讯息 ID。
   recall('recall'),
 
-  /// 群組邀請：攜帶群組金鑰與成員清單，用收件人公鑰加密。
+  /// 群组邀请：携带群组金钥与成员清单，用收件人公钥加密。
   groupInvite('groupinvite');
 
   const EnvelopeType(this.value);
@@ -38,10 +38,10 @@ enum EnvelopeType {
   }
 }
 
-/// 在 Waku 網路上流動的封包。
+/// 在 Waku 网路上流动的封包。
 ///
-/// 明文欄位（v / id / type / from / to / ts）只有最基本的中繼資訊，
-/// 真正內容一律放在 [body]（加密給收件人）與 [selfBody]（加密給自己）。
+/// 明文栏位（v / id / type / from / to / ts）只有最基本的中继资讯，
+/// 真正内容一律放在 [body]（加密给收件人）与 [selfBody]（加密给自己）。
 @immutable
 class NexusChatEnvelope {
   const NexusChatEnvelope({
@@ -59,27 +59,27 @@ class NexusChatEnvelope {
   final String id;
   final EnvelopeType type;
 
-  /// 發送者 DID。
+  /// 发送者 DID。
   final String from;
 
-  /// 收件者 DID（金鑰包類型為 '*'）。
+  /// 收件者 DID（金钥包类型为 '*'）。
   final String to;
 
   final int timestampMs;
 
-  /// 加密給收件人的內容。
+  /// 加密给收件人的内容。
   final EncryptedBlob? body;
 
-  /// 加密給自己的副本（多裝置同步用）。
+  /// 加密给自己的副本（多装置同步用）。
   final EncryptedBlob? selfBody;
 
-  /// 不需要加密的公開欄位（例如金鑰包裡的暱稱與公鑰）。
+  /// 不需要加密的公开栏位（例如金钥包里的暱称与公钥）。
   final Map<String, dynamic>? publicData;
 
-  /// secp256k1 簽章（`r:s:v`，16 進位）。
+  /// secp256k1 签章（`r:s:v`，16 进位）。
   final String? signature;
 
-  /// 產生簽章時所使用的正規化字串。
+  /// 产生签章时所使用的正规化字串。
   String get signingPayload {
     final ct = body?.cipherText ?? '';
     return 'nexuschat|1|$id|${type.value}|${from.toLowerCase()}|${to.toLowerCase()}|$timestampMs|$ct';
@@ -98,13 +98,13 @@ class NexusChatEnvelope {
         if (signature != null) 'sig': signature,
       };
 
-  /// 序列化為 UTF-8 JSON 字串（Waku payload 會再轉 Base64）。
+  /// 序列化为 UTF-8 JSON 字串（Waku payload 会再转 Base64）。
   String encode() => jsonEncode(toJson());
 
-  /// 序列化後再轉 Base64，直接作為 Waku payload。
+  /// 序列化后再转 Base64，直接作为 Waku payload。
   String encodeBase64() => B64.encode(utf8.encode(encode()));
 
-  /// 由 Base64 payload 還原封包。
+  /// 由 Base64 payload 还原封包。
   static NexusChatEnvelope? decodeBase64(String source) {
     try {
       return decode(utf8.decode(B64.decode(source)));
@@ -144,14 +144,14 @@ class NexusChatEnvelope {
   }
 }
 
-/// 加密與簽章的組合工具：把 [NexusChatEnvelope] 填滿密文與簽章，
-/// 或者在收到時驗證並解開。
+/// 加密与签章的组合工具：把 [NexusChatEnvelope] 填满密文与签章，
+/// 或者在收到时验证并解开。
 class EnvelopeSealer {
   EnvelopeSealer(this._crypto);
 
   final CryptoService _crypto;
 
-  /// 產生並簽章一個封包。
+  /// 产生并签章一个封包。
   Future<NexusChatEnvelope> seal({
     required EnvelopeType type,
     required String from,
@@ -188,7 +188,7 @@ class EnvelopeSealer {
     return envelope.copyWith(signature: _crypto.signHex(envelope.signingPayload));
   }
 
-  /// 只簽章、不加密（金鑰包等公開資料）。
+  /// 只签章、不加密（金钥包等公开资料）。
   NexusChatEnvelope sealPublic({
     required EnvelopeType type,
     required String from,
@@ -205,7 +205,7 @@ class EnvelopeSealer {
     return envelope.copyWith(signature: _crypto.signHex(envelope.signingPayload));
   }
 
-  /// 解開並驗證一個封包；驗證失敗或解密失敗回傳 null。
+  /// 解开并验证一个封包；验证失败或解密失败回传 null。
   Future<EnvelopeOpenResult?> open(NexusChatEnvelope envelope) async {
     final signature = envelope.signature;
     if (signature == null) return null;
@@ -230,14 +230,14 @@ class EnvelopeSealer {
       text = await _crypto.open(selfBody, aad: aad);
     }
     if (text == null && body == null && selfBody == null) {
-      // 純公開封包（例如金鑰包）
+      // 纯公开封包（例如金钥包）
       return EnvelopeOpenResult(envelope: envelope, plaintext: null);
     }
     if (text == null) return null;
     return EnvelopeOpenResult(envelope: envelope, plaintext: text);
   }
 
-  /// 群組邀請：把 [payload]（含群組金鑰）用收件人公鑰加密後送出。
+  /// 群组邀请：把 [payload]（含群组金钥）用收件人公钥加密后送出。
   Future<NexusChatEnvelope> sealGroupInvite({
     required String from,
     required String to,
@@ -262,7 +262,7 @@ class EnvelopeSealer {
     return envelope.copyWith(signature: _crypto.signHex(envelope.signingPayload));
   }
 
-  /// 群組訊息：用共享對稱金鑰加密，[to] 為 `grp:<groupId>`。
+  /// 群组讯息：用共享对称金钥加密，[to] 为 `grp:<groupId>`。
   Future<NexusChatEnvelope> sealGroup({
     required String from,
     required String groupId,
@@ -289,7 +289,7 @@ class EnvelopeSealer {
     return envelope.copyWith(signature: _crypto.signHex(envelope.signingPayload));
   }
 
-  /// 解開群組訊息：驗章後用共享對稱金鑰解密。失敗回傳 null。
+  /// 解开群组讯息：验章后用共享对称金钥解密。失败回传 null。
   Future<EnvelopeOpenResult?> openGroup(
     NexusChatEnvelope envelope,
     List<int> key,
@@ -318,22 +318,22 @@ class EnvelopeSealer {
 
   String _newId() => _uuid.v4();
 
-  /// 短識別碼（用於 UI 顯示的訊息編號）。
+  /// 短识别码（用于 UI 显示的讯息编号）。
   String newShortId() => _uuid.v4().substring(0, 8);
 }
 
-/// 解開後的結果。
+/// 解开后的结果。
 @immutable
 class EnvelopeOpenResult {
   const EnvelopeOpenResult({required this.envelope, required this.plaintext});
 
   final NexusChatEnvelope envelope;
 
-  /// 解密後的明文（訊息內容的 JSON 序列化字串）；公開封包為 null。
+  /// 解密后的明文（讯息内容的 JSON 序列化字串）；公开封包为 null。
   final String? plaintext;
 }
 
-/// 讓 [NexusChatEnvelope] 具備 copyWith。
+/// 让 [NexusChatEnvelope] 具备 copyWith。
 extension NexusChatEnvelopeCopy on NexusChatEnvelope {
   NexusChatEnvelope copyWith({
     String? id,

@@ -13,13 +13,13 @@ import 'package:nexuschat/data/waku/envelope.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('Hex 編解碼來回一致', () {
+  test('Hex 编解码来回一致', () {
     final bytes = Uint8List.fromList(<int>[0, 1, 15, 16, 255]);
     expect(Hex.decode(Hex.encode(bytes)), bytes);
     expect(Hex.decode('0x00ff'), <int>[0, 255]);
   });
 
-  test('DID 由地址產生並可反解', () {
+  test('DID 由地址产生并可反解', () {
     const address = '0x1234567890AbcdEF1234567890aBcdef12345678';
     final did = Did.fromAddress(address);
     expect(did.startsWith('did:ethr:0x'), isTrue);
@@ -27,13 +27,13 @@ void main() {
     expect(Did.isEnsName('vitalik.eth'), isTrue);
   });
 
-  test('namehash 對空字串回傳 32 位元組零值', () {
+  test('namehash 对空字串回传 32 位元组零值', () {
     final node = EthereumService.namehash('');
     expect(node.length, 32);
     expect(node.every((b) => b == 0), isTrue);
   });
 
-  test('content topic 由雙方 DID 對稱派生', () {
+  test('content topic 由双方 DID 对称派生', () {
     const a = 'did:ethr:0xaaa';
     const b = 'did:ethr:0xbbb';
     expect(
@@ -42,7 +42,7 @@ void main() {
     );
   });
 
-  test('端到端加密：只有持有私鑰的人能解開', () async {
+  test('端到端加密：只有持有私钥的人能解开', () async {
     final alice = await AppIdentity.generate();
     final bob = await AppIdentity.generate();
     final aliceCrypto = await CryptoService.create(alice);
@@ -56,7 +56,7 @@ void main() {
     expect(await attacker.open(sealed), isNull);
   });
 
-  test('封包簽章可被驗證且無法偽造', () async {
+  test('封包签章可被验证且无法伪造', () async {
     final alice = await AppIdentity.generate();
     final bob = await AppIdentity.generate();
     final aliceCrypto = await CryptoService.create(alice);

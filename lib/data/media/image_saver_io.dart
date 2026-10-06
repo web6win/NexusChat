@@ -4,15 +4,15 @@ import 'dart:typed_data';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// 原生平台：優先存進系統相簿，失敗再退回寫入檔案。
+/// 原生平台：优先存进系统相簿，失败再退回写入档案。
 ///
-/// [gal] 支援 Android / iOS / macOS / Windows；Linux 沒有官方實作，
-/// 呼叫會拋出例外 —— 這裡一律接住並退回寫檔，因此所有平台都有一條可用路徑。
+/// [gal] 支援 Android / iOS / macOS / Windows；Linux 没有官方实作，
+/// 呼叫会抛出例外 —— 这里一律接住并退回写档，因此所有平台都有一条可用路径。
 Future<({bool toGallery, String? path})?> saveImageBytesImpl(
   Uint8List bytes,
   String fileName,
 ) async {
-  // 1) 系統相簿：使用者在「照片 / 相簿」App 裡就能直接看到。
+  // 1) 系统相簿：使用者在「照片 / 相簿」App 里就能直接看到。
   try {
     if (!await Gal.hasAccess()) {
       await Gal.requestAccess();
@@ -20,13 +20,13 @@ Future<({bool toGallery, String? path})?> saveImageBytesImpl(
     await Gal.putImageBytes(bytes);
     return (toGallery: true, path: null);
   } catch (_) {
-    // 權限被拒、平台不支援（Linux）、空間不足…… 交給下面的寫檔路徑。
+    // 权限被拒、平台不支援（Linux）、空间不足…… 交给下面的写档路径。
   }
 
-  // 2) 寫入檔案：依序嘗試「下載目錄 → 外部儲存 → 應用程式文件目錄」。
+  // 2) 写入档案：依序尝试「下载目录 → 外部储存 → 应用程式文件目录」。
   //    - Windows / macOS / Linux：getDownloadsDirectory() 可用；
-  //    - Android：其次 app 專屬外部目錄（可用檔案管理器或 USB 存取）；
-  //    - iOS：前兩者都回傳 null，落到 app 文件目錄（可經「檔案」App 存取）。
+  //    - Android：其次 app 专属外部目录（可用档案管理器或 USB 存取）；
+  //    - iOS：前两者都回传 null，落到 app 文件目录（可经「档案」App 存取）。
   try {
     Directory? dir = await getDownloadsDirectory();
     dir ??= await getExternalStorageDirectory();

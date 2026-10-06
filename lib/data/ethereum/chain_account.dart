@@ -2,9 +2,9 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../models/chain.dart';
 
-/// 錢包頁的帳戶資訊（餘額 / chain id / 域名）。
+/// 钱包页的帐户资讯（余额 / chain id / 域名）。
 ///
-/// 統一以太坊與 TRON 兩條鏈的回傳結構，取代原本僅供以太坊使用的
+/// 统一以太坊与 TRON 两条链的回传结构，取代原本仅供以太坊使用的
 /// [EthereumAccountInfo]。
 @immutable
 class ChainAccountInfo {
@@ -19,16 +19,16 @@ class ChainAccountInfo {
 
   final ChainType chain;
 
-  /// 顯示用地址：以太坊為 0x…（EIP-55），TRON 為 T…（Base58Check）。
+  /// 显示用地址：以太坊为 0x…（EIP-55），TRON 为 T…（Base58Check）。
   final String address;
 
-  /// 原生代幣餘額（單位：ETH 或 TRX）。
+  /// 原生代币余额（单位：ETH 或 TRX）。
   final double? balanceNative;
 
-  /// 域名（ENS 名稱 / TRON 域名），無則為 null。
+  /// 域名（ENS 名称 / TRON 域名），无则为 null。
   final String? domainName;
 
-  /// 鏈 ID。以太坊為數值；TRON 主網無 EVM 式 chainId，故為 null。
+  /// 链 ID。以太坊为数值；TRON 主网无 EVM 式 chainId，故为 null。
   final int? chainId;
 
   final String? error;

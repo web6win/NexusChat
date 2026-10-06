@@ -9,7 +9,7 @@ import '../../shared/layout.dart';
 import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
 
-/// 外觀與語言：主題切換 + 語言選擇。拆自原本擠在同一頁的設定。
+/// 外观与语言：主题切换 + 语言选择。拆自原本挤在同一页的设定。
 class AppearanceSettingsPage extends ConsumerWidget {
   const AppearanceSettingsPage({super.key});
 

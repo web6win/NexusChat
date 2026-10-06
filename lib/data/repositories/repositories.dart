@@ -7,7 +7,7 @@ import '../models/group_models.dart';
 import '../security/vault.dart';
 import '../storage/local_store.dart';
 
-/// 設定檔存取。
+/// 设定档存取。
 class SettingsRepository {
   SettingsRepository(this._store);
 
@@ -22,7 +22,7 @@ class SettingsRepository {
       _store.write(LocalStore.kSettings, settings.toJson());
 }
 
-/// 安全設定存取（自動鎖定時長等；不含秘密）。
+/// 安全设定存取（自动锁定时长等；不含秘密）。
 class SecurityRepository {
   SecurityRepository(this._store);
 
@@ -37,33 +37,33 @@ class SecurityRepository {
 
 /// 身份存取。
 ///
-/// 秘密材料（助記詞 / 私鑰 / 加密種子）一律以 [Vault] 加密後存放，
-/// 明文永不落地。另外保存一份「公開提示」（did / address / 加密公鑰），
-/// 讓鎖定狀態下仍能判斷身份是否存在並顯示帳戶。
+/// 秘密材料（助记词 / 私钥 / 加密种子）一律以 [Vault] 加密后存放，
+/// 明文永不落地。另外保存一份「公开提示」（did / address / 加密公钥），
+/// 让锁定状态下仍能判断身份是否存在并显示帐户。
 class IdentityRepository {
   IdentityRepository(this._store);
 
   final LocalStore _store;
 
-  /// 是否已存在加密保險庫。
+  /// 是否已存在加密保险库。
   bool get hasVault =>
       Vault.looksLikeVault(_store.read(LocalStore.kIdentityVault));
 
-  /// 加密保險庫的原始密文（交給 [Vault.open] 解密）。
+  /// 加密保险库的原始密文（交给 [Vault.open] 解密）。
   Object? get vaultBlob => _store.read(LocalStore.kIdentityVault);
 
-  /// 保險庫的迭代次數（供 UI 顯示目前強度）。
+  /// 保险库的迭代次数（供 UI 显示目前强度）。
   int get vaultIterations =>
       Vault.iterationsOf(_store.read(LocalStore.kIdentityVault));
 
-  /// 公開提示。
+  /// 公开提示。
   IdentityHint? hint() =>
       IdentityHint.fromJson(_store.read(LocalStore.kIdentityHint));
 
-  /// 是否仍存在舊版的「明文身份」，需要引導使用者設定密碼完成遷移。
+  /// 是否仍存在旧版的「明文身份」，需要引导使用者设定密码完成迁移。
   bool get hasLegacyPlaintext => _store.read(LocalStore.kIdentity) is Map;
 
-  /// 讀取舊版明文身份（**僅供一次性遷移**，遷移後立刻刪除）。
+  /// 读取旧版明文身份（**仅供一次性迁移**，迁移后立刻删除）。
   AppIdentity? loadLegacy() {
     final raw = _store.read(LocalStore.kIdentity);
     if (raw is! Map) return null;
@@ -74,7 +74,7 @@ class IdentityRepository {
     }
   }
 
-  /// 寫入加密保險庫，同時更新公開提示並**刪除任何明文殘留**。
+  /// 写入加密保险库，同时更新公开提示并**删除任何明文残留**。
   Future<void> saveVault(
     Map<String, dynamic> blob,
     AppIdentity identity,
@@ -84,11 +84,11 @@ class IdentityRepository {
     await _store.delete(LocalStore.kIdentity);
   }
 
-  /// 只更新公開提示（例如身份卡片資訊變動）。
+  /// 只更新公开提示（例如身份卡片资讯变动）。
   Future<void> saveHint(AppIdentity identity) =>
       _store.write(LocalStore.kIdentityHint, identity.toHintJson());
 
-  /// 清除全部身份資料（密文、提示與舊明文）。
+  /// 清除全部身份资料（密文、提示与旧明文）。
   Future<void> clear() async {
     await _store.delete(LocalStore.kIdentityVault);
     await _store.delete(LocalStore.kIdentityHint);
@@ -96,7 +96,7 @@ class IdentityRepository {
   }
 }
 
-/// 聯絡人存取。
+/// 联络人存取。
 class ContactsRepository {
   ContactsRepository(this._store);
 
@@ -120,7 +120,7 @@ class ContactsRepository {
   Future<void> clear() => _store.deletePrefix(LocalStore.kContactPrefix);
 }
 
-/// 對話存取。
+/// 对话存取。
 class ConversationsRepository {
   ConversationsRepository(this._store);
 
@@ -150,7 +150,7 @@ class ConversationsRepository {
   Future<void> clear() => _store.deletePrefix(LocalStore.kConversationPrefix);
 }
 
-/// 訊息存取。
+/// 讯息存取。
 class MessagesRepository {
   MessagesRepository(this._store);
 
@@ -175,16 +175,16 @@ class MessagesRepository {
 
   Future<void> remove(String id) => _store.delete('${LocalStore.kMessagePrefix}$id');
 
-  /// 標記某則訊息為「本機已刪除」（墓碑）。
+  /// 标记某则讯息为「本机已删除」（墓碑）。
   ///
-  /// 去中心化網路下訊息仍留在節點的 store 裡，重開 App 的全量回溯會把它
-  /// 拉回來；沒有墓碑的話「刪除」等於白刪。
+  /// 去中心化网路下讯息仍留在节点的 store 里，重开 App 的全量回溯会把它
+  /// 拉回来；没有墓碑的话「删除」等于白删。
   Future<void> markDeleted(String id) => _store.write(
         '${LocalStore.kDeletedMessagePrefix}$id',
         DateTime.now().millisecondsSinceEpoch,
       );
 
-  /// 某則訊息是否已被本機刪除（見 [markDeleted]）。
+  /// 某则讯息是否已被本机删除（见 [markDeleted]）。
   bool isDeleted(String id) =>
       _store.read('${LocalStore.kDeletedMessagePrefix}$id') != null;
 
@@ -198,7 +198,7 @@ class MessagesRepository {
   Future<void> clear() => _store.deletePrefix(LocalStore.kMessagePrefix);
 }
 
-/// 群組聊天存取。
+/// 群组聊天存取。
 class GroupsRepository {
   GroupsRepository(this._store);
 

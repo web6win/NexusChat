@@ -10,10 +10,10 @@ import '../../shared/feedback.dart';
 import '../../state/controllers.dart';
 import '../security/password_fields.dart';
 
-/// 鎖屏頁：輸入密碼才會把助記詞 / 私鑰載入記憶體。
+/// 锁屏页：输入密码才会把助记词 / 私钥载入记忆体。
 ///
-/// 連續失敗會進入遞增的冷卻期，讓離線暴力嘗試的成本隨次數上升
-/// （真正的防線仍是 PBKDF2 迭代與密碼強度，這裡只是補一層速率限制）。
+/// 连续失败会进入递增的冷却期，让离线暴力尝试的成本随次数上升
+/// （真正的防线仍是 PBKDF2 迭代与密码强度，这里只是补一层速率限制）。
 class LockPage extends ConsumerStatefulWidget {
   const LockPage({super.key});
 
@@ -37,7 +37,7 @@ class _LockPageState extends ConsumerState<LockPage> {
     super.dispose();
   }
 
-  /// 失敗後的冷卻秒數：2、4、8、16、30（上限）。
+  /// 失败后的冷却秒数：2、4、8、16、30（上限）。
   void _startCooldown() {
     final seconds = switch (_failures) {
       <= 1 => 0,
@@ -74,15 +74,15 @@ class _LockPageState extends ConsumerState<LockPage> {
     if (!mounted) return;
 
     if (code == null) {
-      // 成功：清掉輸入框內容，路由會自動切走。
+      // 成功：清掉输入框内容，路由会自动切走。
       _controller.clear();
       setState(() => _busy = false);
       sessionVersion.value++;
       return;
     }
 
-    // 只有認證標籤不符才是「密碼錯」；其餘（本地資料毀損等）要給不同文案，
-    // 也不該計入冷卻 —— 否則使用者會為了不是自己的錯而一直被罰等。
+    // 只有认证标签不符才是「密码错」；其余（本地资料毁损等）要给不同文案，
+    // 也不该计入冷却 —— 否则使用者会为了不是自己的错而一直被罚等。
     final wrongPassword = code == 'bad-password';
     if (wrongPassword) _failures++;
     setState(() {
@@ -236,9 +236,9 @@ class _LockPageState extends ConsumerState<LockPage> {
   }
 }
 
-/// 提示：本機已存在身份但保險庫結構異常（無密文可用）。
+/// 提示：本机已存在身份但保险库结构异常（无密文可用）。
 ///
-/// 這是防禦性分支 —— 正常流程不應出現，出現時唯一的出路是重新建立身份。
+/// 这是防御性分支 —— 正常流程不应出现，出现时唯一的出路是重新建立身份。
 class VaultUnavailablePage extends ConsumerWidget {
   const VaultUnavailablePage({super.key});
 

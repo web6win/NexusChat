@@ -10,11 +10,11 @@ import '../../shared/feedback.dart';
 import '../../shared/layout.dart';
 import '../../shared/widgets.dart';
 
-/// 關於：App 資訊、版本號、檢查更新。拆自原本擠在同一頁的設定。
+/// 关于：App 资讯、版本号、检查更新。拆自原本挤在同一页的设定。
 class AboutSettingsPage extends ConsumerWidget {
   const AboutSettingsPage({super.key});
 
-  /// 「檢查更新」那一列的副標：依目前檢查狀態顯示版本 / 檢查中 / 最新 / 失敗。
+  /// 「检查更新」那一列的副标：依目前检查状态显示版本 / 检查中 / 最新 / 失败。
   String _updateSubtitle(Strings s, UpdateState st) {
     switch (st.status) {
       case UpdateStatus.idle:
@@ -33,17 +33,17 @@ class AboutSettingsPage extends ConsumerWidget {
     }
   }
 
-  /// GPL-3.0 官方全文（不打包進 App，改連 FSF 的正式頁面）。
+  /// GPL-3.0 官方全文（不打包进 App，改连 FSF 的正式页面）。
   static const String _gplUrl = 'https://www.gnu.org/licenses/gpl-3.0.html';
 
-  /// 倉庫裡的第三方授權清單。
+  /// 仓库里的第三方授权清单。
   ///
-  /// 刻意不打包進安裝档：清單有 25 KB 且只會在更新依賴時變動，
-  /// 直接連 GitHub 上的檔案即可，省下這份體積。
+  /// 刻意不打包进安装档：清单有 25 KB 且只会在更新依赖时变动，
+  /// 直接连 GitHub 上的档案即可，省下这份体积。
   static const String _thirdPartyLicensesUrl =
       'https://github.com/web6win/NexusChat/blob/main/THIRD_PARTY_LICENSES.md';
 
-  /// 用外部瀏覽器開啟 [url]，失敗時給提示，避免靜默無反應。
+  /// 用外部浏览器开启 [url]，失败时给提示，避免静默无反应。
   Future<void> _openUrl(BuildContext context, String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null) return;
@@ -82,19 +82,19 @@ class AboutSettingsPage extends ConsumerWidget {
                     SettingsTile(
                       icon: Icons.numbers_rounded,
                       title: s.settingsVersion,
-                      // 由 CI 以 --dart-define 注入，每次建置自動遞增。
+                      // 由 CI 以 --dart-define 注入，每次建置自动递增。
                       subtitle: AppVersion.display,
                       onTap: null,
                     ),
-                    // GPL 建議 GUI 程式在「關於」中提供授權資訊，這裡直接開官方全文。
+                    // GPL 建议 GUI 程式在「关于」中提供授权资讯，这里直接开官方全文。
                     SettingsTile(
                       icon: Icons.balance_rounded,
                       title: s.settingsLicense,
                       subtitle: 'GNU GPL v3.0',
                       onTap: () => _openUrl(context, _gplUrl),
                     ),
-                    // 相依套件各有自己的授權；GPL 要求保留這些聲明。
-                    // 清單留在倉庫，這裡直接開 GitHub 上的檔案。
+                    // 相依套件各有自己的授权；GPL 要求保留这些声明。
+                    // 清单留在仓库，这里直接开 GitHub 上的档案。
                     SettingsTile(
                       icon: Icons.description_outlined,
                       title: s.settingsThirdPartyLicenses,

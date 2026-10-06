@@ -11,8 +11,8 @@ import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
 import '../security/password_fields.dart';
 
-/// 安全與隱私：立即鎖定、閒置自動鎖、隱藏密鑰倒數、切到背景鎖定、修改密碼。
-/// 拆自原本擠在同一頁的設定。
+/// 安全与隐私：立即锁定、闲置自动锁、隐藏密钥倒数、切到背景锁定、修改密码。
+/// 拆自原本挤在同一页的设定。
 class SecuritySettingsPage extends ConsumerStatefulWidget {
   const SecuritySettingsPage({super.key});
 
@@ -22,7 +22,7 @@ class SecuritySettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
-  /// 選擇閒置多久後自動鎖定。
+  /// 选择闲置多久后自动锁定。
   Future<void> _pickAutoLock(int current) async {
     final s = context.s;
     final selected = await showModalBottomSheet<int>(
@@ -63,7 +63,7 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
     await ref.read(securityProvider.notifier).setAutoLockMinutes(selected);
   }
 
-  /// 修改保險庫密碼（需先驗證目前密碼）。
+  /// 修改保险库密码（需先验证目前密码）。
   Future<void> _changePassword() async {
     final s = context.s;
     final request = await showDialog<_PasswordChangeRequest>(
@@ -182,7 +182,7 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
   }
 }
 
-/// 修改密碼對話框的結果。
+/// 修改密码对话框的结果。
 class _PasswordChangeRequest {
   const _PasswordChangeRequest({required this.current, required this.next});
 
@@ -190,7 +190,7 @@ class _PasswordChangeRequest {
   final String next;
 }
 
-/// 修改保險庫密碼：驗證目前密碼 → 設定新密碼。
+/// 修改保险库密码：验证目前密码 → 设定新密码。
 class _ChangePasswordDialog extends StatefulWidget {
   const _ChangePasswordDialog();
 

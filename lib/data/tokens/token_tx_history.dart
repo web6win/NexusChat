@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// 一筆代幣轉帳的本地記錄（僅記錄「本 App 發起」的送出，不含鏈上查詢）。
+/// 一笔代币转帐的本地记录（仅记录「本 App 发起」的送出，不含链上查询）。
 ///
-/// 這是一種輕量的本機歷史：不依賴任何區塊鏈瀏覽器索引服務，因此
-/// ERC-20 與 TRC-20 都能用同一套邏輯。鏈上真正的確認狀態仍以瀏覽器為準。
+/// 这是一种轻量的本机历史：不依赖任何区块链浏览器索引服务，因此
+/// ERC-20 与 TRC-20 都能用同一套逻辑。链上真正的确认状态仍以浏览器为准。
 class TokenTxRecord {
   const TokenTxRecord({
     required this.chainId,
@@ -55,10 +55,10 @@ class TokenTxRecord {
       );
 }
 
-/// 本地代幣轉帳記錄（shared_preferences）的鍵名。
+/// 本地代币转帐记录（shared_preferences）的键名。
 const _historyPrefsKey = 'token_tx_history_v1';
 
-/// 本地代幣轉帳歷史（本 App 發起的送出），依時間倒序，最多保留 100 筆。
+/// 本地代币转帐历史（本 App 发起的送出），依时间倒序，最多保留 100 笔。
 final tokenTxHistoryProvider = NotifierProvider<TokenTxHistoryNotifier,
     List<TokenTxRecord>>(TokenTxHistoryNotifier.new);
 
@@ -94,7 +94,7 @@ class TokenTxHistoryNotifier extends Notifier<List<TokenTxRecord>> {
     );
   }
 
-  /// 新增一筆記錄（置頂），並限制總量以避免無限成長。
+  /// 新增一笔记录（置顶），并限制总量以避免无限成长。
   void add(TokenTxRecord record) {
     state = <TokenTxRecord>[
       record,
@@ -103,7 +103,7 @@ class TokenTxHistoryNotifier extends Notifier<List<TokenTxRecord>> {
     _persist();
   }
 
-  /// 清空全部記錄。
+  /// 清空全部记录。
   void clear() {
     state = const <TokenTxRecord>[];
     _persist();

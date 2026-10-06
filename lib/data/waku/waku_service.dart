@@ -8,7 +8,7 @@ import 'message_content.dart';
 import 'waku_message.dart';
 import 'waku_transport.dart';
 
-/// Waku 服務：把「封包 ↔ 網路」的細節封裝起來，上層只需處理語意。
+/// Waku 服务：把「封包 ↔ 网路」的细节封装起来，上层只需处理语意。
 class WakuService {
   WakuService({
     required this.transport,
@@ -30,13 +30,13 @@ class WakuService {
 
   Future<void> stop() => transport.stop();
 
-  /// 停止連線並釋放底層資源（HTTP 連線池等）。
+  /// 停止连线并释放底层资源（HTTP 连线池等）。
   Future<void> dispose() async {
     await transport.stop();
     transport.dispose();
   }
 
-  /// 把自己的加密公鑰與暱稱廣播出去，讓別人能加密訊息給自己。
+  /// 把自己的加密公钥与暱称广播出去，让别人能加密讯息给自己。
   Future<void> publishKeyBundle({String? nickname}) async {
     final envelope = sealer.sealPublic(
       type: EnvelopeType.keyBundle,
@@ -51,14 +51,14 @@ class WakuService {
     await publishEnvelope(envelope, topic: ContentTopics.keyBundle);
   }
 
-  /// 送出一段文字給某個 DID。
+  /// 送出一段文字给某个 DID。
   ///
-  /// 同時發到兩個頻道：
-  /// - [ContentTopics.directMessage]：雙方都認識彼此時的常規頻道；
-  /// - [ContentTopics.inbox]：只由收件人 DID 派生，對方即使還沒把你加入
-  ///   聯絡人（因此不會輪詢 pairwise 頻道）也收得到。
+  /// 同时发到两个频道：
+  /// - [ContentTopics.directMessage]：双方都认识彼此时的常规频道；
+  /// - [ContentTopics.inbox]：只由收件人 DID 派生，对方即使还没把你加入
+  ///   联络人（因此不会轮询 pairwise 频道）也收得到。
   ///
-  /// 兩個頻道放的是同一個封包，收件端靠 `envelope.id` 去重。
+  /// 两个频道放的是同一个封包，收件端靠 `envelope.id` 去重。
   Future<NexusChatEnvelope> sendText({
     required String toDid,
     required String recipientPublicKeyB64,
@@ -72,11 +72,11 @@ class WakuService {
         senderName: senderName,
       );
 
-  /// 送出任意內容（文字 / 圖片 / 語音）給某個 DID。
+  /// 送出任意内容（文字 / 图片 / 语音）给某个 DID。
   ///
-  /// 圖片等媒體體積較大，不寫入「給自己的副本」（[includeSelfCopy]），
-  /// 因為發送端本機已經保存了這則訊息；這也能避免信封因自帶副本而超過
-  /// Waku 的單則大小上限。
+  /// 图片等媒体体积较大，不写入「给自己的副本」（[includeSelfCopy]），
+  /// 因为发送端本机已经保存了这则讯息；这也能避免信封因自带副本而超过
+  /// Waku 的单则大小上限。
   Future<NexusChatEnvelope> sendContent({
     required String toDid,
     required String recipientPublicKeyB64,
@@ -89,8 +89,8 @@ class WakuService {
       to: toDid,
       plaintext: content.encode(),
       recipientPublicKeyB64: recipientPublicKeyB64,
-      // 附上自己的加密公鑰與暱稱：對方即使沒在金鑰包頻道看過你，
-      // 也能立刻回覆，並在通訊錄裡建立你的名片。
+      // 附上自己的加密公钥与暱称：对方即使没在金钥包频道看过你，
+      // 也能立刻回复，并在通讯录里建立你的名片。
       publicData: <String, dynamic>{
         'enc': identity.encPublicKeyB64,
         if (senderName != null && senderName.isNotEmpty) 'name': senderName,
@@ -107,7 +107,7 @@ class WakuService {
     return envelope;
   }
 
-  /// 送出輸入中狀態（不進 store，避免佔用空間）。
+  /// 送出输入中状态（不进 store，避免占用空间）。
   Future<void> sendTyping(String toDid) async {
     final envelope = sealer.sealPublic(
       type: EnvelopeType.typing,
@@ -121,14 +121,14 @@ class WakuService {
     );
   }
 
-  /// 廣播「撤回某則訊息」的通知。
+  /// 广播「撤回某则讯息」的通知。
   ///
-  /// 去中心化網路無法真的把訊息從對方裝置上抹掉，所以撤回的做法是：
-  /// 在一對一頻道與對方收件匣各發一則撤回通知，收到的一端把該訊息
-  /// 標記為已撤回，介面改顯示「訊息已撤回」。
+  /// 去中心化网路无法真的把讯息从对方装置上抹掉，所以撤回的做法是：
+  /// 在一对一频道与对方收件匣各发一则撤回通知，收到的一端把该讯息
+  /// 标记为已撤回，介面改显示「讯息已撤回」。
   ///
-  /// 刻意只簽章、不加密：[publicData] 只帶訊息 ID，且這樣即使對方
-  /// 還沒拿到我們的加密金鑰，撤回也一定送得出去、收得到。
+  /// 刻意只签章、不加密：[publicData] 只带讯息 ID，且这样即使对方
+  /// 还没拿到我们的加密金钥，撤回也一定送得出去、收得到。
   Future<NexusChatEnvelope> sendRecall({
     required String toDid,
     required String targetMessageId,
@@ -150,7 +150,7 @@ class WakuService {
     return envelope;
   }
 
-  /// 傳送群組邀請：把群組金鑰用收件人公鑰加密，發到其收件匣與一對一頻道。
+  /// 传送群组邀请：把群组金钥用收件人公钥加密，发到其收件匣与一对一频道。
   Future<NexusChatEnvelope> sendGroupInvite({
     required String toDid,
     required Map<String, dynamic> invite,
@@ -171,7 +171,7 @@ class WakuService {
     return envelope;
   }
 
-  /// 傳送群組訊息：用共享對稱金鑰加密，發到群組專屬頻道。
+  /// 传送群组讯息：用共享对称金钥加密，发到群组专属频道。
   Future<NexusChatEnvelope> sendGroupContent({
     required String groupId,
     required List<int> key,
@@ -195,7 +195,7 @@ class WakuService {
     return envelope;
   }
 
-  /// 廣播群組內的撤回通知：發到群組頻道，[to] 為 `grp:<groupId>`。
+  /// 广播群组内的撤回通知：发到群组频道，[to] 为 `grp:<groupId>`。
   Future<NexusChatEnvelope> sendGroupRecall({
     required String groupId,
     required String targetMessageId,
@@ -215,7 +215,7 @@ class WakuService {
     return envelope;
   }
 
-  /// 需要輪詢的群組頻道（成員所屬的群組）。
+  /// 需要轮询的群组频道（成员所属的群组）。
   List<String> topicsForGroups(Iterable<GroupChat> groups) {
     final topics = <String>{};
     for (final group in groups) {
@@ -239,11 +239,11 @@ class WakuService {
     );
   }
 
-  /// 需要輪詢的所有 topic：自己的收件匣 + 金鑰包頻道 + 每個聯絡人的
-  /// 一對一頻道。
+  /// 需要轮询的所有 topic：自己的收件匣 + 金钥包频道 + 每个联络人的
+  /// 一对一频道。
   ///
-  /// 收件匣一定在清單裡，所以「對方加了我、我還沒加對方」也能收得到第一則
-  /// 訊息；金鑰包頻道則用來補齊聯絡人的加密公鑰。
+  /// 收件匣一定在清单里，所以「对方加了我、我还没加对方」也能收得到第一则
+  /// 讯息；金钥包频道则用来补齐联络人的加密公钥。
   List<String> topicsFor(Iterable<String> peerDids) {
     final topics = <String>{
       ContentTopics.keyBundle,
@@ -255,9 +255,9 @@ class WakuService {
     return topics.toList(growable: false);
   }
 
-  /// 請節點開始把這些頻道的訊息推播給我們（即時接收的關鍵）。
+  /// 请节点开始把这些频道的讯息推播给我们（即时接收的关键）。
   ///
-  /// 節點不支援 filter 時會靜默略過，[fetch] 仍會退回一般輪詢。
+  /// 节点不支援 filter 时会静默略过，[fetch] 仍会退回一般轮询。
   Future<void> subscribe(List<String> contentTopics) =>
       transport.subscribe(contentTopics);
 

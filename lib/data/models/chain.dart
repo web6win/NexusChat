@@ -1,16 +1,16 @@
-/// 錢包支援的區塊鏈。
+/// 钱包支援的区块链。
 ///
-/// 設計原則：NexusChat 的聊天身份（DID）固定為 `did:ethr`，與鏈無關；
-/// 此處的 `chain` 僅控制「錢包頁要顯示哪一條鏈的地址與餘額」。
-/// 同一把 secp256k1 私鑰會同時派生出以太坊 0x 地址與 TRON 的 T 地址
-/// （兩者的 20 位元組主體完全相同，只是編碼方式不同），因此切換鏈
-/// 不需要第二組助記詞或第二把金鑰。
+/// 设计原则：NexusChat 的聊天身份（DID）固定为 `did:ethr`，与链无关；
+/// 此处的 `chain` 仅控制「钱包页要显示哪一条链的地址与余额」。
+/// 同一把 secp256k1 私钥会同时派生出以太坊 0x 地址与 TRON 的 T 地址
+/// （两者的 20 位元组主体完全相同，只是编码方式不同），因此切换链
+/// 不需要第二组助记词或第二把金钥。
 ///
-/// 所有 EVM 鏈（以太坊 / Base / Arbitrum / BSC / WEB6）共用同一個 0x 地址
-/// 與同一套 JSON-RPC，新增一條鏈只需要 [ChainConfig._map] 加一項，
-/// 不必動金鑰或交易邏輯。
+/// 所有 EVM 链（以太坊 / Base / Arbitrum / BSC / WEB6）共用同一个 0x 地址
+/// 与同一套 JSON-RPC，新增一条链只需要 [ChainConfig._map] 加一项，
+/// 不必动金钥或交易逻辑。
 ///
-/// 預設鏈為 [ChainType.besu]（WEB6 聯盟鏈，原生代幣 Contribution / CNT）。
+/// 预设链为 [ChainType.besu]（WEB6 联盟链，原生代币 Contribution / CNT）。
 enum ChainType {
   ethereum,
   base,
@@ -18,10 +18,10 @@ enum ChainType {
   bsc,
   tron,
 
-  /// Besu 聯盟鏈（WEB6）。EVM 相容，沿用 0x 地址與 JSON-RPC。
+  /// Besu 联盟链（WEB6）。EVM 相容，沿用 0x 地址与 JSON-RPC。
   besu;
 
-  /// 設定/Provider 用的穩定字串，同時也是收款 QR Code 的 URI scheme。
+  /// 设定/Provider 用的稳定字串，同时也是收款 QR Code 的 URI scheme。
   String get id => switch (this) {
         ChainType.ethereum => 'ethereum',
         ChainType.base => 'base',
@@ -31,7 +31,7 @@ enum ChainType {
         ChainType.besu => 'besu',
       };
 
-  /// 是否為 EVM 相容鏈（地址用 0x + EIP-55，走 JSON-RPC / eth_getBalance）。
+  /// 是否为 EVM 相容链（地址用 0x + EIP-55，走 JSON-RPC / eth_getBalance）。
   bool get isEvm => this != ChainType.tron;
 
   static ChainType fromId(String? id) => switch (id) {
@@ -44,7 +44,7 @@ enum ChainType {
       };
 }
 
-/// 每條鏈的技術參數（顯示名稱走 i18n，不放在這裡以免循環依賴）。
+/// 每条链的技术参数（显示名称走 i18n，不放在这里以免循环依赖）。
 class ChainConfig {
   const ChainConfig({
     required this.name,
@@ -57,46 +57,46 @@ class ChainConfig {
     this.explorerScheme = 'https',
   });
 
-  /// 原生代幣全名（Contribution / Ether / TRON）。
+  /// 原生代币全名（Contribution / Ether / TRON）。
   ///
-  /// 與 [symbol] 的關係就像「新台幣」與「TWD」：前者是給人看的名稱，
-  /// 後者才是餘額與金額旁邊顯示的代號。
+  /// 与 [symbol] 的关系就像「新台币」与「TWD」：前者是给人看的名称，
+  /// 后者才是余额与金额旁边显示的代号。
   final String name;
 
-  /// 原生代幣代號（CNT / ETH / BNB / TRX）。
+  /// 原生代币代号（CNT / ETH / BNB / TRX）。
   final String symbol;
 
-  /// 區塊瀏覽器主機（用於「在瀏覽器檢視」）。
+  /// 区块浏览器主机（用于「在浏览器检视」）。
   final String explorerHost;
 
-  /// 區塊瀏覽器協定（預設 https）。
+  /// 区块浏览器协定（预设 https）。
   final String explorerScheme;
 
-  /// 區塊瀏覽器的完整網址。
+  /// 区块浏览器的完整网址。
   String get explorerUrl => '$explorerScheme://$explorerHost';
 
-  /// 預設 RPC / API 端點。
+  /// 预设 RPC / API 端点。
   final String defaultRpc;
 
-  /// 是否支援 ENS 類域名解析。
+  /// 是否支援 ENS 类域名解析。
   final bool supportsEns;
 
-  /// 餘額顯示小數位數。
+  /// 余额显示小数位数。
   ///
-  /// 注意這是**介面顯示**用的位數，不是鏈上精度：EVM 鏈的原生代幣鏈上
-  /// 精度固定為 18 位（wei），[TxService.sendEvm] 以 `×10^18` 換算，
-  /// 與這裡無關；TRON 則是 6 位（sun），由 [TxService.sendTron] 處理。
+  /// 注意这是**介面显示**用的位数，不是链上精度：EVM 链的原生代币链上
+  /// 精度固定为 18 位（wei），[TxService.sendEvm] 以 `×10^18` 换算，
+  /// 与这里无关；TRON 则是 6 位（sun），由 [TxService.sendTron] 处理。
   final int displayDecimals;
 
-  /// 這條鏈「應該」回報的 chainId（`eth_chainId`）。
+  /// 这条链「应该」回报的 chainId（`eth_chainId`）。
   ///
-  /// EVM 鏈的 RPC 端點長得都一樣，填錯端點（例如把 Base 的 RPC 貼到
-  /// 以太坊）時餘額仍查得到、交易也送得出去 —— 只是送到錯的網路上。
-  /// 拿這個值與節點實際回報的 chainId 比對，就能在轉帳前擋下來。
-  /// 非 EVM 鏈（TRON）與聯盟鏈（chainId 由部署決定）為 null，表示不比對。
+  /// EVM 链的 RPC 端点长得都一样，填错端点（例如把 Base 的 RPC 贴到
+  /// 以太坊）时余额仍查得到、交易也送得出去 —— 只是送到错的网路上。
+  /// 拿这个值与节点实际回报的 chainId 比对，就能在转帐前挡下来。
+  /// 非 EVM 链（TRON）与联盟链（chainId 由部署决定）为 null，表示不比对。
   final int? expectedChainId;
 
-  /// [chainId] 是否與本鏈不符（端點可能被填錯）。
+  /// [chainId] 是否与本链不符（端点可能被填错）。
   bool isWrongChain(int? chainId) =>
       expectedChainId != null && chainId != null && chainId != expectedChainId;
 
@@ -145,9 +145,9 @@ class ChainConfig {
       supportsEns: false,
       displayDecimals: 2,
     ),
-    // WEB6 聯盟鏈（Besu）：EVM 相容，原生代幣為 Contribution（CNT），
-    // 鏈上精度 18 位（與 EVM 的 wei 一致）。
-    // 聯盟鏈通常不接 ENS，故關閉；chainId 由部署決定，因此不做比對。
+    // WEB6 联盟链（Besu）：EVM 相容，原生代币为 Contribution（CNT），
+    // 链上精度 18 位（与 EVM 的 wei 一致）。
+    // 联盟链通常不接 ENS，故关闭；chainId 由部署决定，因此不做比对。
     ChainType.besu: ChainConfig(
       name: 'Contribution',
       symbol: 'CNT',

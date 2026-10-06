@@ -31,19 +31,19 @@ import '../data/waku/waku_transport.dart';
 import '../data/media/media_size.dart';
 import '../core/l10n/app_locale.dart';
 
-/// 身份發生變化時遞增，讓路由重新判斷導向。
+/// 身份发生变化时递增，让路由重新判断导向。
 final ValueNotifier<int> sessionVersion = ValueNotifier<int>(0);
 
 /// 核心容器（在 main 中以 override 注入）。
 final coreProvider = Provider<Core>((ref) {
-  throw UnimplementedError('coreProvider 必須在 main() 中以 overrideWithValue 注入');
+  throw UnimplementedError('coreProvider 必须在 main() 中以 overrideWithValue 注入');
 });
 
 // ==========================================================================
-// 設定
+// 设定
 // ==========================================================================
 
-/// 全站設定控制器。
+/// 全站设定控制器。
 final settingsProvider =
     NotifierProvider<SettingsController, AppSettings>(SettingsController.new);
 
@@ -64,10 +64,10 @@ class SettingsController extends Notifier<AppSettings> {
   Future<void> setLocaleCode(String code) =>
       _persist(state.copyWith(localeCode: code));
 
-  /// 覆寫整份節點清單（內建節點會被強制保留在最前面）。
+  /// 覆写整份节点清单（内建节点会被强制保留在最前面）。
   ///
-  /// 若目前使用中的節點剛好被移除，會自動退回清單中的第一台，避免連線
-  /// 指向已不存在的節點。
+  /// 若目前使用中的节点刚好被移除，会自动退回清单中的第一台，避免连线
+  /// 指向已不存在的节点。
   Future<void> setNodeUrls(List<String> urls) async {
     final normalized = <String>[
       ...AppSettings.builtinNodeUrls,
@@ -84,7 +84,7 @@ class SettingsController extends Notifier<AppSettings> {
     await _reconnect();
   }
 
-  /// 新增自訂節點。回傳錯誤碼（null 代表成功）。
+  /// 新增自订节点。回传错误码（null 代表成功）。
   Future<String?> addNode(String raw) async {
     final url = AppSettings.normalizeNodeUrl(raw);
     if (url.isEmpty) return 'invalid';
@@ -93,7 +93,7 @@ class SettingsController extends Notifier<AppSettings> {
     return null;
   }
 
-  /// 移除自訂節點（內建節點不可移除）。
+  /// 移除自订节点（内建节点不可移除）。
   Future<void> removeNode(String url) async {
     if (AppSettings.isBuiltinNode(url)) return;
     await setNodeUrls(
@@ -101,19 +101,19 @@ class SettingsController extends Notifier<AppSettings> {
     );
   }
 
-  /// 還原成預設節點（僅保留內建節點）。
+  /// 还原成预设节点（仅保留内建节点）。
   Future<void> resetNodes() => setNodeUrls(const <String>[]);
 
-  /// 切換目前使用中的節點。
+  /// 切换目前使用中的节点。
   ///
-  /// 這是唯一會被連線的節點，因此切換後會立刻重建連線並重新同步。
+  /// 这是唯一会被连线的节点，因此切换后会立刻重建连线并重新同步。
   Future<void> setActiveNode(String url) async {
     if (!state.nodeUrls.contains(url) || state.activeNodeUrl == url) return;
     await _persist(state.copyWith(activeNodeUrl: url));
     await _reconnect();
   }
 
-  /// 節點清單或使用中節點變更後，重建連線並重新同步。
+  /// 节点清单或使用中节点变更后，重建连线并重新同步。
   Future<void> _reconnect() async {
     await _core.applyTransport(state.resolvedActiveNodeUrl);
     ref.invalidate(networkStatusProvider);
@@ -122,11 +122,11 @@ class SettingsController extends Notifier<AppSettings> {
     await ref.read(chatControllerProvider.notifier).sync();
   }
 
-  /// 切換錢包顯示的區塊鏈（僅影響錢包頁，不影響聊天身份 did:ethr）。
+  /// 切换钱包显示的区块链（仅影响钱包页，不影响聊天身份 did:ethr）。
   Future<void> setChain(ChainType chain) =>
       _persist(state.copyWith(chain: chain));
 
-  /// 依鏈設定對應的 RPC / API 端點；留空則還原成該鏈的預設值。
+  /// 依链设定对应的 RPC / API 端点；留空则还原成该链的预设值。
   Future<void> setRpcFor(ChainType chain, String url) =>
       _persist(state.withRpc(chain, url));
 
@@ -137,7 +137,7 @@ class SettingsController extends Notifier<AppSettings> {
       _persist(state.copyWith(onboarded: value));
 }
 
-/// 目前語系（空字串代表跟隨系統）。
+/// 目前语系（空字串代表跟随系统）。
 final localeProvider = Provider<AppLocale?>((ref) {
   final code = ref.watch(settingsProvider).localeCode;
   if (code.isEmpty) return null;
@@ -148,7 +148,7 @@ final localeProvider = Provider<AppLocale?>((ref) {
 // 身份
 // ==========================================================================
 
-/// 身份狀態。
+/// 身份状态。
 class SessionState {
   const SessionState({
     this.identity,
@@ -162,13 +162,13 @@ class SessionState {
   final bool busy;
   final String? error;
 
-  /// 本機已有身份，但尚未輸入密碼解鎖（記憶體中沒有任何秘密）。
+  /// 本机已有身份，但尚未输入密码解锁（记忆体中没有任何秘密）。
   final bool locked;
 
-  /// 存在舊版明文身份，需要設定密碼完成遷移。
+  /// 存在旧版明文身份，需要设定密码完成迁移。
   final bool needsMigration;
 
-  /// 已解鎖。
+  /// 已解锁。
   bool get hasIdentity => identity != null;
 
   SessionState copyWith({
@@ -189,10 +189,10 @@ class SessionState {
   }
 }
 
-/// 身份控制器：建立、匯入、解鎖、鎖定、刪除。
+/// 身份控制器：建立、汇入、解锁、锁定、删除。
 ///
-/// 同時負責**閒置自動鎖定**：任何使用者互動都會重置計時器，
-/// 逾時後呼叫 [lock] 把秘密清出記憶體。
+/// 同时负责**闲置自动锁定**：任何使用者互动都会重置计时器，
+/// 逾时后呼叫 [lock] 把秘密清出记忆体。
 final sessionProvider =
     NotifierProvider<SessionController, SessionState>(SessionController.new);
 
@@ -200,7 +200,7 @@ class SessionController extends Notifier<SessionState> {
   Timer? _idleTimer;
   DateTime? _lastActivity;
 
-  /// 互動節流視窗：避免每次滑鼠移動都重建計時器。
+  /// 互动节流视窗：避免每次滑鼠移动都重建计时器。
   static const Duration _activityThrottle = Duration(seconds: 10);
 
   @override
@@ -216,13 +216,13 @@ class SessionController extends Notifier<SessionState> {
 
   Core get _core => ref.read(coreProvider);
 
-  // ------------------------------------------------------------ 建立 / 匯入
+  // ------------------------------------------------------------ 建立 / 汇入
 
-  /// 建立身份並立即以 [password] 加密保存。
+  /// 建立身份并立即以 [password] 加密保存。
   ///
-  /// [passphrase] 為 BIP39 密碼短語（可選，留空表示不使用）。
+  /// [passphrase] 为 BIP39 密码短语（可选，留空表示不使用）。
   ///
-  /// 回傳錯誤代碼（`create-failed`）或 `null` 表示成功。
+  /// 回传错误代码（`create-failed`）或 `null` 表示成功。
   Future<String?> createIdentity({
     required String password,
     String passphrase = '',
@@ -241,10 +241,10 @@ class SessionController extends Notifier<SessionState> {
     }
   }
 
-  /// 由助記詞還原身份；錯誤代碼 `invalid-mnemonic` / `restore-failed`。
+  /// 由助记词还原身份；错误代码 `invalid-mnemonic` / `restore-failed`。
   ///
-  /// [passphrase] 為 BIP39 密碼短語。注意它沒有「對錯」可言：任何字串都能
-  /// 派生出一組身份，所以打錯只會得到另一個錢包，不會拋錯。
+  /// [passphrase] 为 BIP39 密码短语。注意它没有「对错」可言：任何字串都能
+  /// 派生出一组身份，所以打错只会得到另一个钱包，不会抛错。
   Future<String?> restoreIdentity(
     String mnemonic, {
     required String password,
@@ -271,14 +271,14 @@ class SessionController extends Notifier<SessionState> {
     }
   }
 
-  /// 由私鑰匯入身份；失敗時回傳 null 並把錯誤代碼寫進 state。
+  /// 由私钥汇入身份；失败时回传 null 并把错误代码写进 state。
   ///
-  /// 錯誤代碼：`invalid-private-key`（格式 / 範圍不合法）、`import-failed`。
+  /// 错误代码：`invalid-private-key`（格式 / 范围不合法）、`import-failed`。
   Future<String?> importPrivateKey(
     String privateHex, {
     required String password,
   }) async {
-    // 先做本地格式檢查，讓 UI 能給出精確的錯誤提示。
+    // 先做本地格式检查，让 UI 能给出精确的错误提示。
     if (!AppIdentity.isValidPrivateKey(privateHex)) {
       state = state.copyWith(busy: false, error: 'invalid-private-key');
       return 'invalid-private-key';
@@ -300,7 +300,7 @@ class SessionController extends Notifier<SessionState> {
     }
   }
 
-  /// 把舊版明文身份遷移進加密保險庫；錯誤代碼 `migrate-failed`。
+  /// 把旧版明文身份迁移进加密保险库；错误代码 `migrate-failed`。
   Future<String?> migrateToVault(String password) async {
     state = state.copyWith(busy: true, clearError: true);
     try {
@@ -316,15 +316,15 @@ class SessionController extends Notifier<SessionState> {
     }
   }
 
-  // ------------------------------------------------------------ 解鎖 / 鎖定
+  // ------------------------------------------------------------ 解锁 / 锁定
 
-  /// 以密碼解鎖。回傳錯誤代碼或 `null`。
+  /// 以密码解锁。回传错误代码或 `null`。
   ///
-  /// 錯誤代碼：`bad-password`（密碼錯或密文毀損）、`unlock-failed`。
+  /// 错误代码：`bad-password`（密码错或密文毁损）、`unlock-failed`。
   ///
-  /// 「解密成功」就等於「解鎖成功」：之後的連線、金鑰廣播與同步都是副作用，
-  /// 必須與解鎖結果脫鉤。否則節點連不上時會被回報成密碼錯誤 ——
-  /// 使用者輸入的密碼明明正確，卻永遠卡在鎖屏。
+  /// 「解密成功」就等于「解锁成功」：之后的连线、金钥广播与同步都是副作用，
+  /// 必须与解锁结果脱钩。否则节点连不上时会被回报成密码错误 ——
+  /// 使用者输入的密码明明正确，却永远卡在锁屏。
   Future<String?> unlock(String password) async {
     state = state.copyWith(busy: true, clearError: true);
 
@@ -345,17 +345,17 @@ class SessionController extends Notifier<SessionState> {
         nickname: ref.read(settingsProvider).nickname,
       );
     } catch (error, stackTrace) {
-      // 連線類失敗不推翻已成立的解鎖；下一輪同步會自己補回來。
+      // 连线类失败不推翻已成立的解锁；下一轮同步会自己补回来。
       debugPrint('post-unlock setup failed: $error\n$stackTrace');
       state = SessionState(identity: identity);
     }
-    // 通知路由重新評估：解鎖後才允許離開鎖屏。
+    // 通知路由重新评估：解锁后才允许离开锁屏。
     sessionVersion.value++;
     _restartIdleTimer();
     return null;
   }
 
-  /// 立即鎖定：清空秘密、斷開連線、回到鎖屏。
+  /// 立即锁定：清空秘密、断开连线、回到锁屏。
   Future<void> lock() async {
     _cancelIdleTimer();
     _lastActivity = null;
@@ -367,9 +367,9 @@ class SessionController extends Notifier<SessionState> {
     ref.invalidate(networkStatusProvider);
   }
 
-  /// 記錄一次使用者互動，用來延後自動鎖定。
+  /// 记录一次使用者互动，用来延后自动锁定。
   ///
-  /// 以 10 秒節流，避免高頻事件（滑鼠移動）造成多餘的計時器重建。
+  /// 以 10 秒节流，避免高频事件（滑鼠移动）造成多余的计时器重建。
   void noteActivity() {
     if (!state.hasIdentity) return;
     final now = DateTime.now();
@@ -379,7 +379,7 @@ class SessionController extends Notifier<SessionState> {
     _restartIdleTimer();
   }
 
-  /// 頁面切到背景時呼叫（僅在開啟 lockOnHide 時生效）。
+  /// 页面切到背景时呼叫（仅在开启 lockOnHide 时生效）。
   Future<void> onAppHidden() async {
     if (!_core.security.lockOnHide) return;
     if (!state.hasIdentity) return;
@@ -390,7 +390,7 @@ class SessionController extends Notifier<SessionState> {
     try {
       await ref.read(chatControllerProvider.notifier).stop();
     } catch (_) {
-      // 尚未建立連線時不需處理。
+      // 尚未建立连线时不需处理。
     }
   }
 
@@ -399,7 +399,7 @@ class SessionController extends Notifier<SessionState> {
     final duration = _core.security.autoLockDuration;
     if (duration == null) return;
     _idleTimer = Timer(duration, () {
-      // 只有仍處於解鎖狀態才需要鎖定。
+      // 只有仍处于解锁状态才需要锁定。
       if (state.hasIdentity) lock();
     });
   }
@@ -409,10 +409,10 @@ class SessionController extends Notifier<SessionState> {
     _idleTimer = null;
   }
 
-  /// 綁定新身份：建立連線、廣播金鑰包並開始同步。
+  /// 绑定新身份：建立连线、广播金钥包并开始同步。
   ///
-  /// 只有「建立連線」與「寫入狀態」是必要的；廣播與同步仰賴節點，
-  /// 節點不可用時只記錄，不讓它回頭推翻建立 / 解鎖的結果。
+  /// 只有「建立连线」与「写入状态」是必要的；广播与同步仰赖节点，
+  /// 节点不可用时只记录，不让它回头推翻建立 / 解锁的结果。
   Future<void> _afterIdentity(AppIdentity identity, {String? nickname}) async {
     await _core.applyTransport(
       ref.read(settingsProvider).resolvedActiveNodeUrl,
@@ -426,7 +426,7 @@ class SessionController extends Notifier<SessionState> {
     await _bestEffort(() => ref.read(chatControllerProvider.notifier).sync());
   }
 
-  /// 執行需要網路的動作；失敗只記錄，不往上拋。
+  /// 执行需要网路的动作；失败只记录，不往上抛。
   Future<void> _bestEffort(Future<void> Function() action) async {
     try {
       await action();
@@ -435,7 +435,7 @@ class SessionController extends Notifier<SessionState> {
     }
   }
 
-  /// 擦除本機所有資料（身份、訊息、聯絡人）。
+  /// 擦除本机所有资料（身份、讯息、联络人）。
   Future<void> wipeIdentity() async {
     _cancelIdleTimer();
     _lastActivity = null;
@@ -450,10 +450,10 @@ class SessionController extends Notifier<SessionState> {
 }
 
 // ==========================================================================
-// 安全設定
+// 安全设定
 // ==========================================================================
 
-/// 安全設定控制器（自動鎖定時長等）。
+/// 安全设定控制器（自动锁定时长等）。
 final securityProvider =
     NotifierProvider<SecurityController, SecuritySettings>(
   SecurityController.new,
@@ -468,7 +468,7 @@ class SecurityController extends Notifier<SecuritySettings> {
   Future<void> _persist(SecuritySettings next) async {
     state = next;
     await _core.saveSecurity(next);
-    // 讓閒置計時器立即套用新設定。
+    // 让闲置计时器立即套用新设定。
     ref.read(sessionProvider.notifier).noteActivity();
   }
 
@@ -483,10 +483,10 @@ class SecurityController extends Notifier<SecuritySettings> {
 }
 
 // ==========================================================================
-// 聯絡人
+// 联络人
 // ==========================================================================
 
-/// 聯絡人控制器。
+/// 联络人控制器。
 final contactsProvider =
     NotifierProvider<ContactsController, List<Contact>>(ContactsController.new);
 
@@ -496,7 +496,7 @@ class ContactsController extends Notifier<List<Contact>> {
 
   Core get _core => ref.read(coreProvider);
 
-  /// 由 DID / 地址 / ENS 加入聯絡人。回傳錯誤碼字串（null 代表成功）。
+  /// 由 DID / 地址 / ENS 加入联络人。回传错误码字串（null 代表成功）。
   Future<String?> add(String input, {String? nickname}) async {
     final value = input.trim();
     if (value.isEmpty) return 'invalid';
@@ -511,7 +511,7 @@ class ContactsController extends Notifier<List<Contact>> {
       did = Did.fromAddress(value);
     } else if (Did.isEnsName(value)) {
       ens = value.toLowerCase();
-      // ENS 只在以太坊主網存在，因此固定用以太坊的端點解析。
+      // ENS 只在以太坊主网存在，因此固定用以太坊的端点解析。
       final service = EthereumService(
         rpcUrl: ref.read(settingsProvider).rpcFor(ChainType.ethereum),
       );
@@ -558,10 +558,10 @@ class ContactsController extends Notifier<List<Contact>> {
     state = _core.contactsRepo.all();
   }
 
-  /// 從 Waku 的金鑰包頻道補齊聯絡人的加密公鑰。
+  /// 从 Waku 的金钥包频道补齐联络人的加密公钥。
   ///
-  /// 回傳 `true` 表示有成功寫入（或更新）至少一個聯絡人的公鑰；
-  /// `false` 表示沒有變化或發生錯誤。回傳值主要給 UI 做 snackbar 回饋。
+  /// 回传 `true` 表示有成功写入（或更新）至少一个联络人的公钥；
+  /// `false` 表示没有变化或发生错误。回传值主要给 UI 做 snackbar 回馈。
   Future<bool> refreshKeys() async {
     final waku = _core.waku;
     if (waku == null) return false;
@@ -575,8 +575,8 @@ class ContactsController extends Notifier<List<Contact>> {
       if (changed) await refresh();
       return changed;
     } catch (error, stackTrace) {
-      // 金鑰包是非必要資料，不能讓同步錯誤炸掉整個頁面；
-      // 但開發/測試階段要把錯誤印出來，否則「同步中」會永遠查不到原因。
+      // 金钥包是非必要资料，不能让同步错误炸掉整个页面；
+      // 但开发/测试阶段要把错误印出来，否则「同步中」会永远查不到原因。
       debugPrint('refreshKeys failed: $error\n$stackTrace');
       return false;
     }
@@ -608,10 +608,10 @@ class ContactsController extends Notifier<List<Contact>> {
 }
 
 // ==========================================================================
-// 網路狀態
+// 网路状态
 // ==========================================================================
 
-/// 傳輸層健康狀態。
+/// 传输层健康状态。
 final networkStatusProvider =
     FutureProvider<TransportHealth>((ref) async {
   final core = ref.watch(coreProvider);
@@ -620,11 +620,11 @@ final networkStatusProvider =
   return waku.health();
 });
 
-/// 探測節點清單中的每一台（設定頁顯示節點狀態）。
+/// 探测节点清单中的每一台（设定页显示节点状态）。
 ///
-/// 實際連線只有使用中的那一台，但這裡一律探測**整份節點清單**，使用者才能
-/// 在切換前就看到哪一台可用。探測只發 `/health`，不會影響目前連線；
-/// 用完即釋放暫時建立的 HTTP 連線。
+/// 实际连线只有使用中的那一台，但这里一律探测**整份节点清单**，使用者才能
+/// 在切换前就看到哪一台可用。探测只发 `/health`，不会影响目前连线；
+/// 用完即释放暂时建立的 HTTP 连线。
 final nodeStatusProvider = FutureProvider<List<NodeStatus>>((ref) async {
   final urls = ref.watch(settingsProvider).nodeUrls;
   if (urls.isEmpty) return const <NodeStatus>[];
@@ -640,7 +640,7 @@ final nodeStatusProvider = FutureProvider<List<NodeStatus>>((ref) async {
 // 聊天
 // ==========================================================================
 
-/// 聊天畫面狀態。
+/// 聊天画面状态。
 class ChatState {
   const ChatState({
     this.conversations = const <Conversation>[],
@@ -671,7 +671,7 @@ class ChatState {
   List<ChatMessage> forPeer(String peerDid) =>
       messages[peerDid] ?? const <ChatMessage>[];
 
-  /// 由會話鍵（`grp:<id>`）找出群組。
+  /// 由会话键（`grp:<id>`）找出群组。
   GroupChat? groupByPeerKey(String peerKey) {
     if (!peerKey.startsWith('grp:')) return null;
     final id = peerKey.substring(4);
@@ -682,7 +682,7 @@ class ChatState {
   }
 }
 
-/// 聊天控制器：負責同步 Waku、收發訊息與維護對話列表。
+/// 聊天控制器：负责同步 Waku、收发讯息与维护对话列表。
 final chatControllerProvider =
     NotifierProvider<ChatController, ChatState>(ChatController.new);
 
@@ -690,22 +690,22 @@ class ChatController extends Notifier<ChatState> {
   Timer? _timer;
   final Set<String> _seen = <String>{};
 
-  /// 撤回通知先到、原始訊息還沒到的情況：先把目標 ID 記下來，
-  /// 等訊息真正進來時直接標成已撤回，避免「撤了又冒出來」。
+  /// 撤回通知先到、原始讯息还没到的情况：先把目标 ID 记下来，
+  /// 等讯息真正进来时直接标成已撤回，避免「撤了又冒出来」。
   final Map<String, int> _pendingRecalls = <String, int>{};
   bool _syncing = false;
   DateTime? _lastKeyPublish;
 
-  /// 上次把同步錯誤寫進 console 的時間；用來節流，避免每 1.2 秒洗版。
+  /// 上次把同步错误写进 console 的时间；用来节流，避免每 1.2 秒洗版。
   DateTime? _lastSyncErrorLog;
 
-  /// 輪詢間隔。訊息實際上是靠節點的 filter 推播，這裡只是去取快取，
-  /// 所以可以拉得很密；較重的 store / relay 查詢由傳輸層自行節流。
+  /// 轮询间隔。讯息实际上是靠节点的 filter 推播，这里只是去取快取，
+  /// 所以可以拉得很密；较重的 store / relay 查询由传输层自行节流。
   static const _pollInterval = Duration(milliseconds: 1200);
   static const _keyRepublishInterval = Duration(minutes: 2);
 
-  /// 單則媒體的最大體積（位元組）。由網路端的 payload 預算反推，
-  /// 見 [kMaxMediaBytes]（lib/data/media/media_size.dart）。
+  /// 单则媒体的最大体积（位元组）。由网路端的 payload 预算反推，
+  /// 见 [kMaxMediaBytes]（lib/data/media/media_size.dart）。
 
   @override
   ChatState build() {
@@ -729,17 +729,17 @@ class ChatController extends Notifier<ChatState> {
 
   Core get _core => ref.read(coreProvider);
 
-  /// 啟動輪詢（由殼層呼叫）。
+  /// 启动轮询（由壳层呼叫）。
   ///
-  /// 第一輪一定是全量回溯（[full] = true）：增量同步只會看上次同步之後的
-  /// 訊息，若之前因為「對方不在聯絡人清單」等原因漏接，重開才補得回來。
+  /// 第一轮一定是全量回溯（[full] = true）：增量同步只会看上次同步之后的
+  /// 讯息，若之前因为「对方不在联络人清单」等原因漏接，重开才补得回来。
   Future<void> start() async {
     await sync(full: true);
     _timer?.cancel();
     _timer = Timer.periodic(_pollInterval, (_) => sync());
   }
 
-  /// 手動重新拉取：清掉同步時間戳記後跑一次全量回溯。
+  /// 手动重新拉取：清掉同步时间戳记后跑一次全量回溯。
   Future<void> resyncHistory() async {
     resetSync();
     await sync(full: true);
@@ -754,18 +754,18 @@ class ChatController extends Notifier<ChatState> {
     _core.saveSettings(_core.settings.copyWith(lastSyncMs: 0));
   }
 
-  /// 拉取新訊息並解密。
+  /// 拉取新讯息并解密。
   Future<void> sync({bool full = false}) async {
     final waku = _core.waku;
     if (waku == null || _syncing) return;
     _syncing = true;
     try {
-      // 定期重發金鑰包：剛加的聯絡人、或錯過首次廣播的客戶端，都能靠
-      // store 補到公鑰。
+      // 定期重发金钥包：刚加的联络人、或错过首次广播的客户端，都能靠
+      // store 补到公钥。
       await _maybeRepublishKeys(waku);
       final contacts = ref.read(contactsProvider);
-      // 輪詢對象 = 聯絡人 + 已經有對話的對象；收件匣與金鑰包頻道由
-      // topicsFor 自動帶入，所以「對方加了我、我還沒加對方」也收得到。
+      // 轮询对象 = 联络人 + 已经有对话的对象；收件匣与金钥包频道由
+      // topicsFor 自动带入，所以「对方加了我、我还没加对方」也收得到。
       final peers = <String>{
         ...contacts.map((c) => c.did),
         ...state.conversations.map((c) => c.peerDid),
@@ -775,13 +775,13 @@ class ChatController extends Notifier<ChatState> {
         ...waku.topicsFor(peers),
         ...waku.topicsForGroups(state.groups),
       }.toList(growable: false);
-      // 先確保節點已把這些頻道推播給我們：之後每輪只是去取節點收好的快取，
-      // 不需要等下一輪才有機會命中，達到即時接收。
+      // 先确保节点已把这些频道推播给我们：之后每轮只是去取节点收好的快取，
+      // 不需要等下一轮才有机会命中，达到即时接收。
       await waku.subscribe(topics);
       final since = _core.settings.lastSyncMs;
       final messages = await waku.fetch(
         topics,
-        // full = true 時不帶時間過濾，讓傳輸層用預設的 48 小時視窗回溯
+        // full = true 时不带时间过滤，让传输层用预设的 48 小时视窗回溯
         sinceMs: full ? null : (since > 0 ? since - 2000 : null),
       );
       var changed = false;
@@ -795,8 +795,8 @@ class ChatController extends Notifier<ChatState> {
       );
       if (changed) _reload();
     } catch (error, stackTrace) {
-      // 網路錯誤保留既有畫面，等下一次輪詢；但要把原因印出來（節流），
-      // 否則「聯絡人一直同步中」這種問題會完全查不到線索。
+      // 网路错误保留既有画面，等下一次轮询；但要把原因印出来（节流），
+      // 否则「联络人一直同步中」这种问题会完全查不到线索。
       final now = DateTime.now();
       final last = _lastSyncErrorLog;
       if (last == null || now.difference(last) > const Duration(seconds: 20)) {
@@ -818,7 +818,7 @@ class ChatController extends Notifier<ChatState> {
     try {
       await waku.publishKeyBundle(nickname: _core.settings.nickname);
     } catch (_) {
-      // 節點暫時不可用（例如還沒連上任何 peer），等下一輪再試
+      // 节点暂时不可用（例如还没连上任何 peer），等下一轮再试
     }
   }
 
@@ -828,7 +828,7 @@ class ChatController extends Notifier<ChatState> {
     final envelope = NexusChatEnvelope.decodeBase64(message.payloadBase64);
     if (envelope == null) return false;
     if (_seen.contains(envelope.id)) return false;
-    // 本機已刪除的訊息：節點 store 裡還有，重開後的全量回溯不能把它救回來。
+    // 本机已删除的讯息：节点 store 里还有，重开后的全量回溯不能把它救回来。
     if (_core.messagesRepo.isDeleted(envelope.id)) return false;
 
     if (envelope.type == EnvelopeType.keyBundle) {
@@ -879,8 +879,8 @@ class ChatController extends Notifier<ChatState> {
     if (content.kind == MediaKind.text && content.text.isEmpty) return false;
     _seen.add(envelope.id);
 
-    // 第一次收到某人訊息時自動建立名片：對方不需要事先加你為聯絡人，
-    // 你這邊也不會因為沒加他而看不到人。（群組成員不在此列，名稱走通訊錄解析）
+    // 第一次收到某人讯息时自动建立名片：对方不需要事先加你为联络人，
+    // 你这边也不会因为没加他而看不到人。（群组成员不在此列，名称走通讯录解析）
     if (!outgoing && !isGroup) await _ensureContact(peerDid, envelope);
 
     final chatMessage = ChatMessage(
@@ -897,7 +897,7 @@ class ChatController extends Notifier<ChatState> {
       mediaDurationMs: content.mediaDurationMs,
       mediaName: content.mediaName,
       senderDid: senderDid,
-      // 撤回通知比原始訊息先到時，這裡直接補上撤回標記。
+      // 撤回通知比原始讯息先到时，这里直接补上撤回标记。
       recalledAtMs: _pendingRecalls.remove(envelope.id),
     );
     await _core.messagesRepo.save(chatMessage);
@@ -910,8 +910,8 @@ class ChatController extends Notifier<ChatState> {
     return true;
   }
 
-  /// 確保某個 DID 在通訊錄裡；若封包帶有對方的加密公鑰則一併寫入，
-  /// 這樣馬上就能回覆，不必等下一次金鑰包廣播。
+  /// 确保某个 DID 在通讯录里；若封包带有对方的加密公钥则一并写入，
+  /// 这样马上就能回复，不必等下一次金钥包广播。
   Future<void> _ensureContact(String peerDid, NexusChatEnvelope envelope) async {
     final publicData = envelope.publicData;
     final enc = publicData?['enc'] as String?;
@@ -958,13 +958,13 @@ class ChatController extends Notifier<ChatState> {
     return true;
   }
 
-  /// 處理收到的撤回通知：把目標訊息標記為已撤回。
+  /// 处理收到的撤回通知：把目标讯息标记为已撤回。
   ///
-  /// 有效性有三道關卡，缺一不可，否則任何人都能撤掉別人的訊息：
-  /// 1. 簽章必須正確（[EnvelopeSealer.open] 負責驗簽）——撤回通知的
-  ///    [publicData] 沒有加密，簽章是唯一的信任來源。
-  /// 2. 撤回者必須是訊息作者（`from` 的方向要與訊息一致）。
-  /// 3. 目標訊息必須確實存在於同一個對話中。
+  /// 有效性有三道关卡，缺一不可，否则任何人都能撤掉别人的讯息：
+  /// 1. 签章必须正确（[EnvelopeSealer.open] 负责验签）——撤回通知的
+  ///    [publicData] 没有加密，签章是唯一的信任来源。
+  /// 2. 撤回者必须是讯息作者（`from` 的方向要与讯息一致）。
+  /// 3. 目标讯息必须确实存在于同一个对话中。
   Future<bool> _applyIncomingRecall(NexusChatEnvelope envelope) async {
     final waku = _core.waku;
     if (waku == null) return false;
@@ -983,12 +983,12 @@ class ChatController extends Notifier<ChatState> {
 
     final target = _findMessage(targetId);
     if (target == null) {
-      // 原始訊息尚未抵達（或本機已刪除）：先記下撤回，等它進來再套用。
+      // 原始讯息尚未抵达（或本机已删除）：先记下撤回，等它进来再套用。
       _pendingRecalls[targetId] = envelope.timestampMs;
       return false;
     }
     if (target.peerDid.toLowerCase() != peerDid.toLowerCase()) return false;
-    // 只有作者能撤：我發的只能由我撤，對方發的只能由對方撤。
+    // 只有作者能撤：我发的只能由我撤，对方发的只能由对方撤。
     if (target.outgoing != fromMe) return false;
     if (target.recalledAtMs != null) return false;
 
@@ -999,7 +999,7 @@ class ChatController extends Notifier<ChatState> {
     return true;
   }
 
-  /// 在本機訊息庫裡找出一則訊息。
+  /// 在本机讯息库里找出一则讯息。
   ChatMessage? _findMessage(String messageId) {
     for (final message in _core.messagesRepo.all()) {
       if (message.id == messageId) return message;
@@ -1007,10 +1007,10 @@ class ChatController extends Notifier<ChatState> {
     return null;
   }
 
-  /// 重新計算某個對話的列表預覽（最後一則訊息）。
+  /// 重新计算某个对话的列表预览（最后一则讯息）。
   ///
-  /// 刪除或撤回訊息後，對話列表的摘要可能仍指向那則已不顯示的訊息，
-  /// 這裡用剩下的最後一則重算；整串都空了就把對話一併移除。
+  /// 删除或撤回讯息后，对话列表的摘要可能仍指向那则已不显示的讯息，
+  /// 这里用剩下的最后一则重算；整串都空了就把对话一并移除。
   Future<void> _refreshConversationPreview(String peerDid) async {
     final existing = _core.conversationsRepo
         .all()
@@ -1023,7 +1023,7 @@ class ChatController extends Notifier<ChatState> {
       return;
     }
     final last = remaining.last;
-    // 已撤回的訊息不該在列表裡洩漏原文，摘要留白。
+    // 已撤回的讯息不该在列表里泄漏原文，摘要留白。
     final hidden = last.recalledAtMs != null;
     await _core.conversationsRepo.save(
       existing.first.copyWith(
@@ -1089,9 +1089,9 @@ class ChatController extends Notifier<ChatState> {
     state = state.copyWith(groups: _core.groupsRepo.all());
   }
 
-  // ------------------------------------------------------------ 群組
+  // ------------------------------------------------------------ 群组
 
-  /// 處理收到的群組邀請：解密取得群組金鑰與成員清單，建立或更新本機群組。
+  /// 处理收到的群组邀请：解密取得群组金钥与成员清单，建立或更新本机群组。
   Future<bool> _applyIncomingGroupInvite(NexusChatEnvelope envelope) async {
     final waku = _core.waku;
     if (waku == null) return false;
@@ -1127,12 +1127,12 @@ class ChatController extends Notifier<ChatState> {
         : existing.copyWith(name: name, memberDids: members);
     await _core.groupsRepo.save(group);
     _reloadGroups();
-    // 建立者不是自己時，補抓一次群組主題，確保即時收到後續訊息。
+    // 建立者不是自己时，补抓一次群组主题，确保即时收到后续讯息。
     unawaited(sync());
     return true;
   }
 
-  /// 更新群組在列表的預覽（最後一則訊息）。
+  /// 更新群组在列表的预览（最后一则讯息）。
   Future<void> _upsertGroupConversation(
     String peerKey,
     ChatMessage message, {
@@ -1157,7 +1157,7 @@ class ChatController extends Notifier<ChatState> {
     _reloadGroups();
   }
 
-  /// 重新計算某個群組的列表預覽（刪除／撤回後）。
+  /// 重新计算某个群组的列表预览（删除／撤回后）。
   Future<void> _refreshGroupPreview(String peerKey) async {
     final group = state.groupByPeerKey(peerKey);
     if (group == null) return;
@@ -1180,7 +1180,7 @@ class ChatController extends Notifier<ChatState> {
     _reloadGroups();
   }
 
-  /// 取得某個 DID 的加密公鑰：先查聯絡人，沒有再去金鑰包頻道補。
+  /// 取得某个 DID 的加密公钥：先查联络人，没有再去金钥包频道补。
   Future<String?> _recipientKeyFor(String did) async {
     final contacts = ref.read(contactsProvider);
     final index =
@@ -1192,9 +1192,9 @@ class ChatController extends Notifier<ChatState> {
     return _findKeyOnNetwork(did);
   }
 
-  /// 建立群組：產生共享金鑰，儲存本機群組，並把金鑰用每位成員公鑰加密分發。
+  /// 建立群组：产生共享金钥，储存本机群组，并把金钥用每位成员公钥加密分发。
   ///
-  /// 回傳新建的群組 id；成員公鑰暫時取不到時會略過該成員。
+  /// 回传新建的群组 id；成员公钥暂时取不到时会略过该成员。
   Future<String?> createGroup({
     required String name,
     required List<String> memberDids,
@@ -1235,13 +1235,13 @@ class ChatController extends Notifier<ChatState> {
           recipientPublicKeyB64: encKey,
         );
       } catch (_) {
-        // 單一成員邀請失敗不影響整體；其餘成員仍會收到，稍後可重新邀請。
+        // 单一成员邀请失败不影响整体；其余成员仍会收到，稍后可重新邀请。
       }
     }
     return groupId;
   }
 
-  /// 邀請新成員加入既有群組（用既有金鑰重新分發邀請）。
+  /// 邀请新成员加入既有群组（用既有金钥重新分发邀请）。
   Future<bool> addGroupMember(String groupId, String did) async {
     final waku = _core.waku;
     final group = _core.groupsRepo.byId(groupId);
@@ -1272,7 +1272,7 @@ class ChatController extends Notifier<ChatState> {
     }
   }
 
-  /// 退出群組：移除本機群組與其訊息（去中心化網路無法通知他人）。
+  /// 退出群组：移除本机群组与其讯息（去中心化网路无法通知他人）。
   Future<void> leaveGroup(String groupId) async {
     final peerKey = 'grp:$groupId';
     await _core.messagesRepo.removeByPeer(peerKey);
@@ -1280,10 +1280,10 @@ class ChatController extends Notifier<ChatState> {
     _reloadGroups();
   }
 
-  /// 刪除群組（只刪本機，語意等同 [leaveGroup]）。
+  /// 删除群组（只删本机，语意等同 [leaveGroup]）。
   Future<void> deleteGroup(String groupId) async => leaveGroup(groupId);
 
-  /// 傳送群組訊息（樂觀更新）。
+  /// 传送群组讯息（乐观更新）。
   Future<void> sendGroupContent(String groupId, MessageContent content) async {
     if (content.kind == MediaKind.text && content.text.trim().isEmpty) return;
     final waku = _core.waku;
@@ -1359,7 +1359,7 @@ class ChatController extends Notifier<ChatState> {
     }
   }
 
-  /// 送出訊息（樂觀更新）。[content] 可以是文字、圖片或語音。
+  /// 送出讯息（乐观更新）。[content] 可以是文字、图片或语音。
   Future<void> sendContent(String peerDid, MessageContent content) async {
     if (content.kind == MediaKind.text && content.text.trim().isEmpty) return;
     final waku = _core.waku;
@@ -1369,7 +1369,7 @@ class ChatController extends Notifier<ChatState> {
         ? null
         : base64Encode(content.mediaBytes!);
 
-    // 媒體過大：直接標記失敗，避免塞爆 Waku 節點。
+    // 媒体过大：直接标记失败，避免塞爆 Waku 节点。
     if (content.mediaBytes != null &&
         content.mediaBytes!.length > kMaxMediaBytes) {
       final failed = ChatMessage(
@@ -1463,7 +1463,7 @@ class ChatController extends Notifier<ChatState> {
     state = state.copyWith(messages: grouped);
   }
 
-  /// 重試失敗的訊息。
+  /// 重试失败的讯息。
   Future<void> retry(String messageId) async {
     final message = state.messages.values
         .expand((e) => e)
@@ -1477,7 +1477,7 @@ class ChatController extends Notifier<ChatState> {
     await sendContent(target.peerDid, MessageContent.fromChatMessage(target));
   }
 
-  /// 在金鑰包頻道尋找某個 DID 的公鑰。
+  /// 在金钥包频道寻找某个 DID 的公钥。
   Future<String?> _findKeyOnNetwork(String peerDid) async {
     final waku = _core.waku;
     if (waku == null) return null;
@@ -1555,16 +1555,16 @@ class ChatController extends Notifier<ChatState> {
     _reload();
   }
 
-  /// 刪除單則訊息（**只刪本機**，不通知對方）。
+  /// 删除单则讯息（**只删本机**，不通知对方）。
   ///
-  /// 去中心化網路沒有「把對方那一份也刪掉」的機制，所以這裡只移除本機
-  /// 紀錄；對方仍看得到原訊息。要讓雙方都看不到請用 [recallMessage]。
-  /// 回傳該訊息所屬的 peerDid 供 UI 更新，找不到則回傳 null。
+  /// 去中心化网路没有「把对方那一份也删掉」的机制，所以这里只移除本机
+  /// 纪录；对方仍看得到原讯息。要让双方都看不到请用 [recallMessage]。
+  /// 回传该讯息所属的 peerDid 供 UI 更新，找不到则回传 null。
   Future<String?> deleteMessage(String messageId) async {
     final target = _findMessage(messageId);
     if (target == null) return null;
     await _core.messagesRepo.remove(messageId);
-    // 同時留墓碑與 _seen：前者擋重開後的全量回溯，後者擋本輪重複套用。
+    // 同时留墓碑与 _seen：前者挡重开后的全量回溯，后者挡本轮重复套用。
     await _core.messagesRepo.markDeleted(messageId);
     _seen.add(messageId);
     await _refreshConversationPreview(target.peerDid);
@@ -1572,11 +1572,11 @@ class ChatController extends Notifier<ChatState> {
     return target.peerDid;
   }
 
-  /// 撤回自己發出的訊息：廣播撤回通知，雙方都改顯示「訊息已撤回」。
+  /// 撤回自己发出的讯息：广播撤回通知，双方都改显示「讯息已撤回」。
   ///
-  /// 限制：只能撤自己發出、已送出（非失敗）且尚未撤回的訊息。
-  /// 去中心化網路下原始內容仍留在雙方儲存裡，撤回只是讓介面不再顯示，
-  /// 這一點與「刪除」的差別必須讓使用者知道（見確認對話框文案）。
+  /// 限制：只能撤自己发出、已送出（非失败）且尚未撤回的讯息。
+  /// 去中心化网路下原始内容仍留在双方储存里，撤回只是让介面不再显示，
+  /// 这一点与「删除」的差别必须让使用者知道（见确认对话框文案）。
   Future<bool> recallMessage(String messageId) async {
     final waku = _core.waku;
     final target = _findMessage(messageId);
@@ -1615,10 +1615,10 @@ class ChatController extends Notifier<ChatState> {
     return true;
   }
 
-  /// 廣播自己的金鑰包。
+  /// 广播自己的金钥包。
   ///
-  /// 離線或節點不可用時只記錄、不拋錯：金鑰包會在之後的同步輪詢中自動補發，
-  /// 絕不能因此擋住進入主介面或發送訊息。
+  /// 离线或节点不可用时只记录、不抛错：金钥包会在之后的同步轮询中自动补发，
+  /// 绝不能因此挡住进入主介面或发送讯息。
   Future<void> publishKeys() async {
     final waku = _core.waku;
     if (waku == null) return;
@@ -1633,13 +1633,13 @@ class ChatController extends Notifier<ChatState> {
 }
 
 // ==========================================================================
-// 錢包資訊（多鏈）
+// 钱包资讯（多链）
 // ==========================================================================
 
-/// 錢包頁面的帳戶資訊（餘額 / chain id / 域名）。
+/// 钱包页面的帐户资讯（余额 / chain id / 域名）。
 ///
-/// 依 [AppSettings.chain] 選擇對應的鏈服務：以太坊走 JSON-RPC，
-/// TRON 走 TronGrid HTTP API。兩者都回傳統一的 [ChainAccountInfo]。
+/// 依 [AppSettings.chain] 选择对应的链服务：以太坊走 JSON-RPC，
+/// TRON 走 TronGrid HTTP API。两者都回传统一的 [ChainAccountInfo]。
 final walletInfoProvider = FutureProvider.autoDispose<ChainAccountInfo>((
   ref,
 ) async {
@@ -1665,8 +1665,8 @@ final walletInfoProvider = FutureProvider.autoDispose<ChainAccountInfo>((
     }
   }
 
-  // 其餘鏈（以太坊 / Base / Arbitrum / BSC / Besu）都是 EVM：同一個 0x
-  // 地址、同一套 JSON-RPC，差別只在 ENS —— 以太坊主網以外不查。
+  // 其余链（以太坊 / Base / Arbitrum / BSC / Besu）都是 EVM：同一个 0x
+  // 地址、同一套 JSON-RPC，差别只在 ENS —— 以太坊主网以外不查。
   final service = EthereumService(
     rpcUrl: endpoint,
     chain: chain,
@@ -1680,19 +1680,19 @@ final walletInfoProvider = FutureProvider.autoDispose<ChainAccountInfo>((
 });
 
 // ==========================================================================
-// 轉帳
+// 转帐
 // ==========================================================================
 
-/// 轉帳狀態。
+/// 转帐状态。
 class SendState {
   const SendState({this.busy = false, this.error, this.result});
 
   final bool busy;
 
-  /// 失敗代碼（`insufficient-funds` / `network` / …），供 UI 映射文案。
+  /// 失败代码（`insufficient-funds` / `network` / …），供 UI 映射文案。
   final String? error;
 
-  /// 成功後的交易結果。
+  /// 成功后的交易结果。
   final TxResult? result;
 
   SendState copyWith({
@@ -1713,12 +1713,12 @@ class SendState {
 final walletSendProvider =
     NotifierProvider<WalletSendController, SendState>(WalletSendController.new);
 
-/// 執行原生代幣轉帳：依當前鏈分派到 EVM / TRON。
+/// 执行原生代币转帐：依当前链分派到 EVM / TRON。
 class WalletSendController extends Notifier<SendState> {
   @override
   SendState build() => const SendState();
 
-  /// 送出轉帳。成功時回傳交易結果，失敗回傳 null 並把錯誤寫進 state。
+  /// 送出转帐。成功时回传交易结果，失败回传 null 并把错误写进 state。
   Future<TxResult?> send({
     required String toAddress,
     required double amount,
@@ -1745,7 +1745,7 @@ class WalletSendController extends Notifier<SendState> {
         explorerBase: ChainConfig.of(settings.chain).explorerUrl,
       );
       state = state.copyWith(busy: false, result: result);
-      // 餘額已變動，讓錢包頁重新拉取。
+      // 余额已变动，让钱包页重新拉取。
       ref.invalidate(walletInfoProvider);
       return result;
     } on TxException catch (error) {
@@ -1757,9 +1757,9 @@ class WalletSendController extends Notifier<SendState> {
     }
   }
 
-  /// 送出代幣轉帳（ERC-20 / TRC-20，依目前鏈自動分派）。
+  /// 送出代币转帐（ERC-20 / TRC-20，依目前链自动分派）。
   ///
-  /// 成功時回傳交易結果，失敗回傳 null 並把錯誤碼寫入 state。
+  /// 成功时回传交易结果，失败回传 null 并把错误码写入 state。
   Future<TxResult?> sendToken({
     required TokenDef token,
     required String toAddress,
@@ -1789,9 +1789,9 @@ class WalletSendController extends Notifier<SendState> {
         explorerBase: ChainConfig.of(settings.chain).explorerUrl,
       );
       state = state.copyWith(busy: false, result: result);
-      // 餘額已變動，讓錢包頁重新拉取。
+      // 余额已变动，让钱包页重新拉取。
       ref.invalidate(walletInfoProvider);
-      // 記一筆本機發送歷史（ERC-20 / TRC-20 通用）。
+      // 记一笔本机发送历史（ERC-20 / TRC-20 通用）。
       ref.read(tokenTxHistoryProvider.notifier).add(TokenTxRecord(
             chainId: settings.chain.id,
             symbol: token.symbol,

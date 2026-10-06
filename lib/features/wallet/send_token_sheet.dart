@@ -15,16 +15,16 @@ import '../../state/controllers.dart';
 import 'chain_selector.dart';
 import 'token_panel.dart';
 
-/// 點擊 ERC-20 通證後彈出的轉帳表單：填收款地址與金額 → 二次確認 → 廣播
-/// `transfer` 合約呼叫。僅支援 EVM 系（以太坊 / Base / Arbitrum / BSC / Besu），
-/// TRON 上的 TRC-20 會被擋下並提示「暫不支援」。
+/// 点击 ERC-20 通证后弹出的转帐表单：填收款地址与金额 → 二次确认 → 广播
+/// `transfer` 合约呼叫。仅支援 EVM 系（以太坊 / Base / Arbitrum / BSC / Besu），
+/// TRON 上的 TRC-20 会被挡下并提示「暂不支援」。
 class SendTokenSheet extends ConsumerStatefulWidget {
   const SendTokenSheet({required this.chain, required this.token, super.key});
 
   final ChainType chain;
   final TokenDef token;
 
-  /// 以底部面板形式彈出。
+  /// 以底部面板形式弹出。
   static void show(
     BuildContext context,
     ChainType chain,
@@ -67,7 +67,7 @@ class _SendTokenSheetState extends ConsumerState<SendTokenSheet> {
     super.dispose();
   }
 
-  /// 進入時拉取該代幣餘額（ERC-20 / TRC-20，需設定 RPC），失敗就當作沒有顯示。
+  /// 进入时拉取该代币余额（ERC-20 / TRC-20，需设定 RPC），失败就当作没有显示。
   Future<void> _loadBalance() async {
     final settings = ref.read(settingsProvider);
     final identity = ref.read(sessionProvider).identity;
@@ -144,7 +144,7 @@ class _SendTokenSheetState extends ConsumerState<SendTokenSheet> {
     final config = ChainConfig.of(widget.chain);
     final chainLabel = ChainSelector.labelOf(s, widget.chain);
 
-    // 端點與鏈不符時硬擋（餘額查得到、交易也送得出去，但會送錯網）。
+    // 端点与链不符时硬挡（余额查得到、交易也送得出去，但会送错网）。
     final chainId = ref.read(walletInfoProvider).value?.chainId;
     if (config.isWrongChain(chainId)) {
       showAppSnack(context, s.walletRpcMismatch, danger: true);
@@ -254,8 +254,8 @@ class _SendTokenSheetState extends ConsumerState<SendTokenSheet> {
         actions: <Widget>[
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // 關掉成功對話框
-              Navigator.pop(context); // 關掉轉帳表單
+              Navigator.pop(context); // 关掉成功对话框
+              Navigator.pop(context); // 关掉转帐表单
             },
             child: Text(s.done),
           ),
@@ -407,7 +407,7 @@ class _SendTokenSheetState extends ConsumerState<SendTokenSheet> {
   }
 }
 
-/// 確認對話框中的一列「標籤 / 值」。
+/// 确认对话框中的一列「标签 / 值」。
 class _Row extends StatelessWidget {
   const _Row({required this.label, required this.value});
 

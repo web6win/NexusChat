@@ -17,11 +17,11 @@ import 'chain_selector.dart';
 import 'receive_sheet.dart';
 import 'token_panel.dart';
 
-/// 錢包頁：顯示目前所選鏈的帳戶資訊（餘額、ENS、chain、DID）。
+/// 钱包页：显示目前所选链的帐户资讯（余额、ENS、chain、DID）。
 ///
-/// 版面依「一眼看到重點」排序：鏈別 → 餘額 → 主要操作（轉帳 / 收款）
-/// → 帳戶與網路細節。桌機視窗很寬時內容會收在 [AppBreakpoints.content]
-/// 之內並置中，避免卡片橫向鋪滿整個畫面。
+/// 版面依「一眼看到重点」排序：链别 → 余额 → 主要操作（转帐 / 收款）
+/// → 帐户与网路细节。桌机视窗很宽时内容会收在 [AppBreakpoints.content]
+/// 之内并置中，避免卡片横向铺满整个画面。
 class WalletPage extends ConsumerWidget {
   const WalletPage({super.key});
 
@@ -31,14 +31,14 @@ class WalletPage extends ConsumerWidget {
     showAppSnack(context, context.s.copied);
   }
 
-  /// 用外部瀏覽器開啟區塊瀏覽器。
+  /// 用外部浏览器开启区块浏览器。
   Future<void> _openExplorer(String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null) return;
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  /// 彈出收款面板（地址 + QR Code）。
+  /// 弹出收款面板（地址 + QR Code）。
   Future<void> _showReceive(BuildContext context, String address) {
     if (address.isEmpty) return Future<void>.value();
     return showModalBottomSheet<void>(
@@ -59,12 +59,12 @@ class WalletPage extends ConsumerWidget {
     final config = ChainConfig.of(chain);
     final address = identity?.address ?? '';
     final did = identity?.did ?? '';
-    // 依鏈顯示對應地址：EVM 系（以太坊 / Besu 聯盟鏈）為 EIP-55 的 0x，
-    // TRON 為 T 開頭 Base58Check。
+    // 依链显示对应地址：EVM 系（以太坊 / Besu 联盟链）为 EIP-55 的 0x，
+    // TRON 为 T 开头 Base58Check。
     final displayAddress = chain == ChainType.tron
         ? (identity?.tronAddress ?? '')
         : Did.eip55(address);
-    // 卡片與列表只展示「前 8 位…後 8 位」，複製時仍用完整地址。
+    // 卡片与列表只展示「前 8 位…后 8 位」，复制时仍用完整地址。
     final displayAddressShort = Did.shortAddress(
       displayAddress,
       head: 8,
@@ -72,7 +72,7 @@ class WalletPage extends ConsumerWidget {
     );
 
     final busy = info.isLoading;
-    // 查不到餘額且不在載入中：RPC 未設定或連線失敗，兩者提示文字不同。
+    // 查不到余额且不在载入中：RPC 未设定或连线失败，两者提示文字不同。
     final unavailable = info.value?.balanceNative == null && !busy;
 
     return Scaffold(
@@ -102,9 +102,9 @@ class WalletPage extends ConsumerWidget {
                     ),
                   ],
                 ),
-                // -------------------------------------------------- 餘額卡片
+                // -------------------------------------------------- 余额卡片
                 _BalanceCard(
-                  // 一律使用介面語言的鏈名，與上方標題列的鏈別標籤一致。
+                  // 一律使用介面语言的链名，与上方标题列的链别标签一致。
                   chainLabel: ChainSelector.labelOf(s, chain),
                   chainIcon: ChainSelector.iconOf(chain),
                   chainId: info.value?.chainId,
@@ -147,9 +147,9 @@ class WalletPage extends ConsumerWidget {
                         : s.errorNetwork,
                   ),
                 ],
-                // ------------------------------------------------ 常用通證面板
+                // ------------------------------------------------ 常用通证面板
                 TokenPanel(chain: chain),
-                // -------------------------------------------------- 帳戶資訊
+                // -------------------------------------------------- 帐户资讯
                 SectionCard(
                   title: s.identityTitle,
                   child: Column(
@@ -176,7 +176,7 @@ class WalletPage extends ConsumerWidget {
                     ],
                   ),
                 ),
-                // ------------------------------------------------------ 網路
+                // ------------------------------------------------------ 网路
                 SectionCard(
                   title: s.settingsNetwork,
                   child: Column(
@@ -184,7 +184,7 @@ class WalletPage extends ConsumerWidget {
                       SettingsTile(
                         icon: Icons.toll_rounded,
                         title: s.walletNativeToken,
-                        // 代幣全名 + 代號，例如 Contribution (CNT)。
+                        // 代币全名 + 代号，例如 Contribution (CNT)。
                         subtitle: '${config.name} (${config.symbol})',
                         onTap: null,
                       ),
@@ -213,10 +213,10 @@ class WalletPage extends ConsumerWidget {
   }
 }
 
-/// 餘額卡片：鏈別徽章 + chainId + 餘額 + 可複製地址。
+/// 余额卡片：链别徽章 + chainId + 余额 + 可复制地址。
 ///
-/// 用外層陰影做出「浮在頁面上」的層次；卡片內部疊了兩圈半透明圓形，
-/// 讓純漸層背景多一點深度，不至於太平。
+/// 用外层阴影做出「浮在页面上」的层次；卡片内部叠了两圈半透明圆形，
+/// 让纯渐层背景多一点深度，不至于太平。
 class _BalanceCard extends StatelessWidget {
   const _BalanceCard({
     required this.chainLabel,
@@ -268,7 +268,7 @@ class _BalanceCard extends StatelessWidget {
                 ),
               ),
             ),
-            // 裝飾用光暈，純視覺、不影響版面。
+            // 装饰用光晕，纯视觉、不影响版面。
             const Positioned(right: -70, top: -80, child: _Glow(size: 200)),
             const Positioned(right: 40, bottom: -90, child: _Glow(size: 150)),
             Padding(
@@ -358,7 +358,7 @@ class _BalanceCard extends StatelessWidget {
   }
 }
 
-/// 卡片上的半透明圓形裝飾。
+/// 卡片上的半透明圆形装饰。
 class _Glow extends StatelessWidget {
   const _Glow({required this.size});
 
@@ -377,7 +377,7 @@ class _Glow extends StatelessWidget {
   }
 }
 
-/// 漸層卡片上的玻璃質感標籤。
+/// 渐层卡片上的玻璃质感标签。
 class _GlassChip extends StatelessWidget {
   const _GlassChip({required this.icon, required this.label});
 
@@ -412,7 +412,7 @@ class _GlassChip extends StatelessWidget {
   }
 }
 
-/// 卡片上的地址列：點擊複製。
+/// 卡片上的地址列：点击复制。
 class _AddressRow extends StatelessWidget {
   const _AddressRow({required this.address, required this.onTap});
 
@@ -458,7 +458,7 @@ class _AddressRow extends StatelessWidget {
   }
 }
 
-/// 提示橫幅：用來顯示「尚未設定 RPC」這類不阻斷操作的狀況。
+/// 提示横幅：用来显示「尚未设定 RPC」这类不阻断操作的状况。
 class _NoticeBanner extends StatelessWidget {
   const _NoticeBanner({required this.text});
 

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart' show immutable;
 
-/// 安全相關設定（持久化，但**不含任何秘密**）。
+/// 安全相关设定（持久化，但**不含任何秘密**）。
 @immutable
 class SecuritySettings {
   const SecuritySettings({
@@ -9,26 +9,26 @@ class SecuritySettings {
     this.hideSecretsAfterSeconds = 30,
   });
 
-  /// 閒置多久自動鎖定；`0` 表示永不自動鎖定（不建議）。
+  /// 闲置多久自动锁定；`0` 表示永不自动锁定（不建议）。
   final int autoLockMinutes;
 
-  /// 頁面切到背景（切換分頁 / 最小化）時是否立即鎖定。
+  /// 页面切到背景（切换分页 / 最小化）时是否立即锁定。
   ///
-  /// 預設關閉：在瀏覽器上頻繁切分頁是常態，立即鎖定會嚴重干擾使用；
-  /// 閒置計時已能覆蓋「離開後未回來」的情境。對安全要求高的使用者可開啟。
+  /// 预设关闭：在浏览器上频繁切分页是常态，立即锁定会严重干扰使用；
+  /// 闲置计时已能覆盖「离开后未回来」的情境。对安全要求高的使用者可开启。
   final bool lockOnHide;
 
-  /// 助記詞 / 私鑰顯示後幾秒自動隱藏（防止肩窺與螢幕錄製殘留）。
+  /// 助记词 / 私钥显示后几秒自动隐藏（防止肩窥与萤幕录制残留）。
   final int hideSecretsAfterSeconds;
 
-  /// 可選的自動鎖定分鐘數。
+  /// 可选的自动锁定分钟数。
   static const List<int> autoLockOptions = <int>[0, 1, 5, 15, 30, 60];
 
-  /// 自動鎖定時長；`null` 代表不自動鎖定。
+  /// 自动锁定时长；`null` 代表不自动锁定。
   Duration? get autoLockDuration =>
       autoLockMinutes <= 0 ? null : Duration(minutes: autoLockMinutes);
 
-  /// 敏感內容自動隱藏時長。
+  /// 敏感内容自动隐藏时长。
   Duration get hideSecretsAfter =>
       Duration(seconds: hideSecretsAfterSeconds <= 0 ? 30 : hideSecretsAfterSeconds);
 

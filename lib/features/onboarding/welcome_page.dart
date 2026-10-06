@@ -8,7 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/app_settings.dart' show ThemePreference;
 import '../../state/controllers.dart';
 
-/// 引導頁：說明價值主張，並讓使用者建立或匯入身份。
+/// 引导页：说明价值主张，并让使用者建立或汇入身份。
 class WelcomePage extends ConsumerWidget {
   const WelcomePage({super.key});
 
@@ -21,7 +21,7 @@ class WelcomePage extends ConsumerWidget {
     return Scaffold(
       body: Stack(
         children: <Widget>[
-          // 背景光暈
+          // 背景光晕
           Positioned(
             top: -140,
             right: -100,
@@ -244,7 +244,7 @@ class _FeatureRow extends StatelessWidget {
   }
 }
 
-/// 語言切換按鈕（引導頁與設定頁共用）。
+/// 语言切换按钮（引导页与设定页共用）。
 class _LanguageButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -303,7 +303,7 @@ class _LanguageOption extends StatelessWidget {
   }
 }
 
-/// 主題切換按鈕。
+/// 主题切换按钮。
 class _ThemeButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {

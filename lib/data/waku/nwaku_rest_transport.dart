@@ -7,37 +7,37 @@ import 'package:http/http.dart' as http;
 import 'waku_message.dart';
 import 'waku_transport.dart';
 
-/// 透過 nwaku（或任何相容的 Waku v2 REST 節點）收發訊息。
+/// 透过 nwaku（或任何相容的 Waku v2 REST 节点）收发讯息。
 ///
-/// 支援兩種網路模式，會自動偵測：
+/// 支援两种网路模式，会自动侦测：
 ///
-/// 1. 自動分片（auto-sharding，公共 Waku 網路 / cluster 1）：
-///    - 發布：`POST /relay/v1/auto/messages`
-///    - 訂閱：`POST /relay/v1/auto/subscriptions`（content topic 陣列）
+/// 1. 自动分片（auto-sharding，公共 Waku 网路 / cluster 1）：
+///    - 发布：`POST /relay/v1/auto/messages`
+///    - 订阅：`POST /relay/v1/auto/subscriptions`（content topic 阵列）
 ///    - 拉取：`GET /relay/v1/auto/messages/{contentTopic}`
 ///
-/// 2. 靜態分片（static-sharding，私有 cluster，例如 cluster-id=10000）：
-///    - 發布：`POST /relay/v1/messages/{pubsubTopic}`
-///    - 訂閱：`POST /relay/v1/subscriptions`（pubsub topic 陣列）
-///    - 拉取：`GET /relay/v1/messages/{pubsubTopic}`，再在本地依 contentTopic 篩選
+/// 2. 静态分片（static-sharding，私有 cluster，例如 cluster-id=10000）：
+///    - 发布：`POST /relay/v1/messages/{pubsubTopic}`
+///    - 订阅：`POST /relay/v1/subscriptions`（pubsub topic 阵列）
+///    - 拉取：`GET /relay/v1/messages/{pubsubTopic}`，再在本地依 contentTopic 筛选
 ///
-/// 當 `POST /relay/v1/auto/subscriptions` 回傳「Static sharding is used」
-/// 時，會自動切到模式 2。nexuschat 預設使用 cluster 10000 shard 0，
-/// 因此 pubsub topic 固定為 `/waku/2/rs/10000/0`。
+/// 当 `POST /relay/v1/auto/subscriptions` 回传「Static sharding is used」
+/// 时，会自动切到模式 2。nexuschat 预设使用 cluster 10000 shard 0，
+/// 因此 pubsub topic 固定为 `/waku/2/rs/10000/0`。
 ///
-/// 即時來源仍保留 filter v2：`POST /filter/v2/subscriptions` + `GET
-/// /filter/v2/messages/{contentTopic}`，由節點主動把訂閱的訊息收進快取，
-/// 客戶端只要快速取走即可，延遲不再受限於輪詢週期。
+/// 即时来源仍保留 filter v2：`POST /filter/v2/subscriptions` + `GET
+/// /filter/v2/messages/{contentTopic}`，由节点主动把订阅的讯息收进快取，
+/// 客户端只要快速取走即可，延迟不再受限于轮询周期。
 ///
-/// 為什麼要合併多個來源：filter / relay 快取都只保留節點最近收到的訊息，
-/// 且被讀走即清空；同一節點上有多個客戶端輪詢時，訊息可能被先輪詢的一方
-/// 拉走。store 則保存節點轉發過的所有訊息（依 retention policy），多邊合併
-/// 去重才能保證金鑰包與聊天訊息不漏接。
+/// 为什么要合并多个来源：filter / relay 快取都只保留节点最近收到的讯息，
+/// 且被读走即清空；同一节点上有多个客户端轮询时，讯息可能被先轮询的一方
+/// 拉走。store 则保存节点转发过的所有讯息（依 retention policy），多边合并
+/// 去重才能保证金钥包与聊天讯息不漏接。
 class NwakuRestTransport extends WakuTransport {
   NwakuRestTransport({required this.baseUrl, http.Client? client})
       : _client = client ?? http.Client();
 
-  /// 節點位址，例如 `https://waku01.web6.win/`。
+  /// 节点位址，例如 `https://waku01.web6.win/`。
   final String baseUrl;
 
   final http.Client _client;
@@ -48,48 +48,48 @@ class NwakuRestTransport extends WakuTransport {
   @override
   TransportKind get kind => TransportKind.nwakuRest;
 
-  /// 已成功訂閱的 content topic（filter 推播用）。
+  /// 已成功订阅的 content topic（filter 推播用）。
   final Set<String> _subscribed = <String>{};
 
   DateTime? _lastSubscribeAt;
 
-  /// 節點是否支援 filter v2；不支援就退回純輪詢，不再嘗試訂閱。
+  /// 节点是否支援 filter v2；不支援就退回纯轮询，不再尝试订阅。
   bool _filterAvailable = true;
 
-  /// filter v2 訂閱是否真的建立成功。
+  /// filter v2 订阅是否真的建立成功。
   ///
-  /// [_filterAvailable] 只代表「端點存在」，不代表訂閱成立：節點若沒有可用的
-  /// filter service peer（例如 Relay 尚未連上任何 peer），訂閱會回 503，此時
-  /// 去讀 `GET /filter/v2/messages/{topic}` 只會拿到 400 `Not subscribed to
-  /// topic`。因此讀 filter 快取前必須先確認訂閱真的成功過。
+  /// [_filterAvailable] 只代表「端点存在」，不代表订阅成立：节点若没有可用的
+  /// filter service peer（例如 Relay 尚未连上任何 peer），订阅会回 503，此时
+  /// 去读 `GET /filter/v2/messages/{topic}` 只会拿到 400 `Not subscribed to
+  /// topic`。因此读 filter 快取前必须先确认订阅真的成功过。
   bool _filterSubscribed = false;
 
-  /// 節點是否支援 relay auto-sharding 訂閱；不支援就不再嘗試。
+  /// 节点是否支援 relay auto-sharding 订阅；不支援就不再尝试。
   bool _relayAutoAvailable = true;
 
-  /// 節點使用靜態分片（static sharding）。一旦偵測到就切換為靜態 endpoint。
+  /// 节点使用静态分片（static sharding）。一旦侦测到就切换为静态 endpoint。
   bool _staticMode = false;
 
-  /// 是否已向靜態 pubsub topic 訂閱。
+  /// 是否已向静态 pubsub topic 订阅。
   bool _staticSubscribed = false;
 
-  /// 節點是否不支援 `/relay/v1/subscriptions`（回傳 404/400）。
-  /// 確認後才會 fallback 到 auto-sharding endpoint。
+  /// 节点是否不支援 `/relay/v1/subscriptions`（回传 404/400）。
+  /// 确认后才会 fallback 到 auto-sharding endpoint。
   bool _staticEndpointUnavailable = false;
 
-  /// 靜態分片模式下使用的 pubsub topic（cluster 10000 shard 0）。
+  /// 静态分片模式下使用的 pubsub topic（cluster 10000 shard 0）。
   static const _staticPubsubTopic = '/waku/2/rs/10000/0';
 
-  /// 用來節流「較重」的 store / relay 查詢。
+  /// 用来节流「较重」的 store / relay 查询。
   int _queryCount = 0;
 
-  /// filter 訂閱的 TTL 是 5 分鐘，這裡提前重發以免斷訂。
+  /// filter 订阅的 TTL 是 5 分钟，这里提前重发以免断订。
   static const _refreshInterval = Duration(minutes: 3);
 
-  /// 同一節點上可能有多個客戶端，固定 id 讓訂閱可重複刷新（SUBSCRIBE 是累加）。
+  /// 同一节点上可能有多个客户端，固定 id 让订阅可重复刷新（SUBSCRIBE 是累加）。
   static const _subscriptionId = 'nexuschat';
 
-  /// filter v2 連續失敗次數；達到閾值後關閉 filter，避免在 CORS 未配好的節點上無限重試。
+  /// filter v2 连续失败次数；达到阈值后关闭 filter，避免在 CORS 未配好的节点上无限重试。
   int _filterFailureCount = 0;
   static const _filterFailureThreshold = 3;
 
@@ -117,15 +117,15 @@ class NwakuRestTransport extends WakuTransport {
     _filterSubscribed = false;
   }
 
-  /// 訂閱：嘗試 filter v2 推播，並主動偵測節點是否使用靜態分片。
+  /// 订阅：尝试 filter v2 推播，并主动侦测节点是否使用静态分片。
   ///
-  /// 對 cluster 10000 這類靜態分片節點，直接對 `/relay/v1/subscriptions`
-  /// 訂閱 pubsub topic，不必依賴 auto-sharding 的 500 偵測；
-  /// 若該端點回 404/400，代表節點走 auto-sharding，再 fallback 到
+  /// 对 cluster 10000 这类静态分片节点，直接对 `/relay/v1/subscriptions`
+  /// 订阅 pubsub topic，不必依赖 auto-sharding 的 500 侦测；
+  /// 若该端点回 404/400，代表节点走 auto-sharding，再 fallback 到
   /// `/relay/v1/auto/subscriptions`。
   ///
-  /// 只有「有新 topic」或「訂閱快過期」時才真的發請求；失敗不拋錯，
-  /// 上層仍會用一般輪詢收到訊息。
+  /// 只有「有新 topic」或「订阅快过期」时才真的发请求；失败不抛错，
+  /// 上层仍会用一般轮询收到讯息。
   @override
   Future<void> subscribe(List<String> contentTopics) async {
     if (contentTopics.isEmpty) return;
@@ -137,7 +137,7 @@ class NwakuRestTransport extends WakuTransport {
 
     var anySuccess = false;
 
-    // 1) filter v2 推播訂閱。
+    // 1) filter v2 推播订阅。
     if (_filterAvailable) {
       try {
         final response = await _client
@@ -153,7 +153,7 @@ class NwakuRestTransport extends WakuTransport {
             )
             .timeout(const Duration(seconds: 8));
         if (response.statusCode == 404 || response.statusCode == 400) {
-          // 節點版本不相容或未啟用 filter：關掉這條路，退回純輪詢。
+          // 节点版本不相容或未启用 filter：关掉这条路，退回纯轮询。
           _filterAvailable = false;
           _filterSubscribed = false;
         } else if (response.statusCode < 300) {
@@ -161,9 +161,9 @@ class NwakuRestTransport extends WakuTransport {
           anySuccess = true;
           _filterFailureCount = 0;
         } else {
-          // 5xx（例如 503「No suitable service peer」）：節點本身沒有可用的
-          // filter peer，訂閱並未成立。累計失敗次數後直接關閉這條路，否則
-          // 每一輪都會去打 filter 快取並換回一堆 400。
+          // 5xx（例如 503「No suitable service peer」）：节点本身没有可用的
+          // filter peer，订阅并未成立。累计失败次数后直接关闭这条路，否则
+          // 每一轮都会去打 filter 快取并换回一堆 400。
           _filterSubscribed = false;
           _filterFailureCount++;
           if (_filterFailureCount >= _filterFailureThreshold) {
@@ -171,8 +171,8 @@ class NwakuRestTransport extends WakuTransport {
           }
         }
       } catch (_) {
-        // CORS 或網路問題會導致訂閱被擋掉；連續幾次失敗後關閉 filter，
-        // 讓訊息改由 relay / store 兜底，避免 devtools 充滿紅字。
+        // CORS 或网路问题会导致订阅被挡掉；连续几次失败后关闭 filter，
+        // 让讯息改由 relay / store 兜底，避免 devtools 充满红字。
         _filterFailureCount++;
         if (_filterFailureCount >= _filterFailureThreshold) {
           _filterAvailable = false;
@@ -180,9 +180,9 @@ class NwakuRestTransport extends WakuTransport {
       }
     }
 
-    // 2) 優先嘗試靜態分片訂閱：對 waku01 (cluster 10000) 這類靜態分片節點，
-    //    直接對 /relay/v1/subscriptions 訂閱 pubsub topic 即可；CORS preflight
-    //    已由反向代理正確回應 OPTIONS，因此使用標準的 application/json。
+    // 2) 优先尝试静态分片订阅：对 waku01 (cluster 10000) 这类静态分片节点，
+    //    直接对 /relay/v1/subscriptions 订阅 pubsub topic 即可；CORS preflight
+    //    已由反向代理正确回应 OPTIONS，因此使用标准的 application/json。
     if (!_staticSubscribed && !_staticEndpointUnavailable) {
       try {
         final response = await _client
@@ -195,7 +195,7 @@ class NwakuRestTransport extends WakuTransport {
             )
             .timeout(const Duration(seconds: 8));
         if (response.statusCode == 404 || response.statusCode == 400) {
-          // 節點不支援靜態分片 endpoint，走 auto-sharding fallback。
+          // 节点不支援静态分片 endpoint，走 auto-sharding fallback。
           _staticEndpointUnavailable = true;
         } else if (response.statusCode < 300) {
           _staticMode = true;
@@ -203,11 +203,11 @@ class NwakuRestTransport extends WakuTransport {
           anySuccess = true;
         }
       } catch (_) {
-        // 網路/CORS 問題：保持 false，下次重試。
+        // 网路/CORS 问题：保持 false，下次重试。
       }
     }
 
-    // 3) 靜態分片走不通才走 auto-sharding。
+    // 3) 静态分片走不通才走 auto-sharding。
     if (_relayAutoAvailable && !_staticMode && !_staticSubscribed) {
       try {
         final response = await _client
@@ -220,17 +220,17 @@ class NwakuRestTransport extends WakuTransport {
             )
             .timeout(const Duration(seconds: 8));
         if (response.statusCode == 404 || response.statusCode == 400) {
-          // 節點版本不相容或未啟用 auto-sharding relay。
+          // 节点版本不相容或未启用 auto-sharding relay。
           _relayAutoAvailable = false;
         } else if (response.statusCode >= 500 &&
             response.body.contains('Static sharding is used')) {
-          // 節點使用靜態分片，auto endpoint 不接受純 content topic。
+          // 节点使用静态分片，auto endpoint 不接受纯 content topic。
           _staticMode = true;
         } else if (response.statusCode < 300) {
           anySuccess = true;
         }
       } catch (_) {
-        // 訂閱失敗不影響主流程，下一輪會再試
+        // 订阅失败不影响主流程，下一轮会再试
       }
     }
 
@@ -253,8 +253,8 @@ class NwakuRestTransport extends WakuTransport {
           },
           body: jsonEncode(message.toJson()),
         )
-        // 圖片訊息的 payload 可達數百 KB，慢速網路下 10 秒太緊；
-        // 放寬到 20 秒，避免「其實送得出去、卻被逾時判死」。
+        // 图片讯息的 payload 可达数百 KB，慢速网路下 10 秒太紧；
+        // 放宽到 20 秒，避免「其实送得出去、却被逾时判死」。
         .timeout(const Duration(seconds: 20));
     if (response.statusCode >= 300) {
       throw WakuTransportException(
@@ -269,7 +269,7 @@ class NwakuRestTransport extends WakuTransport {
     int? sinceMs,
     int limit = 100,
   }) {
-    // 三個來源都查，合併去重；全部失敗才向上拋錯。
+    // 三个来源都查，合并去重；全部失败才向上抛错。
     final merged = <WakuMessage>[];
     final seen = <String>{};
     Object? firstError;
@@ -291,16 +291,16 @@ class NwakuRestTransport extends WakuTransport {
     }
 
     return () async {
-      // 1) 即時來源：filter 推播快取。節點已經幫我們把訂閱的訊息收好，
-      //    每輪都取，延遲就只取決於輪詢間隔。必須確認訂閱成立過才讀，
-      //    否則未訂閱的 topic 會一直回 400。
+      // 1) 即时来源：filter 推播快取。节点已经帮我们把订阅的讯息收好，
+      //    每轮都取，延迟就只取决于轮询间隔。必须确认订阅成立过才读，
+      //    否则未订阅的 topic 会一直回 400。
       if (_filterAvailable && _filterSubscribed) {
         await safe(() => _queryFilterCache(contentTopics));
       }
 
-      // 2) 兜底來源：store（歷史）+ relay 快取。兩者都比 filter 重
-      //    （relay 要逐 topic 打一次），所以節流：full 查詢一定做，
-      //    其餘每 5 輪做一次，避免漏掉離線期間或沒被推播到的訊息。
+      // 2) 兜底来源：store（历史）+ relay 快取。两者都比 filter 重
+      //    （relay 要逐 topic 打一次），所以节流：full 查询一定做，
+      //    其余每 5 轮做一次，避免漏掉离线期间或没被推播到的讯息。
       _queryCount++;
       if (sinceMs == null || _queryCount % 5 == 0) {
         await safe(() => _queryStore(contentTopics, sinceMs, limit));
@@ -318,9 +318,9 @@ class NwakuRestTransport extends WakuTransport {
 
   /// filter 推播快取：`GET /filter/v2/messages/{contentTopic}`。
   ///
-  /// 呼叫前必須確認 filter 訂閱已成立（`_filterSubscribed`）；未訂閱的 topic
-  /// 節點會回 400 `Not subscribed to topic`，那種請求純屬噪音，應在源頭擋掉。
-  /// 過程中的其他失敗（逾時、連線中斷）一律視為空，上層還有 store 兜底。
+  /// 呼叫前必须确认 filter 订阅已成立（`_filterSubscribed`）；未订阅的 topic
+  /// 节点会回 400 `Not subscribed to topic`，那种请求纯属噪音，应在源头挡掉。
+  /// 过程中的其他失败（逾时、连线中断）一律视为空，上层还有 store 兜底。
   Future<List<WakuMessage>> _queryFilterCache(
     List<String> contentTopics,
   ) async {
@@ -345,10 +345,10 @@ class NwakuRestTransport extends WakuTransport {
 
   /// relay 快取。
   ///
-  /// - 自動分片模式：逐 content topic 呼叫 `GET /relay/v1/auto/messages/{topic}`；
-  ///   404 代表該 topic 暫無快取（或節點未訂閱），視為空而非錯誤。
-  /// - 靜態分片模式：一次呼叫 `GET /relay/v1/messages/{pubsubTopic}` 取回該
-  ///   shard 的所有訊息，再用 content topic 在本地篩選。
+  /// - 自动分片模式：逐 content topic 呼叫 `GET /relay/v1/auto/messages/{topic}`；
+  ///   404 代表该 topic 暂无快取（或节点未订阅），视为空而非错误。
+  /// - 静态分片模式：一次呼叫 `GET /relay/v1/messages/{pubsubTopic}` 取回该
+  ///   shard 的所有讯息，再用 content topic 在本地筛选。
   Future<List<WakuMessage>> _queryRelayCache(
     List<String> contentTopics,
   ) async {
@@ -403,16 +403,16 @@ class NwakuRestTransport extends WakuTransport {
     int limit,
   ) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    // 沒有 since 時預設回看 48 小時（nwaku 預設 retention 也是 2 天）
+    // 没有 since 时预设回看 48 小时（nwaku 预设 retention 也是 2 天）
     final startMs =
         sinceMs != null && sinceMs > 0 ? sinceMs : nowMs - 48 * 3600 * 1000;
     final response = await _client
         .get(
           _uri('/store/v3/messages', <String, dynamic>{
             'includeData': 'true',
-            // 一定要「由新到舊」：沒有 since 的查詢（例如撈金鑰包）預設回看
-            // 48 小時，而金鑰包每 2 分鐘重發一次，若取最舊的 N 則永遠只看得到
-            // 最早那批，新加入的聯絡人會卡在「同步中」。
+            // 一定要「由新到旧」：没有 since 的查询（例如捞金钥包）预设回看
+            // 48 小时，而金钥包每 2 分钟重发一次，若取最旧的 N 则永远只看得到
+            // 最早那批，新加入的联络人会卡在「同步中」。
             'ascending': 'false',
             'pageSize': '$limit',
             'timeStart': '${startMs * 1000000}',
@@ -429,8 +429,8 @@ class NwakuRestTransport extends WakuTransport {
     if (decoded is Map && decoded['messages'] is List) {
       return (decoded['messages'] as List)
           .whereType<Map>()
-          // store v3 每筆是 {"messageHash":..,"message":{..},"pubsubTopic":..}
-          // 真正的欄位在 "message" 裡面，必須拆開否則會解析出一堆空訊息。
+          // store v3 每笔是 {"messageHash":..,"message":{..},"pubsubTopic":..}
+          // 真正的栏位在 "message" 里面，必须拆开否则会解析出一堆空讯息。
           .map((raw) {
             final inner = raw['message'];
             final source = inner is Map ? inner : raw;
@@ -477,10 +477,10 @@ class NwakuRestTransport extends WakuTransport {
     }
   }
 
-  /// 由 `/health` 的內容判斷節點的 relay 是否已入網。
+  /// 由 `/health` 的内容判断节点的 relay 是否已入网。
   ///
-  /// 只認得 `connectionStatus`；解析失敗（例如 fallback 到 `/debug/v1/info`）
-  /// 時回傳 true，避免因為看不懂回應就誤報「無 peer」。
+  /// 只认得 `connectionStatus`；解析失败（例如 fallback 到 `/debug/v1/info`）
+  /// 时回传 true，避免因为看不懂回应就误报「无 peer」。
   static bool _relayReady(String body) {
     try {
       final decoded = jsonDecode(body);
@@ -499,7 +499,7 @@ class NwakuRestTransport extends WakuTransport {
   }
 }
 
-/// 傳輸層例外。
+/// 传输层例外。
 @immutable
 class WakuTransportException implements Exception {
   const WakuTransportException(this.message);

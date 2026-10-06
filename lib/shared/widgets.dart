@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../data/crypto/did.dart';
 
-/// 圓形頭像：顯示縮寫，並可帶上狀態點。
+/// 圆形头像：显示缩写，并可带上状态点。
 class AppAvatar extends StatelessWidget {
   const AppAvatar({
     required this.name,
@@ -94,10 +94,10 @@ class AppAvatar extends StatelessWidget {
   }
 }
 
-/// 帶標題的分區容器。
+/// 带标题的分区容器。
 ///
-/// 左右不留邊距，交由外層捲動視圖統一把內容收在 [AppGap.lg] 之內，
-/// 這樣同一個頁面裡的卡片、按鈕與頁首才會對齊在同一條垂直線上。
+/// 左右不留边距，交由外层卷动视图统一把内容收在 [AppGap.lg] 之内，
+/// 这样同一个页面里的卡片、按钮与页首才会对齐在同一条垂直线上。
 class SectionCard extends StatelessWidget {
   const SectionCard({
     required this.child,
@@ -145,7 +145,7 @@ class SectionCard extends StatelessWidget {
   }
 }
 
-/// 一列可點擊的設定項目。
+/// 一列可点击的设定项目。
 class SettingsTile extends StatelessWidget {
   const SettingsTile({
     required this.icon,
@@ -213,7 +213,7 @@ class SettingsTile extends StatelessWidget {
   }
 }
 
-/// 空狀態畫面。
+/// 空状态画面。
 class EmptyState extends StatelessWidget {
   const EmptyState({
     required this.icon,
@@ -280,7 +280,7 @@ class EmptyState extends StatelessWidget {
   }
 }
 
-/// 等寬的識別碼文字（DID / 地址 / 金鑰）。
+/// 等宽的识别码文字（DID / 地址 / 金钥）。
 class MonoText extends StatelessWidget {
   const MonoText(
     this.text, {
@@ -362,7 +362,7 @@ class Pill extends StatelessWidget {
   }
 }
 
-/// 顯示地址／DID 並提供複製的小工具列。
+/// 显示地址／DID 并提供复制的小工具列。
 class AddressChip extends StatelessWidget {
   const AddressChip({
     required this.value,
@@ -412,12 +412,12 @@ class AddressChip extends StatelessWidget {
   }
 }
 
-/// 主題選擇卡片（用於設定的外觀／區塊鏈區塊）。
+/// 主题选择卡片（用于设定的外观／区块链区块）。
 ///
-/// 刻意**不**自帶 `Expanded`：`Expanded` 只能直接放在 `Row` / `Column` 的子項
-/// 位置，一旦被塞進 `SizedBox` 或 `Wrap` 就會因為找不到 Flex 祖先而讓整個
-/// 版面崩掉。這裡把「要佔多少寬度」交給呼叫方決定 —— 需要等寬時包
-/// `Expanded`，需要固定寬度時包 `SizedBox`。
+/// 刻意**不**自带 `Expanded`：`Expanded` 只能直接放在 `Row` / `Column` 的子项
+/// 位置，一旦被塞进 `SizedBox` 或 `Wrap` 就会因为找不到 Flex 祖先而让整个
+/// 版面崩掉。这里把「要占多少宽度」交给呼叫方决定 —— 需要等宽时包
+/// `Expanded`，需要固定宽度时包 `SizedBox`。
 class ThemeOptionCard extends StatelessWidget {
   const ThemeOptionCard({
     required this.label,

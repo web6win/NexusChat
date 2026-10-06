@@ -2,14 +2,14 @@ import 'dart:typed_data';
 
 import 'image_saver_io.dart' if (dart.library.html) 'image_saver_html.dart';
 
-/// 把圖片的原始位元組存到使用者的裝置。
+/// 把图片的原始位元组存到使用者的装置。
 ///
-/// - Android / iOS / macOS / Windows：優先用 [gal] 存進**系統相簿**；
-/// - Web：以 `<a download>` 觸發瀏覽器下載；
-/// - 其它情況（Linux、權限被拒、相簿 API 失敗）：退回寫入檔案。
+/// - Android / iOS / macOS / Windows：优先用 [gal] 存进**系统相簿**；
+/// - Web：以 `<a download>` 触发浏览器下载；
+/// - 其它情况（Linux、权限被拒、相簿 API 失败）：退回写入档案。
 ///
-/// 回傳 `null` 代表完全失敗；否則 `toGallery` 表示進了系統相簿，
-/// 非相簿時 `path` 會是實際寫入的路徑。
+/// 回传 `null` 代表完全失败；否则 `toGallery` 表示进了系统相簿，
+/// 非相簿时 `path` 会是实际写入的路径。
 Future<({bool toGallery, String? path})?> saveImageBytes(
   Uint8List bytes,
   String fileName,

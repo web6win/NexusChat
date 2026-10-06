@@ -10,16 +10,16 @@ import '../../data/models/token_def.dart';
 import '../../data/tokens/token_providers.dart';
 import '../../shared/feedback.dart';
 
-/// 新增自訂通證的底部表單。
+/// 新增自订通证的底部表单。
 ///
-/// 填寫名稱、符號、標準、精度與合約地址（圖示 / 顏色可選），
-/// 送出後寫入 [customTokensProvider]（持久化於 shared_preferences）。
+/// 填写名称、符号、标准、精度与合约地址（图示 / 颜色可选），
+/// 送出后写入 [customTokensProvider]（持久化于 shared_preferences）。
 class AddTokenSheet extends ConsumerStatefulWidget {
   const AddTokenSheet({required this.chain, super.key});
 
   final ChainType chain;
 
-  /// 以底部面板形式彈出。失敗時不會改變任何狀態。
+  /// 以底部面板形式弹出。失败时不会改变任何状态。
   static void show(BuildContext context, ChainType chain) {
     showModalBottomSheet<void>(
       context: context,
@@ -58,7 +58,7 @@ class _AddTokenSheetState extends ConsumerState<AddTokenSheet> {
   void _onStandardChanged(TokenStandard next) {
     setState(() {
       _standard = next;
-      // NFT / 多維資產通常沒有「數量精度」概念，預設 0。
+      // NFT / 多维资产通常没有「数量精度」概念，预设 0。
       if (next != TokenStandard.erc20 && _decimals.text.trim() == '18') {
         _decimals.text = '0';
       } else if (next == TokenStandard.erc20 && _decimals.text.trim() == '0') {

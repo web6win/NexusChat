@@ -7,13 +7,13 @@ import '../../core/theme/app_theme.dart';
 import '../../state/controllers.dart';
 import 'password_fields.dart';
 
-/// 舊版明文身份的一次性遷移頁。
+/// 旧版明文身份的一次性迁移页。
 ///
-/// 舊版本把助記詞與私鑰以明文寫進本地儲存。這個頁面強制使用者設定密碼，
-/// 完成後明文會被刪除、改為加密保險庫。
+/// 旧版本把助记词与私钥以明文写进本地储存。这个页面强制使用者设定密码，
+/// 完成后明文会被删除、改为加密保险库。
 ///
-/// **刻意不提供「稍後再說」** —— 只要還留著明文，任何能讀取本機儲存的
-/// 程式都能直接拿走助記詞，那正是這次改造要消滅的風險。
+/// **刻意不提供「稍后再说」** —— 只要还留著明文，任何能读取本机储存的
+/// 程式都能直接拿走助记词，那正是这次改造要消灭的风险。
 class MigrateVaultPage extends ConsumerStatefulWidget {
   const MigrateVaultPage({super.key});
 

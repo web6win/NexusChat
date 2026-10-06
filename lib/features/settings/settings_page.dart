@@ -4,10 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../core/l10n/strings.dart';
 import '../../shared/widgets.dart';
 
-/// 設定目錄：依群組列出各設定分類，點擊進入對應子頁面。
+/// 设定目录：依群组列出各设定分类，点击进入对应子页面。
 ///
-/// 設計成無外框的元件，通常嵌在「我」頁面中，作為帳號與偏好的集中入口；
-/// 需要獨立成頁時，由呼叫方自行包上 [Scaffold] / [ContentColumn]。
+/// 设计成无外框的元件，通常嵌在「我」页面中，作为帐号与偏好的集中入口；
+/// 需要独立成页时，由呼叫方自行包上 [Scaffold] / [ContentColumn]。
 class SettingsDirectory extends StatelessWidget {
   const SettingsDirectory({super.key});
 
@@ -15,7 +15,7 @@ class SettingsDirectory extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.s;
 
-    // 每個分類：標題、說明（更具體的中文副標）、圖示、目標路由、是否危險項。
+    // 每个分类：标题、说明（更具体的中文副标）、图示、目标路由、是否危险项。
     final categories = <_Category>[
       _Category(
         title: s.settingsAppearance,
@@ -68,23 +68,23 @@ class SettingsDirectory extends StatelessWidget {
       ),
     ];
 
-    // 依主題將分類歸到四個群組。
+    // 依主题将分类归到四个群组。
     final groups = <_Group>[
       _Group(s.settingsGroupGeneral, <_Category>[
-        categories[0], // 外觀與語言
-        categories[6], // 關於
+        categories[0], // 外观与语言
+        categories[6], // 关于
       ]),
       _Group(s.settingsGroupAccount, <_Category>[
         categories[4], // 身份
-        categories[5], // 匯入私鑰
+        categories[5], // 汇入私钥
         categories[1], // 安全
       ]),
       _Group(s.settingsGroupConnection, <_Category>[
-        categories[2], // 網路
-        categories[3], // 區塊鏈
+        categories[2], // 网路
+        categories[3], // 区块链
       ]),
       _Group(s.settingsGroupDanger, <_Category>[
-        categories[7], // 危險操作
+        categories[7], // 危险操作
       ]),
     ];
 
@@ -110,7 +110,7 @@ class SettingsDirectory extends StatelessWidget {
   }
 }
 
-/// 設定目錄的一個分類入口。
+/// 设定目录的一个分类入口。
 class _Category {
   const _Category({
     required this.title,
@@ -127,7 +127,7 @@ class _Category {
   final bool danger;
 }
 
-/// 設定目錄的一個分組（例如「通用」「連線」「帳號」「危險區」）。
+/// 设定目录的一个分组（例如「通用」「连线」「帐号」「危险区」）。
 class _Group {
   const _Group(this.title, this.items);
 
@@ -135,7 +135,7 @@ class _Group {
   final List<_Category> items;
 }
 
-/// 分組標題：小號、半透明、字距略寬，作為目錄的分段提示。
+/// 分组标题：小号、半透明、字距略宽，作为目录的分段提示。
 class _GroupHeader extends StatelessWidget {
   const _GroupHeader({required this.title});
 

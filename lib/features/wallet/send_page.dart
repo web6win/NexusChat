@@ -15,13 +15,13 @@ import '../../shared/layout.dart';
 import '../../state/controllers.dart';
 import 'chain_selector.dart';
 
-/// 轉帳頁：輸入收款地址與金額 → 二次確認 → 廣播交易。
+/// 转帐页：输入收款地址与金额 → 二次确认 → 广播交易。
 ///
-/// 只支援原生代幣（ETH / TRX），不含 ERC-20 / TRC-20。
+/// 只支援原生代币（ETH / TRX），不含 ERC-20 / TRC-20。
 ///
-/// 「目前在哪一條鏈上轉帳」是這裡最重要的資訊 —— 轉錯鏈等於丟錢，
-/// 因此頁面頂端是獨立且醒目的網路卡，並可就地切換；收款地址也必須
-/// 通過**目前這條鏈**的格式驗證（掃碼帶來的鏈則會自動切過去）。
+/// 「目前在哪一条链上转帐」是这里最重要的资讯 —— 转错链等于丢钱，
+/// 因此页面顶端是独立且醒目的网路卡，并可就地切换；收款地址也必须
+/// 通过**目前这条链**的格式验证（扫码带来的链则会自动切过去）。
 class SendPage extends ConsumerStatefulWidget {
   const SendPage({
     this.chain,
@@ -29,17 +29,17 @@ class SendPage extends ConsumerStatefulWidget {
     super.key,
   });
 
-  /// 進入時要套用的鏈（掃碼進來時由 QR Code 決定）。
+  /// 进入时要套用的链（扫码进来时由 QR Code 决定）。
   ///
-  /// `null` 表示沿用設定值。指定的話會同步寫回設定，讓轉帳執行時
-  /// 使用的鏈與畫面上顯示的鏈永遠一致。
+  /// `null` 表示沿用设定值。指定的话会同步写回设定，让转帐执行时
+  /// 使用的链与画面上显示的链永远一致。
   final ChainType? chain;
 
-  /// 預填的收款資料（掃碼帶入）。
+  /// 预填的收款资料（扫码带入）。
   ///
-  /// 可以是純地址，也可以是完整的支付 URI
-  /// （`ethereum:0x…?value=…` / `tron:T…?amount=…`）—— 後者連同金額與鏈
-  /// 一起帶入，讓使用者掃完只要按確認。
+  /// 可以是纯地址，也可以是完整的支付 URI
+  /// （`ethereum:0x…?value=…` / `tron:T…?amount=…`）—— 后者连同金额与链
+  /// 一起带入，让使用者扫完只要按确认。
   final String? initialAddress;
 
   @override
@@ -57,7 +57,7 @@ class _SendPageState extends ConsumerState<SendPage> {
   void initState() {
     super.initState();
 
-    // 掃碼帶入的可能是純地址，也可能是帶金額與鏈的支付 URI。
+    // 扫码带入的可能是纯地址，也可能是带金额与链的支付 URI。
     final initial = widget.initialAddress;
     final request = initial == null ? null : PaymentUri.fromScan(initial);
     if (initial != null) {
@@ -70,11 +70,11 @@ class _SendPageState extends ConsumerState<SendPage> {
       }
     }
 
-    // 目標鏈：優先採用掃碼內容指定的鏈（地址格式已經限定它只能是那條鏈）。
+    // 目标链：优先采用扫码内容指定的链（地址格式已经限定它只能是那条链）。
     final target = request?.chain ?? widget.chain;
     if (target != null) {
-      // 設定是唯一的真值來源（轉帳時讀的也是它），所以進入時就對齊，
-      // 避免畫面顯示 A 鏈、實際送出 B 鏈。
+      // 设定是唯一的真值来源（转帐时读的也是它），所以进入时就对齐，
+      // 避免画面显示 A 链、实际送出 B 链。
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         if (ref.read(settingsProvider).chain != target) {
@@ -97,7 +97,7 @@ class _SendPageState extends ConsumerState<SendPage> {
     return double.tryParse(raw);
   }
 
-  /// 把錯誤代碼映射成可讀文案。
+  /// 把错误代码映射成可读文案。
   String _errorText(String code) => switch (code) {
         'invalid-address' => context.s.walletErrInvalidAddress,
         'invalid-amount' => context.s.walletErrInvalidAmount,
@@ -106,7 +106,7 @@ class _SendPageState extends ConsumerState<SendPage> {
         _ => context.s.walletErrNetwork,
       };
 
-  /// 地址錯誤要能分辨「寫錯」與「別條鏈的地址」——後者的處理方式不同。
+  /// 地址错误要能分辨「写错」与「别条链的地址」——后者的处理方式不同。
   String? _addressErrorFor(ChainType chain, String address) {
     if (TxService.isValidAddress(chain, address)) return null;
     final belongsElsewhere = ChainType.values
@@ -116,7 +116,7 @@ class _SendPageState extends ConsumerState<SendPage> {
         : context.s.walletErrInvalidAddress;
   }
 
-  /// 驗證並回傳 (address, amount)；不合法時回傳 null 並設好錯誤訊息。
+  /// 验证并回传 (address, amount)；不合法时回传 null 并设好错误讯息。
   ({String address, double amount})? _validate(ChainType chain) {
     final s = context.s;
     final address = _to.text.trim();
@@ -136,12 +136,12 @@ class _SendPageState extends ConsumerState<SendPage> {
     return (address: address, amount: amount);
   }
 
-  /// 切換轉帳網路：改的是設定本身，因此餘額與實際送出的鏈會一起跟上。
+  /// 切换转帐网路：改的是设定本身，因此余额与实际送出的链会一起跟上。
   Future<void> _switchChain(ChainType next) async {
     if (next == ref.read(settingsProvider).chain) return;
     await ref.read(settingsProvider.notifier).setChain(next);
     if (!mounted) return;
-    // 已填的位址可能屬於別條鏈，切換後立刻重新檢視。
+    // 已填的位址可能属于别条链，切换后立刻重新检视。
     final address = _to.text.trim();
     setState(() {
       _addressError =
@@ -149,17 +149,17 @@ class _SendPageState extends ConsumerState<SendPage> {
     });
   }
 
-  /// 開啟掃碼頁（挑選地址模式），把結果填回表單。
+  /// 开启扫码页（挑选地址模式），把结果填回表单。
   Future<void> _scan(ChainType chain) async {
     final raw = await context.push<String>('/scan?pick=1&chain=${chain.id}');
     if (raw == null || !mounted) return;
     await _applyScanned(raw, chain);
   }
 
-  /// 套用掃碼結果：地址必填，金額與鏈由 QR Code 決定（鏈不同就切過去）。
+  /// 套用扫码结果：地址必填，金额与链由 QR Code 决定（链不同就切过去）。
   Future<void> _applyScanned(String raw, ChainType current) async {
     final s = context.s;
-    // 先以目前鏈解，失敗再讓它自己推斷（例如在波場頁掃到 0x 地址）。
+    // 先以目前链解，失败再让它自己推断（例如在波场页扫到 0x 地址）。
     final request = PaymentUri.fromScan(raw, chain: current) ??
         PaymentUri.fromScan(raw);
     if (request == null) {
@@ -187,7 +187,7 @@ class _SendPageState extends ConsumerState<SendPage> {
     });
   }
 
-  /// 金額填回輸入框時去掉多餘的尾數零（1.500000 → 1.5）。
+  /// 金额填回输入框时去掉多余的尾数零（1.500000 → 1.5）。
   static String _trimZeros(double value) {
     final text = value.toStringAsFixed(6);
     if (!text.contains('.')) return text;
@@ -204,17 +204,17 @@ class _SendPageState extends ConsumerState<SendPage> {
     final config = ChainConfig.of(chain);
     final chainLabel = ChainSelector.labelOf(s, chain);
 
-    // RPC 端點與所選鏈不符（例如把 Base 的 RPC 貼到以太坊）時硬性阻斷：
-    // 這種情況下餘額查得到、交易也送得出去，只是會送到錯的網路上。
-    // 因此不能只靠畫面上的紅字警告，這裡直接不給送。
-    // chainId 尚未查到（離線）時無法判定，維持放行以免誤傷。
+    // RPC 端点与所选链不符（例如把 Base 的 RPC 贴到以太坊）时硬性阻断：
+    // 这种情况下余额查得到、交易也送得出去，只是会送到错的网路上。
+    // 因此不能只靠画面上的红字警告，这里直接不给送。
+    // chainId 尚未查到（离线）时无法判定，维持放行以免误伤。
     final chainId = ref.read(walletInfoProvider).value?.chainId;
     if (config.isWrongChain(chainId)) {
       _showSnack(s.walletRpcMismatch, danger: true);
       return;
     }
 
-    // 二次確認：鏈上交易不可撤回，先讓使用者核對網路、地址與金額。
+    // 二次确认：链上交易不可撤回，先让使用者核对网路、地址与金额。
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -225,7 +225,7 @@ class _SendPageState extends ConsumerState<SendPage> {
               children: <Widget>[
                 _ConfirmRow(
                   label: s.walletSendNetwork,
-                  // 全名 + 代號一起核對，避免把 CNT 看成 ETH 之類的誤會。
+                  // 全名 + 代号一起核对，避免把 CNT 看成 ETH 之类的误会。
                   value: '$chainLabel · ${config.name} (${config.symbol})',
                 ),
                 const SizedBox(height: 12),
@@ -320,7 +320,7 @@ class _SendPageState extends ConsumerState<SendPage> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              // 從掃碼頁進來時返回堆疊可能只有這一頁，pop 不掉就回錢包。
+              // 从扫码页进来时返回堆叠可能只有这一页，pop 不掉就回钱包。
               if (context.canPop()) {
                 context.pop();
               } else {
@@ -342,7 +342,7 @@ class _SendPageState extends ConsumerState<SendPage> {
     final send = ref.watch(walletSendProvider);
     final info = ref.watch(walletInfoProvider);
 
-    // 唯一的真值來源：設定裡的鏈。畫面、餘額與實際送出的鏈都讀它。
+    // 唯一的真值来源：设定里的链。画面、余额与实际送出的链都读它。
     final chain = settings.chain;
     final config = ChainConfig.of(chain);
     final balance = info.value?.balanceNative;
@@ -357,7 +357,7 @@ class _SendPageState extends ConsumerState<SendPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 18, 16, 32),
             children: <Widget>[
-              // -------------------------------------------- 目前轉帳網路
+              // -------------------------------------------- 目前转帐网路
               _NetworkCard(
                 chain: chain,
                 config: config,
@@ -391,7 +391,7 @@ class _SendPageState extends ConsumerState<SendPage> {
                 ),
               ),
               const SizedBox(height: 18),
-              // ---------------------------------------------------- 金額
+              // ---------------------------------------------------- 金额
               TextField(
                 controller: _amount,
                 keyboardType:
@@ -424,7 +424,7 @@ class _SendPageState extends ConsumerState<SendPage> {
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
                     onPressed: () {
-                      // 保留一點手續費空間，避免「全部」之後必然失敗。
+                      // 保留一点手续费空间，避免「全部」之后必然失败。
                       final usable = chain == ChainType.tron
                           ? balance - 1
                           : balance * 0.98;
@@ -466,10 +466,10 @@ class _SendPageState extends ConsumerState<SendPage> {
   }
 }
 
-/// 轉帳頁頂端的「目前轉帳網路」卡。
+/// 转帐页顶端的「目前转帐网路」卡。
 ///
-/// 獨立成一塊、放在所有輸入之前：轉帳前第一件要看清楚的事就是「現在
-/// 在哪條鏈上」。右側的切換器與錢包頁共用設定，切了就整頁一起更新。
+/// 独立成一块、放在所有输入之前：转帐前第一件要看清楚的事就是「现在
+/// 在哪条链上」。右侧的切换器与钱包页共用设定，切了就整页一起更新。
 class _NetworkCard extends StatelessWidget {
   const _NetworkCard({
     required this.chain,
@@ -490,7 +490,7 @@ class _NetworkCard extends StatelessWidget {
     final s = context.s;
     final theme = Theme.of(context);
     final label = ChainSelector.labelOf(s, chain);
-    // 有 chainId 就顯示 chainId（最能代表「哪一條鏈」），否則退回端點。
+    // 有 chainId 就显示 chainId（最能代表「哪一条链」），否则退回端点。
     final detail = chainId != null ? 'chainId $chainId' : rpcUrl;
 
     return Container(
@@ -573,8 +573,8 @@ class _NetworkCard extends StatelessWidget {
                   : theme.colorScheme.onSurface.withValues(alpha: 0.55),
             ),
           ),
-          // 端點填錯時（例如把 Base 的 RPC 貼到以太坊），chainId 會對不上：
-          // 餘額查得到、交易也送得出去，只是送到錯的網路上 —— 必須擋在這裡。
+          // 端点填错时（例如把 Base 的 RPC 贴到以太坊），chainId 会对不上：
+          // 余额查得到、交易也送得出去，只是送到错的网路上 —— 必须挡在这里。
           if (config.isWrongChain(chainId)) ...<Widget>[
             const SizedBox(height: 10),
             Row(
@@ -623,7 +623,7 @@ class _NetworkCard extends StatelessWidget {
   }
 }
 
-/// 確認對話框中的一列「標籤 / 值」。
+/// 确认对话框中的一列「标签 / 值」。
 class _ConfirmRow extends StatelessWidget {
   const _ConfirmRow({required this.label, required this.value});
 

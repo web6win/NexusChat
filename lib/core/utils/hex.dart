@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-/// 十六進位與 Base64 的輕量工具，避免對外部套件格式細節的依賴。
+/// 十六进位与 Base64 的轻量工具，避免对外部套件格式细节的依赖。
 abstract final class Hex {
   static const _digits = '0123456789abcdef';
 
-  /// 位元組 → 十六進位字串。
+  /// 位元组 → 十六进位字串。
   static String encode(List<int> bytes, {bool include0x = false}) {
     final buffer = StringBuffer();
     if (include0x) buffer.write('0x');
@@ -16,7 +16,7 @@ abstract final class Hex {
     return buffer.toString();
   }
 
-  /// 十六進位字串 → 位元組（容許 0x 前綴與奇數長度）。
+  /// 十六进位字串 → 位元组（容许 0x 前缀与奇数长度）。
   static Uint8List decode(String hex) {
     var s = hex.trim().toLowerCase();
     if (s.startsWith('0x')) s = s.substring(2);
@@ -29,7 +29,7 @@ abstract final class Hex {
   }
 }
 
-/// Base64 工具（URL 安全不啟用，與 Waku payload 慣例一致）。
+/// Base64 工具（URL 安全不启用，与 Waku payload 惯例一致）。
 abstract final class B64 {
   static String encode(List<int> bytes) => base64Encode(bytes);
 

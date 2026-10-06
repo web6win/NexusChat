@@ -1,11 +1,11 @@
 import 'dart:ui' show Locale;
 
-/// 應用程式支援的語系。
+/// 应用程式支援的语系。
 ///
-/// 列舉順序同時決定「設定裡的語言列表」與
-/// [MaterialApp.supportedLocales] 的排列；英文為預設且排在最前面。
+/// 列举顺序同时决定「设定里的语言列表」与
+/// [MaterialApp.supportedLocales] 的排列；英文为预设且排在最前面。
 enum AppLocale {
-  /// English（預設）
+  /// English（预设）
   en('en', 'English', 'English', Locale('en')),
   /// 简体中文
   zhHans('zh_Hans', '简体中文', 'Simplified Chinese', Locale('zh', 'CN')),
@@ -18,16 +18,16 @@ enum AppLocale {
 
   const AppLocale(this.code, this.nativeName, this.englishName, this.locale);
 
-  /// 穩定識別碼，用於持久化。
+  /// 稳定识别码，用于持久化。
   final String code;
 
-  /// 語系自身的名稱（用於語言列表）。
+  /// 语系自身的名称（用于语言列表）。
   final String nativeName;
 
-  /// 語系的英文名稱（除錯用）。
+  /// 语系的英文名称（除错用）。
   final String englishName;
 
-  /// 對應的 [Locale]。
+  /// 对应的 [Locale]。
   final Locale locale;
 
   static AppLocale fromCode(String? code) {
@@ -37,11 +37,11 @@ enum AppLocale {
     return AppLocale.en;
   }
 
-  /// 依據系統語系推測最合適的語系，無法匹配時回傳 [AppLocale.en]。
+  /// 依据系统语系推测最合适的语系，无法匹配时回传 [AppLocale.en]。
   static AppLocale fromLocale(Locale? locale) {
     if (locale == null) return AppLocale.en;
     final lang = locale.languageCode.toLowerCase();
-    // 繁體中文已移除，所有 zh 一律落到簡體中文。
+    // 繁体中文已移除，所有 zh 一律落到简体中文。
     if (lang == 'zh') return AppLocale.zhHans;
     if (lang == 'es') return AppLocale.es;
     if (lang == 'hi') return AppLocale.hi;

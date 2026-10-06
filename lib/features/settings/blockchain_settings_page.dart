@@ -8,7 +8,7 @@ import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
 import '../wallet/chain_selector.dart';
 
-/// 區塊鏈：選擇鏈 + 該鏈的 RPC 端點。拆自原本擠在同一頁的設定。
+/// 区块链：选择链 + 该链的 RPC 端点。拆自原本挤在同一页的设定。
 class BlockchainSettingsPage extends ConsumerStatefulWidget {
   const BlockchainSettingsPage({super.key});
 
@@ -27,7 +27,7 @@ class _BlockchainSettingsPageState extends ConsumerState<BlockchainSettingsPage>
     _rpcUrl = TextEditingController(text: settings.rpcFor(settings.chain));
   }
 
-  /// 換鏈後把輸入框換成該鏈的端點，避免把 A 鏈的端點存到 B 鏈上。
+  /// 换链后把输入框换成该链的端点，避免把 A 链的端点存到 B 链上。
   void _syncRpcField() {
     final settings = ref.read(settingsProvider);
     _rpcUrl.text = settings.rpcFor(settings.chain);
@@ -39,14 +39,14 @@ class _BlockchainSettingsPageState extends ConsumerState<BlockchainSettingsPage>
     super.dispose();
   }
 
-  /// 儲存「目前所選鏈」的 RPC 端點；留空表示還原成該鏈的預設值。
+  /// 储存「目前所选链」的 RPC 端点；留空表示还原成该链的预设值。
   Future<void> _saveRpc() async {
     final value = _rpcUrl.text.trim();
     await ref
         .read(settingsProvider.notifier)
         .setRpcFor(ref.read(settingsProvider).chain, value);
     if (!mounted) return;
-    // 留空時會還原成預設端點，把結果回填給輸入框。
+    // 留空时会还原成预设端点，把结果回填给输入框。
     setState(_syncRpcField);
     ref.invalidate(walletInfoProvider);
   }
@@ -59,7 +59,7 @@ class _BlockchainSettingsPageState extends ConsumerState<BlockchainSettingsPage>
       onTap: () async {
         await ref.read(settingsProvider.notifier).setChain(chain);
         if (!mounted) return;
-        // 換鏈後輸入框要跟著換成該鏈的端點。
+        // 换链后输入框要跟著换成该链的端点。
         setState(_syncRpcField);
         ref.invalidate(walletInfoProvider);
       },
@@ -85,8 +85,8 @@ class _BlockchainSettingsPageState extends ConsumerState<BlockchainSettingsPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    // 每行三張卡；鏈變多時自動多排一行，不用改版面。
-                    // 用 IntrinsicHeight 讓同一行的卡片等高（鏈名長度不一）。
+                    // 每行三张卡；链变多时自动多排一行，不用改版面。
+                    // 用 IntrinsicHeight 让同一行的卡片等高（链名长度不一）。
                     for (var row = 0;
                         row * 3 < ChainType.values.length;
                         row++)
@@ -107,7 +107,7 @@ class _BlockchainSettingsPageState extends ConsumerState<BlockchainSettingsPage>
                                     ),
                                   )
                                 else
-                                  // 最後一行不滿三張時補空位，維持左對齊。
+                                  // 最后一行不满三张时补空位，维持左对齐。
                                   const Expanded(child: SizedBox.shrink()),
                               ],
                             ],
@@ -140,7 +140,7 @@ class _BlockchainSettingsPageState extends ConsumerState<BlockchainSettingsPage>
                       enableSuggestions: false,
                       onSubmitted: (_) => _saveRpc(),
                       decoration: InputDecoration(
-                        // 標題帶上鏈名：端點是「哪一條鏈的」必須一眼看得出來。
+                        // 标题带上链名：端点是「哪一条链的」必须一眼看得出来。
                         labelText:
                             '${ChainSelector.labelOf(s, settings.chain)} · '
                             '${s.walletRpcUrl}',

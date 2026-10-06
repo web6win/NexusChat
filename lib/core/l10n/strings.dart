@@ -3,7 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'app_locale.dart';
 
-/// 全部文案的鍵值。集中管理，避免寫死字串。
+/// 全部文案的键值。集中管理，避免写死字串。
 abstract final class K {
   // ------------------------------------------------------------------ 通用
   static const appName = 'appName';
@@ -35,7 +35,7 @@ abstract final class K {
   static const optional = 'optional';
   static const comingSoon = 'comingSoon';
 
-  // ------------------------------------------------------------------ 狀態
+  // ------------------------------------------------------------------ 状态
   static const statusOnline = 'statusOnline';
   static const statusOffline = 'statusOffline';
   static const statusConnecting = 'statusConnecting';
@@ -44,7 +44,7 @@ abstract final class K {
   static const statusNoPeers = 'statusNoPeers';
   static const statusNoPeersHint = 'statusNoPeersHint';
 
-  // ---------------------------------------------------------------- 導覽列
+  // ---------------------------------------------------------------- 导览列
   static const navChats = 'navChats';
   static const navContacts = 'navContacts';
   static const navWallet = 'navWallet';
@@ -52,7 +52,7 @@ abstract final class K {
   static const navSettings = 'navSettings';
   static const navMe = 'navMe';
 
-  // ---------------------------------------------------------------- 發現
+  // ---------------------------------------------------------------- 发现
   static const discoverTitle = 'discoverTitle';
   static const discoverSubtitle = 'discoverSubtitle';
   static const discoverTools = 'discoverTools';
@@ -74,12 +74,21 @@ abstract final class K {
   static const scanResultText = 'scanResultText';
   static const scanAddContact = 'scanAddContact';
   static const scanOpenFailed = 'scanOpenFailed';
+  static const dappConnect = 'dappConnect';
+  static const dappSign = 'dappSign';
+  static const dappTransaction = 'dappTransaction';
+  static const dappSite = 'dappSite';
+  static const dappAccount = 'dappAccount';
+  static const dappTo = 'dappTo';
+  static const dappAmount = 'dappAmount';
+  static const dappNetwork = 'dappNetwork';
+  static const dappMessage = 'dappMessage';
   static const scanPayAction = 'scanPayAction';
   static const scanResultPayment = 'scanResultPayment';
   static const scanPickHint = 'scanPickHint';
   static const scanPickInvalid = 'scanPickInvalid';
 
-  // ---------------------------------------------------------------- 引導頁
+  // ---------------------------------------------------------------- 引导页
   static const onboardingTitle = 'onboardingTitle';
   static const onboardingSubtitle = 'onboardingSubtitle';
   static const onboardingCreate = 'onboardingCreate';
@@ -91,7 +100,7 @@ abstract final class K {
   static const feat3Title = 'feat3Title';
   static const feat3Desc = 'feat3Desc';
 
-  // ------------------------------------------------------- 建立 / 匯入身份
+  // ------------------------------------------------------- 建立 / 汇入身份
   static const mnemonicTitle = 'mnemonicTitle';
   static const mnemonicDesc = 'mnemonicDesc';
   static const mnemonicWarn = 'mnemonicWarn';
@@ -111,7 +120,7 @@ abstract final class K {
   static const restoreHint = 'restoreHint';
   static const restoreError = 'restoreError';
   static const restoreSuccess = 'restoreSuccess';
-  // 匯入來源切換（助記詞 / 私鑰）
+  // 汇入来源切换（助记词 / 私钥）
   static const importModeMnemonic = 'importModeMnemonic';
   static const importModePrivateKey = 'importModePrivateKey';
   static const importPrivateKeyDesc = 'importPrivateKeyDesc';
@@ -123,7 +132,7 @@ abstract final class K {
   static const importPrivateKeyTitle = 'importPrivateKeyTitle';
   static const importPrivateKeySubtitle = 'importPrivateKeySubtitle';
 
-  // --------------------------------------------------- 保險庫 / 密碼
+  // --------------------------------------------------- 保险库 / 密码
   static const passwordLabel = 'passwordLabel';
   static const passwordHint = 'passwordHint';
   static const passwordConfirmLabel = 'passwordConfirmLabel';
@@ -142,7 +151,7 @@ abstract final class K {
   static const changePasswordFailed = 'changePasswordFailed';
   static const currentPassword = 'currentPassword';
   static const autoHideIn = 'autoHideIn';
-  // BIP39 密碼短語（第 13 / 25 個詞）
+  // BIP39 密码短语（第 13 / 25 个词）
   static const passphraseAdvanced = 'passphraseAdvanced';
   static const passphraseLabel = 'passphraseLabel';
   static const passphraseHint = 'passphraseHint';
@@ -154,7 +163,7 @@ abstract final class K {
   static const restoreFailed = 'restoreFailed';
   static const importFailed = 'importFailed';
 
-  // ------------------------------------------------------------------ 鎖屏
+  // ------------------------------------------------------------------ 锁屏
   static const unlockTitle = 'unlockTitle';
   static const unlockDesc = 'unlockDesc';
   static const unlockAction = 'unlockAction';
@@ -164,7 +173,7 @@ abstract final class K {
   static const unlockForgotTitle = 'unlockForgotTitle';
   static const unlockForgotDesc = 'unlockForgotDesc';
 
-  // -------------------------------------------------------- 加密遷移 / 修復
+  // -------------------------------------------------------- 加密迁移 / 修复
   static const migrateTitle = 'migrateTitle';
   static const migrateDesc = 'migrateDesc';
   static const migrateAction = 'migrateAction';
@@ -174,11 +183,11 @@ abstract final class K {
   static const wipe = 'wipe';
   static const wiped = 'wiped';
 
-  // ------------------------------------------------------------ 匯出驗證
+  // ------------------------------------------------------------ 汇出验证
   static const exportVerifyTitle = 'exportVerifyTitle';
   static const exportVerifyDesc = 'exportVerifyDesc';
 
-  // -------------------------------------------------------- 設定頁安全區
+  // -------------------------------------------------------- 设定页安全区
   static const securitySection = 'securitySection';
   static const securityLockNow = 'securityLockNow';
   static const securityLockNowDesc = 'securityLockNowDesc';
@@ -222,7 +231,7 @@ abstract final class K {
   static const chatPickContact = 'chatPickContact';
   static const chatUnread = 'chatUnread';
 
-  // ------------------------------------------------------------------ 群組
+  // ------------------------------------------------------------------ 群组
   static const groupTitle = 'groupTitle';
   static const groupCreate = 'groupCreate';
   static const groupCreateDesc = 'groupCreateDesc';
@@ -250,7 +259,7 @@ abstract final class K {
   static const groupMembersLabel = 'groupMembersLabel';
   static const leave = 'leave';
 
-  // ---------------------------------------------------------------- 聯絡人
+  // ---------------------------------------------------------------- 联络人
   static const contactsTitle = 'contactsTitle';
   static const contactsEmpty = 'contactsEmpty';
   static const contactsEmptyDesc = 'contactsEmptyDesc';
@@ -267,7 +276,7 @@ abstract final class K {
   static const contactsNickname = 'contactsNickname';
   static const contactsScanHint = 'contactsScanHint';
 
-  // ------------------------------------------------------------------ 錢包
+  // ------------------------------------------------------------------ 钱包
   static const walletTitle = 'walletTitle';
   static const walletBalance = 'walletBalance';
   static const walletNetwork = 'walletNetwork';
@@ -323,7 +332,7 @@ abstract final class K {
   static const walletRpcUrlHint = 'walletRpcUrlHint';
   static const walletNativeToken = 'walletNativeToken';
 
-  // ---------------------------------------------------- 錢包 · 常用通證面板
+  // ---------------------------------------------------- 钱包 · 常用通证面板
   static const tokenAdd = 'tokenAdd';
   static const tokenAddTitle = 'tokenAddTitle';
   static const tokenAdded = 'tokenAdded';
@@ -355,7 +364,7 @@ abstract final class K {
   static const tokenHistoryEmpty = 'tokenHistoryEmpty';
   static const tokenNotTransferable = 'tokenNotTransferable';
 
-  // ------------------------------------------------------------------ 多媒體
+  // ------------------------------------------------------------------ 多媒体
   static const chatImage = 'chatImage';
   static const chatVoice = 'chatVoice';
   static const chatSendImage = 'chatSendImage';
@@ -377,7 +386,7 @@ abstract final class K {
   static const chatImageZoomOut = 'chatImageZoomOut';
   static const chatImageReset = 'chatImageReset';
 
-  // ------------------------------------------------------------------ 設定
+  // ------------------------------------------------------------------ 设定
   static const settingsTitle = 'settingsTitle';
   static const settingsAppearance = 'settingsAppearance';
   static const settingsTheme = 'settingsTheme';
@@ -414,7 +423,7 @@ abstract final class K {
   static const settingsVersion = 'settingsVersion';
   static const settingsAdvanced = 'settingsAdvanced';
 
-  // 設定分組標題與目錄副標
+  // 设定分组标题与目录副标
   static const settingsGroupGeneral = 'settingsGroupGeneral';
   static const settingsGroupAccount = 'settingsGroupAccount';
   static const settingsGroupConnection = 'settingsGroupConnection';
@@ -461,7 +470,7 @@ abstract final class K {
   static const identityConfirmBackup = 'identityConfirmBackup';
   static const identityRisk = 'identityRisk';
 
-  // ------------------------------------------------------------------ 錯誤
+  // ------------------------------------------------------------------ 错误
   static const errorGeneric = 'errorGeneric';
   static const errorNetwork = 'errorNetwork';
   static const errorInvalidInput = 'errorInvalidInput';
@@ -469,13 +478,13 @@ abstract final class K {
   static const errorNotFound = 'errorNotFound';
   static const errorTimeout = 'errorTimeout';
 
-  // ------------------------------------------------------------------ 時間
+  // ------------------------------------------------------------------ 时间
   static const timeJustNow = 'timeJustNow';
   static const timeMinutesAgo = 'timeMinutesAgo';
   static const timeHoursAgo = 'timeHoursAgo';
 }
 
-/// 四語文案包。以 Map 存放，避免程式碼產生（codegen）依賴。
+/// 四语文案包。以 Map 存放，避免程式码产生（codegen）依赖。
 const Map<String, Map<String, String>> _bundles = {
   // ============================================================== 简体中文
   'zh_Hans': {
@@ -541,6 +550,15 @@ const Map<String, Map<String, String>> _bundles = {
     K.scanResultText: '文字内容',
     K.scanAddContact: '添加联系人',
     K.scanOpenFailed: '无法打开此网址',
+    K.dappConnect: '连接请求',
+    K.dappSign: '签名请求',
+    K.dappTransaction: '交易请求',
+    K.dappSite: '网站',
+    K.dappAccount: '账户',
+    K.dappTo: '收款地址',
+    K.dappAmount: '金额',
+    K.dappNetwork: '网络',
+    K.dappMessage: '消息',
     K.scanPayAction: '向它转账',
     K.scanResultPayment: '付款请求',
     K.scanPickHint: '将镜头对准收款方的二维码',
@@ -879,31 +897,31 @@ const Map<String, Map<String, String>> _bundles = {
     K.timeJustNow: '刚刚',
     K.timeMinutesAgo: '%1\$d 分钟前',
     K.timeHoursAgo: '%1\$d 小时前',
-    K.groupTitle: '群組',
-    K.groupCreate: '新建群組',
-    K.groupCreateDesc: '選擇聯絡人並為群組命名，所有人會共用一把金鑰來讀取訊息。',
-    K.groupName: '群組名稱',
-    K.groupNameHint: '例如：專案小組',
-    K.groupMembers: '%1\$d 名成員',
-    K.groupInfo: '群組資訊',
-    K.groupLeaveTitle: '退出群組',
-    K.groupLeaveConfirm: '確定要退出這個群組嗎？你的訊息會從此裝置移除。',
-    K.groupDeleteTitle: '刪除群組',
-    K.groupDeleteConfirm: '要從此裝置刪除這個群組與其所有訊息嗎？',
-    K.groupAddMember: '新增成員',
-    K.groupAddMemberDesc: '邀請另一位聯絡人加入這個群組。',
+    K.groupTitle: '群组',
+    K.groupCreate: '新建群组',
+    K.groupCreateDesc: '选择联络人并为群组命名，所有人会共用一把金钥来读取讯息。',
+    K.groupName: '群组名称',
+    K.groupNameHint: '例如：专案小组',
+    K.groupMembers: '%1\$d 名成员',
+    K.groupInfo: '群组资讯',
+    K.groupLeaveTitle: '退出群组',
+    K.groupLeaveConfirm: '确定要退出这个群组吗？你的讯息会从此装置移除。',
+    K.groupDeleteTitle: '删除群组',
+    K.groupDeleteConfirm: '要从此装置删除这个群组与其所有讯息吗？',
+    K.groupAddMember: '新增成员',
+    K.groupAddMemberDesc: '邀请另一位联络人加入这个群组。',
     K.groupCreator: '建立者',
     K.groupYou: '你',
-    K.groupIdCopied: '已複製群組 ID',
-    K.groupCreated: '群組已建立',
-    K.groupLeft: '已退出群組',
-    K.contactPickerTitle: '選擇聯絡人',
-    K.selectedCount: '已選 %1\$d 人',
+    K.groupIdCopied: '已复制群组 ID',
+    K.groupCreated: '群组已建立',
+    K.groupLeft: '已退出群组',
+    K.contactPickerTitle: '选择联络人',
+    K.selectedCount: '已选 %1\$d 人',
     K.createGroup: '建立',
-    K.groupInviteSending: '正在傳送邀請…',
-    K.groupCannotFindKey: '找不到 %1\$s 的加密公鑰，邀請未送出。',
-    K.groupNoContacts: '沒有可加入的聯絡人',
-    K.groupMembersLabel: '成員',
+    K.groupInviteSending: '正在传送邀请…',
+    K.groupCannotFindKey: '找不到 %1\$s 的加密公钥，邀请未送出。',
+    K.groupNoContacts: '没有可加入的联络人',
+    K.groupMembersLabel: '成员',
     K.leave: '退出',
   },
 
@@ -974,6 +992,15 @@ const Map<String, Map<String, String>> _bundles = {
     K.scanResultText: 'Text',
     K.scanAddContact: 'Add contact',
     K.scanOpenFailed: 'Could not open this link',
+    K.dappConnect: 'Connection request',
+    K.dappSign: 'Signature request',
+    K.dappTransaction: 'Transaction request',
+    K.dappSite: 'Site',
+    K.dappAccount: 'Account',
+    K.dappTo: 'To',
+    K.dappAmount: 'Amount',
+    K.dappNetwork: 'Network',
+    K.dappMessage: 'Message',
     K.scanPayAction: 'Send to it',
     K.scanResultPayment: 'Payment request',
     K.scanPickHint: 'Point the camera at the recipient QR code',
@@ -2299,8 +2326,8 @@ const Map<String, Map<String, String>> _bundles = {
   },
 
   // =============================================================== Français
-  // 注意：法文大量使用撇號，這裡一律用排版撇號 ’（U+2019），
-  // 避免與 Dart 的單引號字串衝突而需要一堆跳脫。
+  // 注意：法文大量使用撇号，这里一律用排版撇号 ’（U+2019），
+  // 避免与 Dart 的单引号字串冲突而需要一堆跳脱。
   'fr': {
     K.appName: 'NexusChat',
     K.appTagline: 'Décentralisé · Chiffré de bout en bout · Rien qu’à vous',
@@ -2760,7 +2787,7 @@ const Map<String, Map<String, String>> _bundles = {
   },
 };
 
-/// 單一語系的文案存取物件。
+/// 单一语系的文案存取物件。
 class Strings {
   Strings._(this.locale, this._data);
 
@@ -2773,10 +2800,10 @@ class Strings {
   factory Strings.of(AppLocale locale) =>
       Strings._(locale, _bundles[locale.code] ?? _fallback);
 
-  /// 依鍵取值，缺少時退回英文，再缺少則回傳鍵名本身。
+  /// 依键取值，缺少时退回英文，再缺少则回传键名本身。
   String get(String key) => _data[key] ?? _fallback[key] ?? key;
 
-  /// 帶參數的字串：`%1$s` / `%1$d`。
+  /// 带参数的字串：`%1$s` / `%1$d`。
   String format(String key, List<Object> args) {
     var value = get(key);
     for (var i = 0; i < args.length; i++) {
@@ -2852,6 +2879,15 @@ class Strings {
   String get scanResultText => get(K.scanResultText);
   String get scanAddContact => get(K.scanAddContact);
   String get scanOpenFailed => get(K.scanOpenFailed);
+  String get dappConnect => get(K.dappConnect);
+  String get dappSign => get(K.dappSign);
+  String get dappTransaction => get(K.dappTransaction);
+  String get dappSite => get(K.dappSite);
+  String get dappAccount => get(K.dappAccount);
+  String get dappTo => get(K.dappTo);
+  String get dappAmount => get(K.dappAmount);
+  String get dappNetwork => get(K.dappNetwork);
+  String get dappMessage => get(K.dappMessage);
   String get scanPayAction => get(K.scanPayAction);
   String get scanResultPayment => get(K.scanResultPayment);
   String get scanPickHint => get(K.scanPickHint);
@@ -2900,7 +2936,7 @@ class Strings {
   String get importPrivateKeyTitle => get(K.importPrivateKeyTitle);
   String get importPrivateKeySubtitle => get(K.importPrivateKeySubtitle);
 
-  // ---------------------------------------------------------- 保險庫 / 密碼
+  // ---------------------------------------------------------- 保险库 / 密码
   String get passwordLabel => get(K.passwordLabel);
   String get passwordHint => get(K.passwordHint);
   String get passwordConfirmLabel => get(K.passwordConfirmLabel);
@@ -2929,11 +2965,11 @@ class Strings {
   String get restoreFailed => get(K.restoreFailed);
   String get importFailed => get(K.importFailed);
 
-  /// 敏感內容自動隱藏倒數（帶入剩餘秒數）。
+  /// 敏感内容自动隐藏倒数（带入剩余秒数）。
   String autoHideIn(String seconds) =>
       format(K.autoHideIn, <String>[seconds]);
 
-  // ------------------------------------------------------------------ 鎖屏
+  // ------------------------------------------------------------------ 锁屏
   String get unlockTitle => get(K.unlockTitle);
   String get unlockDesc => get(K.unlockDesc);
   String get unlockAction => get(K.unlockAction);
@@ -2942,11 +2978,11 @@ class Strings {
   String get unlockForgotTitle => get(K.unlockForgotTitle);
   String get unlockForgotDesc => get(K.unlockForgotDesc);
 
-  /// 解鎖冷卻提示（帶入剩餘秒數）。
+  /// 解锁冷却提示（带入剩余秒数）。
   String unlockCooldown(String seconds) =>
       format(K.unlockCooldown, <String>[seconds]);
 
-  // -------------------------------------------------------- 加密遷移 / 修復
+  // -------------------------------------------------------- 加密迁移 / 修复
   String get migrateTitle => get(K.migrateTitle);
   String get migrateDesc => get(K.migrateDesc);
   String get migrateAction => get(K.migrateAction);
@@ -2956,11 +2992,11 @@ class Strings {
   String get wipe => get(K.wipe);
   String get wiped => get(K.wiped);
 
-  // ------------------------------------------------------------ 匯出驗證
+  // ------------------------------------------------------------ 汇出验证
   String get exportVerifyTitle => get(K.exportVerifyTitle);
   String get exportVerifyDesc => get(K.exportVerifyDesc);
 
-  // -------------------------------------------------------- 設定頁安全區
+  // -------------------------------------------------------- 设定页安全区
   String get securitySection => get(K.securitySection);
   String get securityLockNow => get(K.securityLockNow);
   String get securityLockNowDesc => get(K.securityLockNowDesc);
@@ -2974,7 +3010,7 @@ class Strings {
   String get securityChangePasswordDesc =>
       get(K.securityChangePasswordDesc);
 
-  /// 自動鎖定分鐘數（帶入分鐘數）。
+  /// 自动锁定分钟数（带入分钟数）。
   String securityAutoLockMinutes(String minutes) =>
       format(K.securityAutoLockMinutes, <String>[minutes]);
 
@@ -3008,7 +3044,7 @@ class Strings {
   String get chatPickContact => get(K.chatPickContact);
   String get chatUnread => get(K.chatUnread);
 
-  // ------------------------------------------------------------------ 群組
+  // ------------------------------------------------------------------ 群组
   String get groupTitle => get(K.groupTitle);
   String get groupCreate => get(K.groupCreate);
   String get groupCreateDesc => get(K.groupCreateDesc);
@@ -3109,7 +3145,7 @@ class Strings {
   String get walletRpcUrlHint => get(K.walletRpcUrlHint);
   String get walletNativeToken => get(K.walletNativeToken);
 
-  // ---------------------------------------------------- 錢包 · 常用通證面板
+  // ---------------------------------------------------- 钱包 · 常用通证面板
   String get tokenAdd => get(K.tokenAdd);
   String get tokenAddTitle => get(K.tokenAddTitle);
   String get tokenAdded => get(K.tokenAdded);
@@ -3255,11 +3291,11 @@ class Strings {
   String hoursAgo(int h) => format(K.timeHoursAgo, [h]);
 }
 
-/// 讓 [Strings] 掛上 Flutter 的 [Localizations] 機制。
+/// 让 [Strings] 挂上 Flutter 的 [Localizations] 机制。
 class StringsDelegate extends LocalizationsDelegate<Strings> {
   const StringsDelegate();
 
-  /// 交給 [MaterialApp.supportedLocales] 的清單。
+  /// 交给 [MaterialApp.supportedLocales] 的清单。
   static List<Locale> get supportedLocales =>
       AppLocale.values.map((e) => e.locale).toList();
 
@@ -3279,12 +3315,12 @@ class StringsDelegate extends LocalizationsDelegate<Strings> {
   bool shouldReload(covariant LocalizationsDelegate<Strings> old) => false;
 }
 
-/// 從任意 [BuildContext] 取得文案：`context.s.appName`。
+/// 从任意 [BuildContext] 取得文案：`context.s.appName`。
 extension StringsContextX on BuildContext {
   Strings get s => Localizations.of<Strings>(this, Strings)!;
 }
 
-/// Flutter 內建委派（Material / Cupertino / Widgets 在地化）。
+/// Flutter 内建委派（Material / Cupertino / Widgets 在地化）。
 const globalLocalizationsDelegates = <LocalizationsDelegate<Object>>[
   GlobalMaterialLocalizations.delegate,
   GlobalWidgetsLocalizations.delegate,

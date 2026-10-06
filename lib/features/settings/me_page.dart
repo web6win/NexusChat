@@ -11,9 +11,9 @@ import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
 import 'settings_page.dart';
 
-/// 「我」頁面：把原本獨立的「設定」入口收進個人頁，
-/// 頂部展示身份資料（頭像 / 暱稱 / DID / 地址，可複製），
-/// 下方則是分組後的設定目錄。
+/// 「我」页面：把原本独立的「设定」入口收进个人页，
+/// 顶部展示身份资料（头像 / 暱称 / DID / 地址，可复制），
+/// 下方则是分组后的设定目录。
 class MePage extends ConsumerWidget {
   const MePage({super.key});
 
@@ -25,7 +25,7 @@ class MePage extends ConsumerWidget {
     final identity = ref.watch(sessionProvider).identity;
     final did = identity?.did ?? '';
     final address = identity?.address ?? '';
-    // 依鏈顯示對應地址：EVM 系為 EIP-55 的 0x，TRON 為 T 開頭 Base58Check。
+    // 依链显示对应地址：EVM 系为 EIP-55 的 0x，TRON 为 T 开头 Base58Check。
     final displayAddress = chain == ChainType.tron
         ? (identity?.tronAddress ?? '')
         : Did.eip55(address);
@@ -65,13 +65,13 @@ class MePage extends ConsumerWidget {
   }
 }
 
-/// 由字串雜湊推導一個穩定的顏色，讓頭像隨身份而變但不刺眼。
+/// 由字串杂凑推导一个稳定的颜色，让头像随身份而变但不刺眼。
 Color _colorFor(String input) {
   final hue = (input.hashCode.abs() % 360).toDouble();
   return HSLColor.fromAHSL(1, hue, 0.6, 0.52).toColor();
 }
 
-/// 個人資料卡：頭像 + 暱稱 / DID / 地址，後兩者可點擊複製。
+/// 个人资料卡：头像 + 暱称 / DID / 地址，后两者可点击复制。
 class _MeHeader extends StatelessWidget {
   const _MeHeader({
     required this.did,
@@ -135,7 +135,7 @@ class _MeHeader extends StatelessWidget {
   }
 }
 
-/// 一行可複製的文字（等寬字 + 複製圖示），用於展示 DID / 地址。
+/// 一行可复制的文字（等宽字 + 复制图示），用于展示 DID / 地址。
 class _CopyRow extends StatelessWidget {
   const _CopyRow({required this.label, required this.onTap});
 

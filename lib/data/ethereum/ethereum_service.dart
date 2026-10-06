@@ -9,14 +9,14 @@ import '../crypto/did.dart';
 import '../models/chain.dart';
 import 'chain_account.dart';
 
-/// ENS 主網註冊表地址（所有網路上皆相同）。
+/// ENS 主网注册表地址（所有网路上皆相同）。
 const String _ensRegistryAddress = '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
 
-/// 正向解析：ENS 名稱 → 地址。
+/// 正向解析：ENS 名称 → 地址。
 
-/// 與以太坊生態互動的服務：查餘額、chain id、ENS 正反向解析。
+/// 与以太坊生态互动的服务：查余额、chain id、ENS 正反向解析。
 ///
-/// 所有方法都容錯：RPC 失敗時回傳 null，不影響聊天主流程。
+/// 所有方法都容错：RPC 失败时回传 null，不影响聊天主流程。
 class EthereumService {
   EthereumService({
     required this.rpcUrl,
@@ -27,11 +27,11 @@ class EthereumService {
 
   final String rpcUrl;
 
-  /// 這組 RPC 屬於哪條鏈（用以標記回傳結果）。
+  /// 这组 RPC 属于哪条链（用以标记回传结果）。
   final ChainType chain;
 
-  /// 是否啟用 ENS 解析。聯盟鏈 / 私有鏈通常沒有 ENS 合約，
-  /// 關掉可省下兩次必定失敗的 RPC 往返。
+  /// 是否启用 ENS 解析。联盟链 / 私有链通常没有 ENS 合约，
+  /// 关掉可省下两次必定失败的 RPC 往返。
   final bool enableEns;
 
   final http.Client _client;
@@ -45,7 +45,7 @@ class EthereumService {
 
   bool get isConfigured => rpcUrl.trim().isNotEmpty;
 
-  /// 更新 RPC 端點後需要重建客戶端。
+  /// 更新 RPC 端点后需要重建客户端。
   void reset() {
     _web3?.dispose();
     _web3 = null;
@@ -56,7 +56,7 @@ class EthereumService {
     _client.close();
   }
 
-  /// 取得地址的 ETH 餘額。
+  /// 取得地址的 ETH 余额。
   Future<double?> getBalance(String address) async {
     if (!isConfigured) return null;
     try {
@@ -133,7 +133,7 @@ class EthereumService {
     }
   }
 
-  /// 一次取得餘額、chain id 與 ENS 名稱，回傳統一結構。
+  /// 一次取得余额、chain id 与 ENS 名称，回传统一结构。
   Future<ChainAccountInfo> summary(String address, {String? ensHint}) async {
     if (!isConfigured) {
       return ChainAccountInfo(

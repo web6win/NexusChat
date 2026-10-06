@@ -12,7 +12,7 @@ import '../crypto/did.dart';
 import '../crypto/tron_address.dart';
 import '../models/chain.dart';
 
-/// 交易失敗時拋出，[code] 為可直接映射成 i18n 的代碼。
+/// 交易失败时抛出，[code] 为可直接映射成 i18n 的代码。
 ///
 /// 可能的值：`no-rpc` / `invalid-address` / `invalid-amount` /
 /// `insufficient-funds` / `network`。
@@ -25,27 +25,27 @@ class TxException implements Exception {
   String toString() => code;
 }
 
-/// 廣播成功後的結果。
+/// 广播成功后的结果。
 class TxResult {
   const TxResult({required this.hash, this.explorerUrl});
 
   final String hash;
 
-  /// 區塊瀏覽器連結（該鏈未設定時為 null）。
+  /// 区块浏览器连结（该链未设定时为 null）。
   final String? explorerUrl;
 }
 
-/// 鏈上原生代幣轉帳：EVM 系（以太坊 / Besu 聯盟鏈）與 TRON。
+/// 链上原生代币转帐：EVM 系（以太坊 / Besu 联盟链）与 TRON。
 ///
-/// 不含 ERC-20 / TRC-20 代幣轉帳。
+/// 不含 ERC-20 / TRC-20 代币转帐。
 abstract final class TxService {
-  /// 依鏈檢查地址格式。
+  /// 依链检查地址格式。
   static bool isValidAddress(ChainType chain, String address) =>
       chain == ChainType.tron
           ? TronAddress.isValid(address)
           : Did.isAddress(address);
 
-  /// 依鏈分派轉帳。
+  /// 依链分派转帐。
   static Future<TxResult> send({
     required ChainType chain,
     required String rpcUrl,
@@ -56,7 +56,7 @@ abstract final class TxService {
     http.Client? client,
   }) {
     switch (chain) {
-      // 所有 EVM 鏈走同一條路徑：同一把私鑰、同一個 0x 地址、同一套 JSON-RPC。
+      // 所有 EVM 链走同一条路径：同一把私钥、同一个 0x 地址、同一套 JSON-RPC。
       case ChainType.ethereum:
       case ChainType.base:
       case ChainType.arbitrum:
@@ -82,7 +82,7 @@ abstract final class TxService {
     }
   }
 
-  /// EVM 系轉帳。[amountEther] 為人類可讀數量（0.5 → 0.5 ETH）。
+  /// EVM 系转帐。[amountEther] 为人类可读数量（0.5 → 0.5 ETH）。
   static Future<TxResult> sendEvm({
     required String rpcUrl,
     required String privateKeyHex,
@@ -106,7 +106,7 @@ abstract final class TxService {
         BigInt.from((amountEther * 1e18).round()),
       );
 
-      // 先做本地檢查，避免白付手續費。
+      // 先做本地检查，避免白付手续费。
       final balance = await web3
           .getBalance(credentials.address)
           .timeout(const Duration(seconds: 15));
@@ -138,11 +138,11 @@ abstract final class TxService {
     }
   }
 
-  /// TRON 轉帳：`/wallet/createtransaction` 取交易骨架 → 本地 secp256k1
-  /// 簽章 → `/wallet/broadcasttransaction` 廣播。
+  /// TRON 转帐：`/wallet/createtransaction` 取交易骨架 → 本地 secp256k1
+  /// 签章 → `/wallet/broadcasttransaction` 广播。
   ///
   /// TRON 的交易 id 是 `sha256(raw_data)`，而 `ref_block_bytes` /
-  /// `expiration` 等欄位由節點產生，因此必須先向節點索取未簽名交易。
+  /// `expiration` 等栏位由节点产生，因此必须先向节点索取未签名交易。
   static Future<TxResult> sendTron({
     required String apiUrl,
     required String privateKeyHex,
@@ -162,12 +162,12 @@ abstract final class TxService {
     final base = apiUrl.replaceAll(RegExp(r'/+$'), '');
     const headers = <String, String>{'content-type': 'application/json'};
     final credentials = EthPrivateKey(hexToBytes(privateKeyHex));
-    // owner 必須是 21 位元組的 `41…` 形式（0x41 + 20 位元組地址），
-    // 不能只給 20 位元組的以太坊地址。
+    // owner 必须是 21 位元组的 `41…` 形式（0x41 + 20 位元组地址），
+    // 不能只给 20 位元组的以太坊地址。
     final ownerHex = '41${bytesToHex(credentials.address.addressBytes)}';
 
     try {
-      // 1) 本地預檢餘額，避免白付頻寬／能量。
+      // 1) 本地预检余额，避免白付频宽／能量。
       final accountResp = await httpClient
           .post(
             Uri.parse('$base/wallet/getaccount'),
@@ -180,16 +180,16 @@ abstract final class TxService {
           .timeout(const Duration(seconds: 15));
       if (accountResp.statusCode == 200) {
         final account = jsonDecode(accountResp.body) as Map<String, dynamic>;
-        // 帳戶不存在時無 balance 欄位，代表餘額為 0。
+        // 帐户不存在时无 balance 栏位，代表余额为 0。
         final balanceSun = (account['balance'] as num?)?.toDouble() ?? 0;
-        // 需額外保留少量 TRX 作為頻寬／手續費。
+        // 需额外保留少量 TRX 作为频宽／手续费。
         const feeReserveSun = 1e6;
         if (balanceSun < amountTrx * 1e6 + feeReserveSun) {
           throw const TxException('insufficient-funds');
         }
       }
 
-      // 2) 取得未簽名交易骨架。
+      // 2) 取得未签名交易骨架。
       final created = await httpClient
           .post(
             Uri.parse('$base/wallet/createtransaction'),
@@ -213,18 +213,18 @@ abstract final class TxService {
         throw const TxException('network');
       }
 
-      // 3) txID = sha256(raw_data)，再以私鑰對這個「雜湊本身」簽章。
+      // 3) txID = sha256(raw_data)，再以私钥对这个「杂凑本身」签章。
       //
-      // 注意：不能用 EthPrivateKey.signToUint8List —— 它內部會再過一次
-      // keccak256，那是以太坊個人訊息簽章的語意。TRON 要求的是對 txID
-      // 直接做 secp256k1 ECDSA，所以改用低階的 secp256k1.sign。
+      // 注意：不能用 EthPrivateKey.signToUint8List —— 它内部会再过一次
+      // keccak256，那是以太坊个人讯息签章的语意。TRON 要求的是对 txID
+      // 直接做 secp256k1 ECDSA，所以改用低阶的 secp256k1.sign。
       final txId = Uint8List.fromList(
         sha256.convert(hexToBytes(rawHex)).bytes,
       );
       final signature = sign(txId, credentials.privateKey);
       transaction['signature'] = <String>[packSignature(signature)];
 
-      // 4) 廣播。
+      // 4) 广播。
       final broadcast = await httpClient
           .post(
             Uri.parse('$base/wallet/broadcasttransaction'),
@@ -248,7 +248,7 @@ abstract final class TxService {
     }
   }
 
-  /// ERC-20 最小 ABI：只需 `transfer` 與 `balanceOf` 兩個函式。
+  /// ERC-20 最小 ABI：只需 `transfer` 与 `balanceOf` 两个函式。
   static const String _erc20Abi = '''
 [
   {"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],
@@ -257,11 +257,11 @@ abstract final class TxService {
    "outputs":[{"name":"","type":"uint256"}],"type":"function"}
 ]''';
 
-  /// ERC-20 代幣轉帳（僅 EVM 系：以太坊 / Base / Arbitrum / BSC / Besu）。
+  /// ERC-20 代币转帐（仅 EVM 系：以太坊 / Base / Arbitrum / BSC / Besu）。
   ///
-  /// [amount] 為人類可讀數量（如 `1.5` → `1.5 * 10^decimals`），
-  /// 會先本地預檢代幣餘額，避免白付 gas。TRON 的 TRC-20 走另一套合約呼叫，
-  /// 這裡直接拋 `unsupported`。
+  /// [amount] 为人类可读数量（如 `1.5` → `1.5 * 10^decimals`），
+  /// 会先本地预检代币余额，避免白付 gas。TRON 的 TRC-20 走另一套合约呼叫，
+  /// 这里直接抛 `unsupported`。
   static Future<TxResult> sendErc20({
     required ChainType chain,
     required String rpcUrl,
@@ -292,7 +292,7 @@ abstract final class TxService {
       final transferFn = contract.function('transfer');
       final value = BigInt.from((amount * pow(10, decimals)).round());
 
-      // 本地預檢代幣餘額，避免白付 gas。
+      // 本地预检代币余额，避免白付 gas。
       final balanceFn = contract.function('balanceOf');
       final balRes = await web3
           .call(
@@ -335,9 +335,9 @@ abstract final class TxService {
     }
   }
 
-  /// 查詢 ERC-20 代幣餘額（人類可讀），查不到時回傳 null。
+  /// 查询 ERC-20 代币余额（人类可读），查不到时回传 null。
   ///
-  /// 僅 EVM 系；TRON 或無 RPC / 離線時回傳 null（畫面就不顯示可用餘額）。
+  /// 仅 EVM 系；TRON 或无 RPC / 离线时回传 null（画面就不显示可用余额）。
   static Future<double?> erc20Balance({
     required ChainType chain,
     required String rpcUrl,
@@ -381,13 +381,13 @@ abstract final class TxService {
     }
   }
 
-  /// TRC-20 代幣轉帳（TRON）。
+  /// TRC-20 代币转帐（TRON）。
   ///
-  /// 走 TRON 的「觸發智慧合約」流程：`/wallet/triggersmartcontract` 取交易骨架
-  /// → 本地 secp256k1 簽章（與原生 TRON 相同，對 txID 簽章 + low-S）
-  /// → `/wallet/broadcasttransaction` 廣播。`function_selector` 為
-  /// `transfer(address,uint256)`，`parameter` 為收款地址（左補至 32 位元組）
-  /// 與金額（uint256 大端）拼接的 128 hex。
+  /// 走 TRON 的「触发智慧合约」流程：`/wallet/triggersmartcontract` 取交易骨架
+  /// → 本地 secp256k1 签章（与原生 TRON 相同，对 txID 签章 + low-S）
+  /// → `/wallet/broadcasttransaction` 广播。`function_selector` 为
+  /// `transfer(address,uint256)`，`parameter` 为收款地址（左补至 32 位元组）
+  /// 与金额（uint256 大端）拼接的 128 hex。
   static Future<TxResult> sendTrc20({
     required String apiUrl,
     required String privateKeyHex,
@@ -410,12 +410,12 @@ abstract final class TxService {
     final base = apiUrl.replaceAll(RegExp(r'/+$'), '');
     const headers = <String, String>{'content-type': 'application/json'};
     final credentials = EthPrivateKey(hexToBytes(privateKeyHex));
-    // owner 必須是 21 位元組的 `41…` 形式（0x41 + 20 位元組地址），
-    // 不能只給 20 位元組的以太坊地址。
+    // owner 必须是 21 位元组的 `41…` 形式（0x41 + 20 位元组地址），
+    // 不能只给 20 位元组的以太坊地址。
     final ownerHex = '41${bytesToHex(credentials.address.addressBytes)}';
 
     try {
-      // 1) 本地預檢代幣餘額（balanceOf）。
+      // 1) 本地预检代币余额（balanceOf）。
       final balance = await _trc20Call(
         httpClient,
         base,
@@ -428,7 +428,7 @@ abstract final class TxService {
       final value = BigInt.from((amount * pow(10, decimals)).round());
       if (balance < value) throw const TxException('insufficient-funds');
 
-      // 2) 觸發合約交易骨架。
+      // 2) 触发合约交易骨架。
       final created = await httpClient
           .post(
             Uri.parse('$base/wallet/triggersmartcontract'),
@@ -451,14 +451,14 @@ abstract final class TxService {
       final rawHex = transaction['raw_data_hex'] as String?;
       if (rawHex == null || rawHex.isEmpty) throw const TxException('network');
 
-      // 3) 簽章（與原生 TRON 同：對 txID 做 secp256k1 ECDSA + low-S）。
+      // 3) 签章（与原生 TRON 同：对 txID 做 secp256k1 ECDSA + low-S）。
       final txId = Uint8List.fromList(
         sha256.convert(hexToBytes(rawHex)).bytes,
       );
       final signature = sign(txId, credentials.privateKey);
       transaction['signature'] = <String>[packSignature(signature)];
 
-      // 4) 廣播。
+      // 4) 广播。
       final broadcast = await httpClient
           .post(
             Uri.parse('$base/wallet/broadcasttransaction'),
@@ -482,7 +482,7 @@ abstract final class TxService {
     }
   }
 
-  /// 查詢 TRC-20 代幣餘額（人類可讀），查不到時回傳 null。
+  /// 查询 TRC-20 代币余额（人类可读），查不到时回传 null。
   static Future<double?> trc20Balance({
     required String apiUrl,
     required String contractAddress,
@@ -498,7 +498,7 @@ abstract final class TxService {
     final ownsClient = client == null;
     final httpClient = client ?? http.Client();
     final base = apiUrl.replaceAll(RegExp(r'/+$'), '');
-    // owner 必須是 21 位元組的 `41…` 形式（TronAddress.toHex 已含 0x41）。
+    // owner 必须是 21 位元组的 `41…` 形式（TronAddress.toHex 已含 0x41）。
     final ownerHex = TronAddress.toHex(ownerAddress);
     try {
       final raw = await _trc20Call(
@@ -518,10 +518,10 @@ abstract final class TxService {
     }
   }
 
-  /// 呼叫 TRC-20 的唯讀函式（目前用於 balanceOf）。
+  /// 呼叫 TRC-20 的唯读函式（目前用于 balanceOf）。
   ///
-  /// 透過 `/wallet/triggerconstantcontract` 取得 `constant_result`（uint256 的
-  /// 32 位元組 hex），解析為 BigInt。
+  /// 透过 `/wallet/triggerconstantcontract` 取得 `constant_result`（uint256 的
+  /// 32 位元组 hex），解析为 BigInt。
   static Future<BigInt> _trc20Call(
     http.Client httpClient,
     String base,
@@ -553,20 +553,20 @@ abstract final class TxService {
     return BigInt.parse(hex, radix: 16);
   }
 
-  /// 把 Base58 TRON 地址編碼成 TRC-20 參數用的 32 位元組（64 hex，左補零）。
+  /// 把 Base58 TRON 地址编码成 TRC-20 参数用的 32 位元组（64 hex，左补零）。
   static String _tronAddressParam(String base58) {
-    final h = TronAddress.toHex(base58); // 21 位元組 → 42 hex。
+    final h = TronAddress.toHex(base58); // 21 位元组 → 42 hex。
     return h.padLeft(64, '0');
   }
 
-  /// 把 uint256 金額編碼成 32 位元組（64 hex，大端、左補零）。
+  /// 把 uint256 金额编码成 32 位元组（64 hex，大端、左补零）。
   static String _tronUintParam(BigInt value) {
     var hex = value.toRadixString(16);
     if (hex.length.isOdd) hex = '0$hex';
     return hex.padLeft(64, '0');
   }
 
-  /// 依鏈分派代幣（ERC-20 / TRC-20）轉帳。
+  /// 依链分派代币（ERC-20 / TRC-20）转帐。
   static Future<TxResult> sendToken({
     required ChainType chain,
     required String rpcUrl,
@@ -603,7 +603,7 @@ abstract final class TxService {
     );
   }
 
-  /// 依鏈分派代幣餘額查詢（ERC-20 / TRC-20）。
+  /// 依链分派代币余额查询（ERC-20 / TRC-20）。
   static Future<double?> tokenBalance({
     required ChainType chain,
     required String rpcUrl,
@@ -631,27 +631,27 @@ abstract final class TxService {
     );
   }
 
-  /// secp256k1 曲線階 N。
+  /// secp256k1 曲线阶 N。
   static final BigInt _curveOrder = BigInt.parse(
     'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141',
     radix: 16,
   );
 
-  /// low-S 規約的界線（`N >> 1`）。
+  /// low-S 规约的界线（`N >> 1`）。
   static final BigInt _halfCurveOrder = _curveOrder >> 1;
 
-  /// 把簽章打包成 TRON 要求的 `r‖s‖v` 65 位元組 hex。
+  /// 把签章打包成 TRON 要求的 `r‖s‖v` 65 位元组 hex。
   ///
-  /// 這裡有兩個必須處理的差異，否則節點會直接拒絕廣播：
+  /// 这里有两个必须处理的差异，否则节点会直接拒绝广播：
   ///
-  /// 1. **v 的語意**：`sign()` 走以太坊慣例，回傳 27/28；TRON 的第 65 位元組
-  ///    只接受恢復識別碼（0/1），因此要先減掉 27。
-  /// 2. **low-S**：java-tron 會驗證簽章是否為 canonical（`s <= N/2`），
-  ///    high-S 一律拒收。取 `N - s` 時恢復識別碼必須同時反轉（0↔1），
-  ///    否則會還原出另一個公鑰，被節點判成「簽章與 owner 不符」。
+  /// 1. **v 的语意**：`sign()` 走以太坊惯例，回传 27/28；TRON 的第 65 位元组
+  ///    只接受恢复识别码（0/1），因此要先减掉 27。
+  /// 2. **low-S**：java-tron 会验证签章是否为 canonical（`s <= N/2`），
+  ///    high-S 一律拒收。取 `N - s` 时恢复识别码必须同时反转（0↔1），
+  ///    否则会还原出另一个公钥，被节点判成「签章与 owner 不符」。
   static String packSignature(MsgSignature signature) {
     final recoveryId = signature.v >= 27 ? signature.v - 27 : signature.v;
-    // 理論上恆為 0/1；若上游語意改變，寧可當成網路錯誤也不要寫出壞簽章。
+    // 理论上恒为 0/1；若上游语意改变，宁可当成网路错误也不要写出坏签章。
     if (recoveryId < 0 || recoveryId > 1) throw const TxException('network');
 
     var s = signature.s;
@@ -682,7 +682,7 @@ abstract final class TxService {
 
   static String _classifyTron(String code) {
     switch (code) {
-      // 帳戶頻寬/能量不足，或手續費不足。
+      // 帐户频宽/能量不足，或手续费不足。
       case 'BANDWIDTH_ERROR':
       case 'BANDWITH_ERROR':
       case 'ENERGY_ERROR':
@@ -690,7 +690,7 @@ abstract final class TxService {
       case 'BALANCE_NOT_SUFFICIENT':
       case 'ACCOUNT_RESOURCE_LIMIT':
         return 'insufficient-funds';
-      // 交易骨架過期（ref_block 太舊），重新建構即可。
+      // 交易骨架过期（ref_block 太旧），重新建构即可。
       case 'TRANSACTION_EXPIRED':
       case 'DUP_TRANSACTION_ERROR':
         return 'network';

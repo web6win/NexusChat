@@ -1,6 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
-/// 本地鍵值儲存（Hive）。跨平台：原生走檔案系統，Web 走 IndexedDB。
+/// 本地键值储存（Hive）。跨平台：原生走档案系统，Web 走 IndexedDB。
 class LocalStore {
   LocalStore._();
 
@@ -8,29 +8,29 @@ class LocalStore {
 
   static const String boxName = 'nexuschat';
 
-  /// 設定。
+  /// 设定。
   static const String kSettings = 'settings';
 
   /// 身份。
   static const String kIdentity = 'identity';
 
-  /// 加密後的身份保險庫（密文，含助記詞與私鑰）。
+  /// 加密后的身份保险库（密文，含助记词与私钥）。
   static const String kIdentityVault = 'identity_vault';
 
-  /// 身份的公開提示（明文：did / address / 加密公鑰，皆為公開資訊）。
+  /// 身份的公开提示（明文：did / address / 加密公钥，皆为公开资讯）。
   static const String kIdentityHint = 'identity_hint';
 
-  /// 安全設定（自動鎖定等）。
+  /// 安全设定（自动锁定等）。
   static const String kSecurity = 'security';
 
   static const String kContactPrefix = 'contact:';
   static const String kConversationPrefix = 'conv:';
   static const String kMessagePrefix = 'msg:';
 
-  /// 群組聊天（`group:<id>` → 群組元資料）。
+  /// 群组聊天（`group:<id>` → 群组元资料）。
   static const String kGroupPrefix = 'group:';
 
-  /// 已刪除訊息的墓碑（`delmsg:<id>` → 刪除時間）。
+  /// 已删除讯息的墓碑（`delmsg:<id>` → 删除时间）。
   static const String kDeletedMessagePrefix = 'delmsg:';
 
   Box<dynamic>? _box;
@@ -46,7 +46,7 @@ class LocalStore {
   Box<dynamic> get box {
     final b = _box;
     if (b == null || !b.isOpen) {
-      throw StateError('LocalStore 尚未初始化，請先呼叫 init()');
+      throw StateError('LocalStore 尚未初始化，请先呼叫 init()');
     }
     return b;
   }
@@ -57,7 +57,7 @@ class LocalStore {
 
   Future<void> delete(String key) => box.delete(key);
 
-  /// 讀出所有符合前綴的值。
+  /// 读出所有符合前缀的值。
   List<Object?> readPrefix(String prefix) {
     final result = <Object?>[];
     for (final key in box.keys) {
@@ -68,7 +68,7 @@ class LocalStore {
     return result;
   }
 
-  /// 刪除所有符合前綴的鍵。
+  /// 删除所有符合前缀的键。
   Future<void> deletePrefix(String prefix) async {
     final keys = box.keys
         .where((k) => k is String && k.startsWith(prefix))
@@ -84,7 +84,7 @@ class LocalStore {
     await deletePrefix(kMessagePrefix);
     await deletePrefix(kGroupPrefix);
     await deletePrefix(kDeletedMessagePrefix);
-    // 身份三件套一併清除：舊明文、密文保險庫、公開提示。
+    // 身份三件套一并清除：旧明文、密文保险库、公开提示。
     await delete(kIdentity);
     await delete(kIdentityVault);
     await delete(kIdentityHint);

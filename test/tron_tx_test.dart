@@ -6,91 +6,91 @@ import 'package:test/test.dart';
 import 'package:web3dart/credentials.dart' show EthPrivateKey;
 import 'package:web3dart/crypto.dart'
     show MsgSignature, bytesToHex, ecRecover, hexToBytes, privateKeyToPublic, sign, unsignedIntToBytes;
-// padUint8ListTo32 由 src/utils/typed_data.dart 提供，僅經 web3dart.dart 轉出。
+// padUint8ListTo32 由 src/utils/typed_data.dart 提供，仅经 web3dart.dart 转出。
 import 'package:web3dart/web3dart.dart' show padUint8ListTo32;
 
 import '../lib/data/crypto/tron_address.dart';
 import '../lib/data/ethereum/tx_service.dart';
 
-/// TRON 簽章流程的離線驗證（不需連網）。
+/// TRON 签章流程的离线验证（不需连网）。
 ///
-/// TRON 的 txID = `sha256(raw_data)`，簽章是對這 32 位元組做 secp256k1
-/// ECDSA，輸出 `r‖s‖v` 共 65 位元組。這裡驗證簽完之後能用簽章還原出
-/// 簽章者公鑰 —— 這正是節點驗簽時做的事。
+/// TRON 的 txID = `sha256(raw_data)`，签章是对这 32 位元组做 secp256k1
+/// ECDSA，输出 `r‖s‖v` 共 65 位元组。这里验证签完之后能用签章还原出
+/// 签章者公钥 —— 这正是节点验签时做的事。
 void main() {
   const privateHex =
       '4646464646464646464646464646464646464646464646464646464646464646';
 
-  test('TRON 地址可轉成節點用的 41 開頭 hex', () {
-    // 波場基金會公開地址，用於驗證編碼正確性。
+  test('TRON 地址可转成节点用的 41 开头 hex', () {
+    // 波场基金会公开地址，用于验证编码正确性。
     const address = 'TXFBqBbqJommqZf7BV8NNYzePh97UmJodJ';
     expect(TronAddress.isValid(address), isTrue);
 
     final hex = TronAddress.toHex(address);
-    expect(hex.length, 42, reason: '21 位元組 = 42 個 hex 字元');
-    expect(hex.startsWith('41'), isTrue, reason: '主網版本位元組');
+    expect(hex.length, 42, reason: '21 位元组 = 42 个 hex 字元');
+    expect(hex.startsWith('41'), isTrue, reason: '主网版本位元组');
   });
 
-  test('非法 TRON 地址被拒絕', () {
+  test('非法 TRON 地址被拒绝', () {
     expect(TronAddress.isValid(''), isFalse);
     expect(TronAddress.isValid('0x1234'), isFalse);
     expect(TronAddress.isValid('T${'1' * 33}'), isFalse);
-    // 校驗和被篡改（結尾由 J 改為 K）。
+    // 校验和被篡改（结尾由 J 改为 K）。
     expect(TronAddress.isValid('TXFBqBbqJommqZf7BV8NNYzePh97UmJodK'), isFalse);
   });
 
-  test('對 sha256(raw_data) 做原始 secp256k1 簽章後可還原公鑰', () {
+  test('对 sha256(raw_data) 做原始 secp256k1 签章后可还原公钥', () {
     final rawData = Uint8List.fromList(
       List<int>.generate(32, (i) => (i * 7 + 3) & 0xFF),
     );
     final txId = Uint8List.fromList(sha256.convert(rawData).bytes);
-    expect(txId.length, 32, reason: 'txID 固定 32 位元組');
+    expect(txId.length, 32, reason: 'txID 固定 32 位元组');
 
     final privateKey = hexToBytes(privateHex);
-    // 關鍵：使用低階 sign() 對「雜湊本身」簽章。若改用
-    // EthPrivateKey.signToEcSignature，它會先做一次 keccak256，簽出來的
-    // 結果無法被節點用 txID 驗證 —— 這是最容易踩的坑。
+    // 关键：使用低阶 sign() 对「杂凑本身」签章。若改用
+    // EthPrivateKey.signToEcSignature，它会先做一次 keccak256，签出来的
+    // 结果无法被节点用 txID 验证 —— 这是最容易踩的坑。
     final MsgSignature signature = sign(txId, privateKey);
-    expect(signature.v, greaterThanOrEqualTo(27), reason: 'v 為 27/28');
+    expect(signature.v, greaterThanOrEqualTo(27), reason: 'v 为 27/28');
 
     final packed = Uint8List(65)
       ..setRange(0, 32, padUint8ListTo32(unsignedIntToBytes(signature.r)))
       ..setRange(32, 64, padUint8ListTo32(unsignedIntToBytes(signature.s)))
       ..[64] = signature.v;
-    expect(packed.length, 65, reason: 'TRON 簽章為 r‖s‖v 共 65 位元組');
+    expect(packed.length, 65, reason: 'TRON 签章为 r‖s‖v 共 65 位元组');
 
     final recovered = ecRecover(txId, signature);
     final expected = privateKeyToPublic(BigInt.parse(privateHex, radix: 16));
     expect(bytesToHex(recovered), bytesToHex(expected));
   });
 
-  test('用簽章者的 secp256k1 簽章不能再用 keccak256 版本（回歸保護）', () {
+  test('用签章者的 secp256k1 签章不能再用 keccak256 版本（回归保护）', () {
     final txId = Uint8List.fromList(
       sha256.convert(Uint8List.fromList(List<int>.filled(32, 7))).bytes,
     );
     final key = EthPrivateKey(hexToBytes(privateHex));
-    // signToEcSignature 內部會 keccak256 一次，所以還原出的公鑰不會是簽章者。
+    // signToEcSignature 内部会 keccak256 一次，所以还原出的公钥不会是签章者。
     final keccakSig = key.signToEcSignature(txId);
     final expected = privateKeyToPublic(key.privateKeyInt);
     expect(
       bytesToHex(ecRecover(txId, keccakSig)),
       isNot(bytesToHex(expected)),
-      reason: '確認兩者語意不同：TRON 必須用原始 secp256k1 sign',
+      reason: '确认两者语意不同：TRON 必须用原始 secp256k1 sign',
     );
   });
 
-  test('打包後的簽章是 65 位元組、v 為 0/1 且為 low-S', () {
+  test('打包后的签章是 65 位元组、v 为 0/1 且为 low-S', () {
     final privateKey = hexToBytes(privateHex);
     final expected = privateKeyToPublic(BigInt.parse(privateHex, radix: 16));
 
-    // 曲線階 N 與 low-S 的界線。
+    // 曲线阶 N 与 low-S 的界线。
     final n = BigInt.parse(
       'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141',
       radix: 16,
     );
 
-    // 跑多組 raw_data，確保 low-S 規約在「需要翻轉」與「不需要」兩種情況
-    // 都能還原出同一把公鑰 —— 只測一組很可能剛好落在不需要規約的那半邊。
+    // 跑多组 raw_data，确保 low-S 规约在「需要翻转」与「不需要」两种情况
+    // 都能还原出同一把公钥 —— 只测一组很可能刚好落在不需要规约的那半边。
     for (var seed = 0; seed < 24; seed++) {
       final rawData = Uint8List.fromList(
         List<int>.generate(32, (i) => (i * 31 + seed * 7 + 1) & 0xFF),
@@ -99,22 +99,22 @@ void main() {
       final signature = sign(txId, privateKey);
       final packed = hexToBytes(TxService.packSignature(signature));
 
-      expect(packed.length, 65, reason: 'TRON 簽章為 r‖s‖v 共 65 位元組');
+      expect(packed.length, 65, reason: 'TRON 签章为 r‖s‖v 共 65 位元组');
 
       final v = packed[64];
       expect(v == 0 || v == 1, isTrue,
-          reason: 'TRON 的第 65 位元組只接受恢復識別碼，不能是 27/28（得到 $v）');
+          reason: 'TRON 的第 65 位元组只接受恢复识别码，不能是 27/28（得到 $v）');
 
-      // 以打包後的 r‖s 與恢復識別碼還原公鑰：必須是簽章者本人。
+      // 以打包后的 r‖s 与恢复识别码还原公钥：必须是签章者本人。
       final r = BigInt.parse(bytesToHex(packed.sublist(0, 32)), radix: 16);
       final s = BigInt.parse(bytesToHex(packed.sublist(32, 64)), radix: 16);
-      expect(s <= (n >> 1), isTrue, reason: 'java-tron 拒收 high-S 簽章');
+      expect(s <= (n >> 1), isTrue, reason: 'java-tron 拒收 high-S 签章');
       expect(s > BigInt.zero, isTrue);
 
-      // ecRecover 吃的是 27/28 慣例，故還原時加回 27。
+      // ecRecover 吃的是 27/28 惯例，故还原时加回 27。
       final recovered = ecRecover(txId, MsgSignature(r, s, v + 27));
       expect(bytesToHex(recovered), bytesToHex(expected),
-          reason: '規約後仍須還原出簽章者公鑰（第 $seed 組）');
+          reason: '规约后仍须还原出签章者公钥（第 $seed 组）');
     }
   });
 

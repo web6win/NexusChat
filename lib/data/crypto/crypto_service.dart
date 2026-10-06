@@ -10,7 +10,7 @@ import 'package:web3dart/crypto.dart' as eth;
 import '../../core/utils/hex.dart';
 import 'app_identity.dart';
 
-/// 一段加密後的內容：密文 + MAC + nonce + 一次性公鑰。
+/// 一段加密后的内容：密文 + MAC + nonce + 一次性公钥。
 @immutable
 class EncryptedBlob {
   const EncryptedBlob({
@@ -23,13 +23,13 @@ class EncryptedBlob {
   /// Base64 密文。
   final String cipherText;
 
-  /// Base64 的 GCM 驗證標籤。
+  /// Base64 的 GCM 验证标签。
   final String mac;
 
-  /// Base64 的 12 位元組 nonce。
+  /// Base64 的 12 位元组 nonce。
   final String nonce;
 
-  /// Base64 的一次性 X25519 公鑰。
+  /// Base64 的一次性 X25519 公钥。
   final String ephemeralPublicKey;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -60,9 +60,9 @@ class EncryptedBlob {
   }
 }
 
-/// 訊息層的密碼學服務：
-/// - 加密：X25519（一次性金鑰 ↔ 對方靜態金鑰）→ HKDF-SHA256 → AES-256-GCM
-/// - 簽章：secp256k1（以太坊帳戶），可回推簽章者地址以驗證 DID
+/// 讯息层的密码学服务：
+/// - 加密：X25519（一次性金钥 ↔ 对方静态金钥）→ HKDF-SHA256 → AES-256-GCM
+/// - 签章：secp256k1（以太坊帐户），可回推签章者地址以验证 DID
 class CryptoService {
   CryptoService._(this.identity, this._encKeyPair, this._ethKey);
 
@@ -85,7 +85,7 @@ class CryptoService {
 
   // ------------------------------------------------------------------ 加密
 
-  /// 加密給指定公鑰（Base64 X25519）。採用一次性金鑰提供前向保密。
+  /// 加密给指定公钥（Base64 X25519）。采用一次性金钥提供前向保密。
   Future<EncryptedBlob> seal(
     String plaintext,
     String recipientPublicKeyB64, {
@@ -117,7 +117,7 @@ class CryptoService {
     );
   }
 
-  /// 加密一份給自己的副本，讓多裝置從 Waku store 還原歷史訊息。
+  /// 加密一份给自己的副本，让多装置从 Waku store 还原历史讯息。
   Future<EncryptedBlob> sealSelf(
     String plaintext, {
     List<int> aad = const <int>[],
@@ -125,7 +125,7 @@ class CryptoService {
     return seal(plaintext, identity.encPublicKeyB64, aad: aad);
   }
 
-  /// 解密一段內容。
+  /// 解密一段内容。
   Future<String?> open(
     EncryptedBlob blob, {
     List<int> aad = const <int>[],
@@ -155,9 +155,9 @@ class CryptoService {
     }
   }
 
-  // ------------------------------------------------------------------ 對稱加密（群組）
+  // ------------------------------------------------------------------ 对称加密（群组）
 
-  /// 產生一組新的群組對稱金鑰（32 位元組）。
+  /// 产生一组新的群组对称金钥（32 位元组）。
   static Uint8List newSymmetricKey() {
     final bytes = Uint8List(32);
     for (var i = 0; i < bytes.length; i++) {
@@ -166,7 +166,7 @@ class CryptoService {
     return bytes;
   }
 
-  /// 用原始對稱金鑰加密（群組訊息）。[key] 為 32 位元組。
+  /// 用原始对称金钥加密（群组讯息）。[key] 为 32 位元组。
   Future<EncryptedBlob> sealSymmetric(
     String plaintext,
     List<int> key, {
@@ -183,12 +183,12 @@ class CryptoService {
       cipherText: B64.encode(box.cipherText),
       mac: B64.encode(box.mac.bytes),
       nonce: B64.encode(nonce),
-      // 對稱加密無需一次性金鑰，留空以與 ECDH 封包區分。
+      // 对称加密无需一次性金钥，留空以与 ECDH 封包区分。
       ephemeralPublicKey: '',
     );
   }
 
-  /// 用原始對稱金鑰解密（群組訊息）。失敗回傳 null。
+  /// 用原始对称金钥解密（群组讯息）。失败回传 null。
   Future<String?> openSymmetric(
     EncryptedBlob blob,
     List<int> key, {
@@ -226,16 +226,16 @@ class CryptoService {
     return bytes;
   }
 
-  // ------------------------------------------------------------------ 簽章
+  // ------------------------------------------------------------------ 签章
 
-  /// 以以太坊金鑰簽章，回傳 `r:s:v`（16 進位）。
+  /// 以以太坊金钥签章，回传 `r:s:v`（16 进位）。
   String signHex(String payload) {
     final hash = eth.keccak256(utf8.encode(payload));
     final sig = eth.sign(hash, _ethKey.privateKey);
     return '${sig.r.toRadixString(16)}:${sig.s.toRadixString(16)}:${sig.v.toRadixString(16)}';
   }
 
-  /// 由簽章回推簽章者地址（小寫 0x），失敗回傳 null。
+  /// 由签章回推签章者地址（小写 0x），失败回传 null。
   static String? recoverAddress(String payload, String signatureHex) {
     try {
       final parts = signatureHex.split(':');
@@ -252,7 +252,7 @@ class CryptoService {
     }
   }
 
-  /// 驗證簽章是否由某個 DID 的持有者發出。
+  /// 验证签章是否由某个 DID 的持有者发出。
   static bool verifyDid(String did, String payload, String signatureHex) {
     final address = recoverAddress(payload, signatureHex);
     if (address == null) return false;

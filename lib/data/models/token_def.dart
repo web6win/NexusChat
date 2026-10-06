@@ -1,14 +1,14 @@
-/// 通證標準。
+/// 通证标准。
 ///
-/// `native` 是鏈的原生代幣（已在餘額卡顯示），不會出現在下方三個 Tab 裡；
-/// [erc20] / [erc721] / [erc1155] 才是 Tab 要呈現的內容。
+/// `native` 是链的原生代币（已在余额卡显示），不会出现在下方三个 Tab 里；
+/// [erc20] / [erc721] / [erc1155] 才是 Tab 要呈现的内容。
 enum TokenStandard {
   native,
   erc20,
   erc721,
   erc1155;
 
-  /// 由設定檔字串（小寫）還原。
+  /// 由设定档字串（小写）还原。
   static TokenStandard fromJson(String? value) => switch (value?.toLowerCase()) {
         'erc20' => TokenStandard.erc20,
         'erc721' => TokenStandard.erc721,
@@ -17,14 +17,14 @@ enum TokenStandard {
         _ => TokenStandard.erc20,
       };
 
-  /// 是否屬於下方三個 Tab 之一（native 不顯示在 Tab 裡）。
+  /// 是否属于下方三个 Tab 之一（native 不显示在 Tab 里）。
   bool get isTabbed => this != TokenStandard.native;
 }
 
-/// 單一通證的定義。
+/// 单一通证的定义。
 ///
-/// 來源有二：內建（`assets/tokens.json`，[custom] 為 false）與使用者自訂
-/// （[custom] 為 true，持久化於 shared_preferences）。
+/// 来源有二：内建（`assets/tokens.json`，[custom] 为 false）与使用者自订
+/// （[custom] 为 true，持久化于 shared_preferences）。
 class TokenDef {
   const TokenDef({
     required this.name,
@@ -37,28 +37,28 @@ class TokenDef {
     this.custom = false,
   });
 
-  /// 顯示名稱（例如 USD Coin）。
+  /// 显示名称（例如 USD Coin）。
   final String name;
 
-  /// 代幣符號（例如 USDC）。
+  /// 代币符号（例如 USDC）。
   final String symbol;
 
-  /// 通證標準。
+  /// 通证标准。
   final TokenStandard standard;
 
-  /// 鏈上精度（小數位數）。
+  /// 链上精度（小数位数）。
   final int decimals;
 
-  /// 合約地址；原生代幣為空字串。
+  /// 合约地址；原生代币为空字串。
   final String address;
 
-  /// 可選的 emoji 圖示。
+  /// 可选的 emoji 图示。
   final String? icon;
 
-  /// 可選的十六進位顏色（#RRGGBB），用於圖示底色。
+  /// 可选的十六进位颜色（#RRGGBB），用于图示底色。
   final String? color;
 
-  /// 是否為使用者自訂通證。
+  /// 是否为使用者自订通证。
   final bool custom;
 
   factory TokenDef.fromJson(Map<String, dynamic> json) => TokenDef(

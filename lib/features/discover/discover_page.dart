@@ -6,10 +6,10 @@ import '../../core/theme/app_theme.dart';
 import '../../shared/layout.dart';
 import '../../shared/widgets.dart';
 
-/// 發現頁：放置不屬於「聊天 / 聯絡人 / 錢包 / 設定」的獨立工具。
+/// 发现页：放置不属于「聊天 / 联络人 / 钱包 / 设定」的独立工具。
 ///
-/// 目前唯一的工具是「掃一掃」：以相機讀取 QR Code。
-/// 掃到網址會直接以外部瀏覽器開啟；掃到 DID / 地址 / ENS 則可一鍵加入聯絡人。
+/// 目前唯一的工具是「扫一扫」：以相机读取 QR Code。
+/// 扫到网址会直接以外部浏览器开启；扫到 DID / 地址 / ENS 则可一键加入联络人。
 class DiscoverPage extends StatelessWidget {
   const DiscoverPage({super.key});
 
@@ -46,7 +46,7 @@ class DiscoverPage extends StatelessWidget {
   }
 }
 
-/// 「掃一掃」入口：用品牌漸層色塊當作視覺重點，讓它是這一頁最顯眼的操作。
+/// 「扫一扫」入口：用品牌渐层色块当作视觉重点，让它是这一页最显眼的操作。
 class _ScanTile extends StatelessWidget {
   const _ScanTile({required this.onTap});
 

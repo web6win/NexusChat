@@ -10,7 +10,7 @@ import '../core/update/update_check.dart';
 import '../core/update/update_dialog.dart';
 import '../state/controllers.dart';
 
-/// 主要殼層：行動裝置用底部導覽，桌面用左側導覽列。
+/// 主要壳层：行动装置用底部导览，桌面用左侧导览列。
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({required this.shell, super.key});
 
@@ -26,12 +26,12 @@ class _AppShellState extends ConsumerState<AppShell>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // 首次進場後啟動輪詢。
+    // 首次进场后启动轮询。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(chatControllerProvider.notifier).start();
       ref.read(contactsProvider.notifier).refreshKeys();
-      // 靜默檢查版本更新；有更新且使用者沒略過這個 build 才彈窗。
+      // 静默检查版本更新；有更新且使用者没略过这个 build 才弹窗。
       ref.read(updateCheckProvider.notifier).check().then((_) async {
         final checker = ref.read(updateCheckProvider.notifier);
         final auto = await checker.shouldAutoPrompt();
@@ -49,8 +49,8 @@ class _AppShellState extends ConsumerState<AppShell>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // 分頁或 App 進背景時系統會把計時器降頻（瀏覽器甚至凍結），
-    // 回到前景立刻補一次同步，避免「回來還要等一輪」。
+    // 分页或 App 进背景时系统会把计时器降频（浏览器甚至冻结），
+    // 回到前景立刻补一次同步，避免「回来还要等一轮」。
     if (state == AppLifecycleState.resumed) {
       ref.read(chatControllerProvider.notifier).sync();
     }
@@ -212,15 +212,15 @@ class _WideRail extends StatelessWidget {
   }
 }
 
-/// 顯示目前 Waku 連線狀態的小徽章。
+/// 显示目前 Waku 连线状态的小徽章。
 ///
-/// 有三種狀態，避免「REST 通了就一直顯示已連線」的誤導：
-/// - 節點可達且已入網 → 已連線
-/// - 節點可達但沒有 peer → 節點無 peer（發布會回 200，但訊息不會被轉發）
-/// - 節點不可達 → 離線
+/// 有三种状态，避免「REST 通了就一直显示已连线」的误导：
+/// - 节点可达且已入网 → 已连线
+/// - 节点可达但没有 peer → 节点无 peer（发布会回 200，但讯息不会被转发）
+/// - 节点不可达 → 离线
 ///
-/// 滑過徽章可看到實際連線的節點位址；無 peer 時一併提示原因。
-/// 節點是否入網會隨服務端改變，因此每 20 秒重測一次。
+/// 滑过徽章可看到实际连线的节点位址；无 peer 时一并提示原因。
+/// 节点是否入网会随服务端改变，因此每 20 秒重测一次。
 class _NetworkBadge extends ConsumerStatefulWidget {
   const _NetworkBadge();
 
