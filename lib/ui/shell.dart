@@ -22,6 +22,8 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell>
     with WidgetsBindingObserver {
+  GoRouter? _router;
+
   @override
   void initState() {
     super.initState();
@@ -42,9 +44,46 @@ class _AppShellState extends ConsumerState<AppShell>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 同一分支内的跳转（例如对话清单 → 某个对话）不会重建壳层，
+    // 所以必须自己监听路由，才能即时决定是否隐藏底部导览。
+    final router = GoRouter.of(context);
+    if (_router != router) {
+      _router?.routeInformationProvider.removeListener(_onRouteChanged);
+      _router = router;
+      router.routeInformationProvider.addListener(_onRouteChanged);
+    }
+  }
+
+  @override
   void dispose() {
+    _router?.routeInformationProvider.removeListener(_onRouteChanged);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void _onRouteChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// 窄萤幕下不需要底部导览的全萤幕页面。
+  ///
+  /// 包含：某个对话（`/chats?peer=` / `/chats?group=`）、建立群组与群组资讯页。
+  bool _shouldHideBottomNav() {
+    final router = _router;
+    if (router == null) return false;
+    final uri = router.routerDelegate.currentConfiguration.uri;
+    switch (uri.path) {
+      case '/group-create':
+      case '/group-info':
+        return true;
+      case '/chats':
+        return uri.queryParameters.containsKey('peer') ||
+            uri.queryParameters.containsKey('group');
+      default:
+        return false;
+    }
   }
 
   @override
@@ -96,20 +135,26 @@ class _AppShellState extends ConsumerState<AppShell>
       );
     }
 
+    // 对话、建立群组、群组资讯等全萤幕页面隐藏底部导览
+    // （聊天 / 联络人 / 钱包…那一排）；宽萤幕本来就改用左侧导览列，不受影响。
+    final hideBottomNav = _shouldHideBottomNav();
+
     return Scaffold(
       body: widget.shell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: widget.shell.currentIndex,
-        onDestinationSelected: _go,
-        destinations: <Widget>[
-          for (final d in destinations)
-            NavigationDestination(
-              icon: Icon(d.outline),
-              selectedIcon: Icon(d.filled),
-              label: d.label,
+      bottomNavigationBar: hideBottomNav
+          ? null
+          : NavigationBar(
+              selectedIndex: widget.shell.currentIndex,
+              onDestinationSelected: _go,
+              destinations: <Widget>[
+                for (final d in destinations)
+                  NavigationDestination(
+                    icon: Icon(d.outline),
+                    selectedIcon: Icon(d.filled),
+                    label: d.label,
+                  ),
+              ],
             ),
-        ],
-      ),
     );
   }
 }

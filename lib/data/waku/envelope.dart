@@ -249,7 +249,9 @@ class EnvelopeSealer {
     final body = await _crypto.seal(
       jsonEncode(payload),
       recipientPublicKeyB64,
-      aad: utf8.encode('$to|$id'),
+      // AAD 必须与收件端 [open] 算出来的完全一致，否则 AEAD 解密失败、
+      // 邀请会被静静丢掉（收件人完全看不到这个群组）。
+      aad: utf8.encode('$from|$to|$timestamp'),
     );
     final envelope = NexusChatEnvelope(
       id: id,
