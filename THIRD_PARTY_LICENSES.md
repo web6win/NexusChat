@@ -6,9 +6,9 @@ The third-party packages listed below keep their own licenses; all of them are p
 | License | Packages |
 | --- | --- |
 | Apache-2.0 | 9 |
-| BSD-3-Clause | 116 |
+| BSD-3-Clause | 122 |
 | Flutter/Dart SDK | 5 |
-| MIT | 25 |
+| MIT | 27 |
 
 # Packages
 
@@ -32,6 +32,7 @@ The third-party packages listed below keep their own licenses; all of them are p
 - `async` 2.13.1 - Copyright 2015, the Dart project authors.
 - `bip39` 1.0.6 - Copyright 2018, anicdh. All rights reserved.
 - `boolean_selector` 2.1.2 - Copyright 2016, the Dart project authors.
+- `buffer` 1.2.3 - Copyright 2018, the project authors. All rights reserved.
 - `characters` 1.4.1 - Copyright 2019, the Dart project authors.
 - `cli_config` 0.2.0 - Copyright 2023, the Dart project authors.
 - `code_assets` 1.2.1 - Copyright 2025, the Dart project authors.
@@ -141,6 +142,11 @@ The third-party packages listed below keep their own licenses; all of them are p
 - `web_socket` 1.0.1 - Copyright 2024, the Dart project authors.
 - `web_socket_channel` 3.0.3 - Copyright 2016, the Dart project authors.
 - `webkit_inspection_protocol` 1.2.1 - Copyright 2013, Google Inc.
+- `webview_flutter` 4.14.1 - Copyright 2013 The Flutter Authors
+- `webview_flutter_android` 4.14.1 - Copyright 2013 The Flutter Authors
+- `webview_flutter_platform_interface` 2.15.1 - Copyright 2013 The Flutter Authors
+- `webview_flutter_windows` 1.3.0 - BSD 3-Clause License
+- `webview_flutter_wkwebview` 3.27.0 - Copyright 2013 The Flutter Authors
 - `xdg_directories` 1.1.0 - Copyright 2013 The Flutter Authors. All rights reserved.
 
 ## Flutter/Dart SDK
@@ -165,6 +171,8 @@ The third-party packages listed below keep their own licenses; all of them are p
 - `bs58check` 1.0.2 - The MIT License (MIT)
 - `eip1559` 0.6.2 - MIT License
 - `eip55` 1.0.2 - MIT License
+- `equatable` 2.1.0 - MIT License
+- `eth_sig_util` 0.0.9 - Copyright (c) 2021 Wakumo Vietnam
 - `flutter_riverpod` 2.6.1 - MIT License
 - `hex` 0.2.0 - The MIT License (MIT)
 - `image` 4.9.2 - The MIT License
