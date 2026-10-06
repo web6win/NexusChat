@@ -83,6 +83,11 @@ abstract final class K {
   static const dappAmount = 'dappAmount';
   static const dappNetwork = 'dappNetwork';
   static const dappMessage = 'dappMessage';
+  static const browserTitle = 'browserTitle';
+  static const browserDesc = 'browserDesc';
+  static const browserAddressHint = 'browserAddressHint';
+  static const browserStartHint = 'browserStartHint';
+  static const browserWebNote = 'browserWebNote';
   static const scanPayAction = 'scanPayAction';
   static const scanResultPayment = 'scanResultPayment';
   static const scanPickHint = 'scanPickHint';
@@ -559,6 +564,11 @@ const Map<String, Map<String, String>> _bundles = {
     K.dappAmount: '金额',
     K.dappNetwork: '网络',
     K.dappMessage: '消息',
+    K.browserTitle: '浏览器',
+    K.browserDesc: '用内建浏览器开启网页，也可用钱包连接 DApp',
+    K.browserAddressHint: '输入网址',
+    K.browserStartHint: '输入网址开始浏览',
+    K.browserWebNote: '网页版不支援内嵌浏览器，将改用系统浏览器开启',
     K.scanPayAction: '向它转账',
     K.scanResultPayment: '付款请求',
     K.scanPickHint: '将镜头对准收款方的二维码',
@@ -1001,6 +1011,11 @@ const Map<String, Map<String, String>> _bundles = {
     K.dappAmount: 'Amount',
     K.dappNetwork: 'Network',
     K.dappMessage: 'Message',
+    K.browserTitle: 'Browser',
+    K.browserDesc: 'Browse with the built-in browser and connect DApps with your wallet',
+    K.browserAddressHint: 'Enter address',
+    K.browserStartHint: 'Enter a URL to start browsing',
+    K.browserWebNote: "In-app browser isn't available in the web build; opening in your system browser",
     K.scanPayAction: 'Send to it',
     K.scanResultPayment: 'Payment request',
     K.scanPickHint: 'Point the camera at the recipient QR code',
@@ -2888,6 +2903,11 @@ class Strings {
   String get dappAmount => get(K.dappAmount);
   String get dappNetwork => get(K.dappNetwork);
   String get dappMessage => get(K.dappMessage);
+  String get browserTitle => get(K.browserTitle);
+  String get browserDesc => get(K.browserDesc);
+  String get browserAddressHint => get(K.browserAddressHint);
+  String get browserStartHint => get(K.browserStartHint);
+  String get browserWebNote => get(K.browserWebNote);
   String get scanPayAction => get(K.scanPayAction);
   String get scanResultPayment => get(K.scanResultPayment);
   String get scanPickHint => get(K.scanPickHint);
