@@ -13,6 +13,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/l10n/strings.dart';
 import '../../core/utils/hex.dart';
+import '../../shared/feedback.dart';
 import '../../data/ethereum/tx_service.dart';
 import '../../data/models/chain.dart';
 import '../../state/controllers.dart';
@@ -97,6 +98,7 @@ const String _tronTemplate = r'''
 (function () {
   var CHANNEL = 'NexusDapp';
   var ADDRESS = '__TRON_ADDRESS__';
+  var ADDRESS_HEX = '__TRON_ADDRESS_HEX__';
   var HOST = '__TRON_HOST__';
   var seq = 0;
   var pending = {};
@@ -126,9 +128,14 @@ const String _tronTemplate = r'''
       tw = new window.TronWeb({ fullHost: HOST });
     } catch (e) { return false; }
     if (!tw) return false;
-    if (ADDRESS && typeof tw.setAddress === 'function') {
-      try { tw.setAddress(ADDRESS); } catch (e) {}
+    // setAddress() 各版本接受的格式不一（有的要 hex 41…，有的接受 base58），
+    // 因此除了尝试呼叫，最后一定直接写入 defaultAddress，避免它是空的 ——
+    // DApp 等不到地址就会一直转圈。
+    if (ADDRESS_HEX && typeof tw.setAddress === 'function') {
+      try { tw.setAddress(ADDRESS_HEX); } catch (e) {}
     }
+    tw.defaultAddress = { base58: ADDRESS, hex: ADDRESS_HEX, name: '' };
+    tw.defaultPrivateKey = '';
     tw.ready = true;
     tw.isNexus = true;
     // 签章与讯息签章改由 App 钱包处理，私钥不进页面。
@@ -150,7 +157,26 @@ const String _tronTemplate = r'''
       }
     } catch (e) {}
     window.tronWeb = tw;
+    // 部分 DApp 读的是 tronLink.tronWeb，一并指过去。
+    if (window.tronLink) window.tronLink.tronWeb = tw;
+    diag('installed');
     return true;
+  }
+
+  /// 回报安装状态给 Flutter，方便判断「一直转圈」到底卡在哪一步。
+  function diag(note) {
+    try {
+      var addr = '';
+      if (window.tronWeb && window.tronWeb.defaultAddress) {
+        addr = window.tronWeb.defaultAddress.base58 || '';
+      }
+      post('_tronDiag', [{
+        note: note,
+        lib: !!window.TronWeb,
+        tronWeb: !!window.tronWeb,
+        addr: addr
+      }]);
+    } catch (e) {}
   }
 
   window.__nexusInstallTron = installTron;
@@ -158,6 +184,7 @@ const String _tronTemplate = r'''
   window.tronLink = {
     ready: true,
     isNexus: true,
+    tronWeb: null,
     request: function (payload) {
       var method = payload && payload.method;
       if (method === 'tron_requestAccounts') return post('tron_requestAccounts', []);
@@ -167,13 +194,20 @@ const String _tronTemplate = r'''
 
   // tronWeb 可能尚未载入：先试一次，失败就注入 script 等 onload 再装。
   if (!installTron()) {
+    diag('install-failed-wait-cdn');
     try {
       var s = document.createElement('script');
       s.src = window.__nexusTronLibUrl ||
         'https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js';
-      s.onload = function () { try { installTron(); } catch (e) {} };
+      s.onload = function () {
+        try { if (installTron()) return; } catch (e) {}
+        diag('cdn-loaded-but-install-failed');
+      };
+      s.onerror = function () { diag('cdn-script-error'); };
       (document.head || document.documentElement).appendChild(s);
-    } catch (e) {}
+    } catch (e) {
+      diag('cdn-inject-error');
+    }
   }
 })();
 ''';
@@ -181,9 +215,14 @@ const String _tronTemplate = r'''
 /// 产生波场 provider 的注入脚本。
 ///
 /// [address] 为钱包波场地址（Base58，T 开头）；[host] 为波场节点 API 根网址。
-String tronProviderJs({required String address, required String host}) =>
+String tronProviderJs({
+  required String address,
+  required String addressHex,
+  required String host,
+}) =>
     _tronTemplate
         .replaceAll('__TRON_ADDRESS__', address)
+        .replaceAll('__TRON_ADDRESS_HEX__', addressHex)
         .replaceAll('__TRON_HOST__', host);
 
 /// DApp 请求被用户拒绝或参数非法时抛出。
@@ -282,6 +321,8 @@ class DappWalletBridge {
         return _tronSignTransaction(req);
       case 'tron_signMessage':
         return _tronSignMessage(req);
+      case '_tronDiag':
+        return _tronDiag(req);
       default:
         // 其余（eth_call / eth_getBalance / eth_gasPrice / eth_chainId …）透明转发。
         return _relay(req.method, req.params);
@@ -504,6 +545,18 @@ class DappWalletBridge {
     final signature = sign(digest, _privateKeyBytes());
     return '${_padHex(signature.r)}${_padHex(signature.s)}'
         '${signature.v.toRadixString(16).padLeft(2, '0')}';
+  }
+
+  /// 波场注入层的安装状态回报（除错用）：把状态印出来并显示提示，
+  /// 方便判断 DApp「一直转圈」卡在哪一步。
+  Future<dynamic> _tronDiag(DappRequest req) async {
+    final info = (req.params.first as Map?)?.cast<String, dynamic>() ??
+        <String, dynamic>{};
+    final msg = 'tron diag: note=${info['note']} lib=${info['lib']} '
+        'tronWeb=${info['tronWeb']} addr=${info['addr']}';
+    debugPrint(msg);
+    if (context.mounted) showAppSnack(context, msg);
+    return null;
   }
 
   static String _padHex(BigInt value) => value.toRadixString(16).padLeft(64, '0');

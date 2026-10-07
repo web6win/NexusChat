@@ -10,6 +10,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/l10n/strings.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/crypto/tron_address.dart';
 import '../../data/models/chain.dart';
 import '../../features/discover/bookmarks_provider.dart';
 import '../../features/discover/dapp_bridge.dart';
@@ -154,10 +155,13 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
       await controller.runJavaScript(lib).catchError((_) {});
     }
     final identity = ref.read(coreProvider).identity;
+    final tron = identity?.tronAddress ?? '';
     await controller
         .runJavaScript(
           tronProviderJs(
-            address: identity?.tronAddress ?? '',
+            address: tron,
+            // tronWeb 的 setAddress / defaultAddress 需要 41 开头的 hex 形式。
+            addressHex: tron.isEmpty ? '' : TronAddress.toHex(tron),
             host: ref.read(settingsProvider).rpcFor(ChainType.tron),
           ),
         )
