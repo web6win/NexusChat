@@ -17,7 +17,10 @@ import '../security/password_fields.dart';
 /// - 助记词 → BIP39/BIP32 派生 `m/44'/60'/0'/0/0`，身份可以再次用助记词回复。
 /// - 私钥 → 直接使用，等于外部钱包的同一个帐户；没有助记词可备份。
 class RestorePage extends ConsumerStatefulWidget {
-  const RestorePage({super.key});
+  const RestorePage({this.initialValue, super.key});
+
+  /// 由扫码带入的助记词 / 私钥；有值时会自动切到对应的汇入模式并预填。
+  final String? initialValue;
 
   @override
   ConsumerState<RestorePage> createState() => _RestorePageState();
@@ -48,6 +51,42 @@ class _RestorePageState extends ConsumerState<RestorePage> {
 
   /// 助记词模式的地址预览计时器：派生要做 PBKDF2，输入时节流一下。
   Timer? _previewTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialValue;
+    if (initial != null && initial.isNotEmpty) {
+      _mode = _detectMode(initial);
+      _controller.text = initial;
+      // 预填来自扫码的内容时，立刻算一次地址预览，
+      // 让使用者在按下汇入前就能确认这是对的那组身份。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _schedulePreview();
+      });
+    }
+  }
+
+  /// 依内容判断汇入模式：助记词 / 私钥，无法判断时维持目前模式。
+  _ImportMode _detectMode(String value) {
+    if (AppIdentity.looksLikeMnemonic(value)) return _ImportMode.mnemonic;
+    if (AppIdentity.looksLikePrivateKey(value)) return _ImportMode.privateKey;
+    return _mode;
+  }
+
+  /// 扫码填入：用「挑选原始文字」模式，把扫到的内容原样带回栏位。
+  Future<void> _scanIntoField() async {
+    final value = await context.push<String>('/scan?pickRaw=1');
+    if (!mounted || value == null || value.isEmpty) return;
+    setState(() {
+      _mode = _detectMode(value);
+      _controller.text = value;
+      _error = null;
+      _previewAddress = null;
+      _obscure = true;
+    });
+    _schedulePreview();
+  }
 
   @override
   void dispose() {
@@ -246,14 +285,25 @@ class _RestorePageState extends ConsumerState<RestorePage> {
                         hintText: s.importPrivateKeyHint,
                         errorText: _error,
                         prefixIcon: const Icon(Icons.key_rounded),
-                        suffixIcon: IconButton(
-                          tooltip: _obscure ? s.reveal : s.hide,
-                          onPressed: () => setState(() => _obscure = !_obscure),
-                          icon: Icon(
-                            _obscure
-                                ? Icons.visibility_rounded
-                                : Icons.visibility_off_rounded,
-                          ),
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            IconButton(
+                              tooltip: s.scanTitle,
+                              onPressed: _scanIntoField,
+                              icon: const Icon(Icons.qr_code_scanner_rounded),
+                            ),
+                            IconButton(
+                              tooltip: _obscure ? s.reveal : s.hide,
+                              onPressed: () =>
+                                  setState(() => _obscure = !_obscure),
+                              icon: Icon(
+                                _obscure
+                                    ? Icons.visibility_rounded
+                                    : Icons.visibility_off_rounded,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     )
@@ -270,6 +320,11 @@ class _RestorePageState extends ConsumerState<RestorePage> {
                         hintText: s.restoreHint,
                         errorText: _error,
                         alignLabelWithHint: true,
+                        suffixIcon: IconButton(
+                          tooltip: s.scanTitle,
+                          onPressed: _scanIntoField,
+                          icon: const Icon(Icons.qr_code_scanner_rounded),
+                        ),
                       ),
                     ),
                   // ------------------------------------- 私钥地址即时预览

@@ -12,13 +12,28 @@ import '../security/password_fields.dart';
 /// 身份管理：检视 / 备份身份，以及以私钥取代目前的身份。
 /// 拆自原本挤在同一页的「身份」区块。
 class IdentityImportPage extends ConsumerStatefulWidget {
-  const IdentityImportPage({super.key});
+  const IdentityImportPage({this.initialKey, super.key});
+
+  /// 由扫码带入的私钥；有值时会自动开启汇入对话框并预填。
+  final String? initialKey;
 
   @override
   ConsumerState<IdentityImportPage> createState() => _IdentityImportPageState();
 }
 
 class _IdentityImportPageState extends ConsumerState<IdentityImportPage> {
+  @override
+  void initState() {
+    super.initState();
+    // 由扫码进来时直接开启汇入流程（私钥已预填），省掉再点一次的步骤。
+    final initial = widget.initialKey;
+    if (initial != null && initial.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _confirmImportPrivateKey();
+      });
+    }
+  }
+
   /// 以私钥取代目前身份：先警告后输入，成功则提示并要求重新发布金钥。
   ///
   /// 换身份会让 DID 改变，旧对话不会消失但对方需要重新认识新 DID，因此这里
@@ -45,7 +60,7 @@ class _IdentityImportPageState extends ConsumerState<IdentityImportPage> {
         false;
     if (!confirmed || !mounted) return;
 
-    final controller = TextEditingController();
+    final controller = TextEditingController(text: widget.initialKey ?? '');
     final passwordController = TextEditingController();
     final confirmController = TextEditingController();
     var obscure = true;
@@ -115,15 +130,33 @@ class _IdentityImportPageState extends ConsumerState<IdentityImportPage> {
                   decoration: InputDecoration(
                     hintText: s.importPrivateKeyHint,
                     errorText: error,
-                    suffixIcon: IconButton(
-                      tooltip: obscure ? s.reveal : s.hide,
-                      onPressed: () =>
-                          setDialogState(() => obscure = !obscure),
-                      icon: Icon(
-                        obscure
-                            ? Icons.visibility_rounded
-                            : Icons.visibility_off_rounded,
-                      ),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        IconButton(
+                          tooltip: s.scanTitle,
+                          onPressed: () async {
+                            final value =
+                                await context.push<String>('/scan?pickRaw=1');
+                            if (value == null || value.isEmpty) return;
+                            setDialogState(() {
+                              controller.text = value;
+                              error = null;
+                            });
+                          },
+                          icon: const Icon(Icons.qr_code_scanner_rounded),
+                        ),
+                        IconButton(
+                          tooltip: obscure ? s.reveal : s.hide,
+                          onPressed: () =>
+                              setDialogState(() => obscure = !obscure),
+                          icon: Icon(
+                            obscure
+                                ? Icons.visibility_rounded
+                                : Icons.visibility_off_rounded,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

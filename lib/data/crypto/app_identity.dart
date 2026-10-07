@@ -234,6 +234,23 @@ class AppIdentity {
     );
   }
 
+  /// 是否为合法的 BIP39 助记词（12 或 24 个词）。
+  ///
+  /// 用于扫码结果判断：内容看起来像助记词时，才提供「导入身份」的选项。
+  static bool looksLikeMnemonic(String value) {
+    final words = value.trim().toLowerCase().split(RegExp(r'\s+'));
+    if (words.length != 12 && words.length != 24) return false;
+    return bip39.validateMnemonic(words.join(' '));
+  }
+
+  /// 是否为 32 位元组的 secp256k1 私钥（可带 0x 前缀，且不为零、小于曲线阶）。
+  static bool looksLikePrivateKey(String value) {
+    final hex = value.trim().replaceFirst(RegExp(r'^0[xX]'), '');
+    if (!RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(hex)) return false;
+    final n = BigInt.tryParse(hex, radix: 16);
+    return n != null && n > BigInt.zero && n < _curveOrder;
+  }
+
   /// 左侧补零至 32 位元组，避免 BIP32 丢弃前导零。
   static Uint8List _pad32(Uint8List input) {
     if (input.length == 32) return input;

@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/format.dart';
+import '../../data/crypto/app_identity.dart';
 import '../../data/crypto/did.dart';
 import '../../data/ethereum/payment_uri.dart';
 import '../../data/models/chain.dart';
@@ -22,7 +23,8 @@ import '../../state/controllers.dart';
 /// 1. 付款请求（`ethereum:0x…?value=…` / `tron:T…?amount=…`）→ 可直接转帐。
 /// 2. DID / 0x 地址 / ENS 名称 → 加入联络人、转帐或复制。
 /// 3. 网址（`http(s)://…` 或以网域开头的字串）→ 在应用内 WebView 新页面开启。
-/// 4. 其他文字 → 显示内容并可复制。
+/// 4. 助记词 / 私钥 → 显示内容，并提供「导入身份」。
+/// 5. 其他文字 → 显示内容并可复制。
 ///
 /// 相机后端由 mobile_scanner 提供，仅支援 Android / iOS / macOS / 浏览器；
 /// 其余平台（Windows、Linux）改为显示不支援提示，而不是让画面坏掉。
@@ -30,6 +32,7 @@ class ScanPage extends ConsumerStatefulWidget {
   const ScanPage({
     this.pickAddress = false,
     this.pickUrl = false,
+    this.pickRaw = false,
     this.chain,
     super.key,
   });
@@ -41,6 +44,11 @@ class ScanPage extends ConsumerStatefulWidget {
   /// 挑选网址模式：只把 http(s) 网址回传给上一页（浏览器用），
   /// 让网址直接在原本的浏览器分页里打开，而不是再叠一层新页面。
   final bool pickUrl;
+
+  /// 挑选原始文字模式：把扫到的内容**原样**回传给上一页。
+  ///
+  /// 用于「扫码导入」：汇入页拿到内容后填入助记词 / 私钥栏位，自行验证。
+  final bool pickRaw;
 
   /// 期望的链；扫到的内容若明显属于别条链，仍会回传，由转帐页提示并切换。
   final ChainType? chain;
@@ -112,6 +120,10 @@ class _ScanPageState extends ConsumerState<ScanPage> {
       await _pickUrl(value);
       return;
     }
+    if (widget.pickRaw) {
+      await _pickRaw(value);
+      return;
+    }
     // 付款请求优先：`ethereum:0x…?value=…` 同时带地址与金额，比纯地址明确。
     final payment = PaymentUri.parse(value);
     if (payment != null) {
@@ -154,6 +166,32 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     }
     if (!mounted) return;
     Navigator.pop(context, uri.toString());
+  }
+
+  /// 挑选原始文字模式：不做任何验证，原样回传（汇入页会自行验证）。
+  Future<void> _pickRaw(String value) async {
+    if (!mounted) return;
+    Navigator.pop(context, value);
+  }
+
+  /// 扫到的内容是否为「可汇入的身份材料」（助记词或私钥）。
+  static bool _isImportableSecret(String value) =>
+      AppIdentity.looksLikeMnemonic(value) ||
+      AppIdentity.looksLikePrivateKey(value);
+
+  /// 前往对应的汇入页并把内容带过去。
+  ///
+  /// 未解锁（还没有身份）走 `/restore`（助记词与私钥都支援）；
+  /// 已解锁则走 `/settings/import-key`（以私钥取代目前身份）。
+  Future<void> _openImport(String value) async {
+    final hasIdentity = ref.read(coreProvider).identity != null;
+    // 已登入时 /restore 会被导向 /chats，因此只导到私钥汇入页。
+    if (hasIdentity) {
+      await context.push('/settings/import-key', extra: value);
+    } else {
+      await context.push('/restore', extra: value);
+    }
+    if (mounted) await _resume();
   }
 
   /// 带著扫到的内容前往转帐页。
@@ -281,21 +319,36 @@ class _ScanPageState extends ConsumerState<ScanPage> {
   /// 扫到其他文字：单纯显示内容并可复制。
   Future<void> _showTextSheet(String value) async {
     final s = context.s;
+    // 扫到助记词 / 私钥时，额外提供「导入身份」。
+    final importable = _isImportableSecret(value);
     final action = await _showResultSheet(
       title: s.scanResultTitle,
       label: s.scanResultText,
       value: value,
       actions: <_SheetAction>[
+        if (importable)
+          _SheetAction(
+            id: 'import',
+            icon: Icons.key_rounded,
+            label: s.restoreTitle,
+          ),
         _SheetAction(id: 'copy', icon: Icons.copy_rounded, label: s.copy),
       ],
     );
     if (!mounted) return;
-    if (action == 'copy') {
-      await Clipboard.setData(ClipboardData(text: value));
-      if (!mounted) return;
-      showAppSnack(context, s.copied);
+    switch (action) {
+      case 'import':
+        await _openImport(value);
+        return;
+      case 'copy':
+        await Clipboard.setData(ClipboardData(text: value));
+        if (!mounted) return;
+        showAppSnack(context, s.copied);
+        await _resume();
+        return;
+      default:
+        await _resume();
     }
-    await _resume();
   }
 
   /// 共用的扫描结果面板。回传动作的 id，取消则回传 null。

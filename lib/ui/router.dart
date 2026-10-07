@@ -88,8 +88,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/restore',
-        builder: (BuildContext context, GoRouterState state) =>
-            const RestorePage(),
+        builder: (BuildContext context, GoRouterState state) => RestorePage(
+          // 由扫码带入的助记词 / 私钥（走 extra，不出现在网址上）。
+          initialValue: state.extra is String ? state.extra! as String : null,
+        ),
       ),
       GoRoute(
         path: '/lock',
@@ -122,6 +124,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           // 一般扫码则走完整的结果处理。
           pickAddress: state.uri.queryParameters['pick'] == '1',
           pickUrl: state.uri.queryParameters['pickUrl'] == '1',
+          pickRaw: state.uri.queryParameters['pickRaw'] == '1',
           chain: state.uri.queryParameters['chain'] == null
               ? null
               : ChainType.fromId(state.uri.queryParameters['chain']),
@@ -180,7 +183,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/import-key',
         builder: (BuildContext context, GoRouterState state) =>
-            const IdentityImportPage(),
+            IdentityImportPage(
+              // 由扫码带入的私钥（走 extra，不出现在网址上）。
+              initialKey: state.extra is String ? state.extra! as String : null,
+            ),
       ),
       GoRoute(
         path: '/settings/about',
