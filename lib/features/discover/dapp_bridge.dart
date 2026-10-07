@@ -125,18 +125,50 @@ const String _tronTemplate = r'''
 
   var lastError = '';
 
-  /// 建立 tronWeb 实例，并处理两种常见的打包/版本差异。
-  function newTronWeb() {
-    var Ctor = window.TronWeb;
-    // 1) 部分 UMD 打包会把实体放在 .default 底下。
-    if (Ctor && typeof Ctor !== 'function' && typeof Ctor.default === 'function') {
-      Ctor = Ctor.default;
+  /// 描述 window.TronWeb 的实际形状（除错用）。
+  function describeTronWeb() {
+    var o = window.TronWeb;
+    if (!o) return 'null';
+    var parts = [];
+    try {
+      for (var k in o) parts.push(k + ':' + (typeof o[k]));
+    } catch (e) {
+      parts.push('iterate-error');
     }
+    return 'type=' + (typeof o) + ' keys=[' + parts.join(',') + ']';
+  }
+
+  /// 从可能的命名空间里找出真正的建构式。
+  ///
+  /// UMD 打包形状不一：可能是函式本身、`.default`、`.TronWeb`，
+  /// 或再包一层；这里往下找几层，最后再退而求其次取第一个函式属性。
+  function findCtor(o, depth) {
+    if (!o) return null;
+    if (typeof o === 'function') return o;
+    if (typeof o !== 'object' || depth > 3) return null;
+    var names = ['default', 'TronWeb', 'tronWeb'];
+    for (var i = 0; i < names.length; i++) {
+      var c = o[names[i]];
+      if (typeof c === 'function') return c;
+      var inner = findCtor(c, depth + 1);
+      if (inner) return inner;
+    }
+    try {
+      for (var k in o) {
+        if (typeof o[k] === 'function') return o[k];
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  /// 建立 tronWeb 实例，并处理常见的打包形状与版本参数差异。
+  function newTronWeb() {
+    var Ctor = findCtor(window.TronWeb, 0);
     if (typeof Ctor !== 'function') {
-      lastError = 'TronWeb not a constructor (type=' + (typeof window.TronWeb) + ')';
+      lastError = 'TronWeb not a constructor | ' + describeTronWeb();
       return null;
     }
-    // 2) 不同版本接受的节点参数不同：fullHost 或三个节点分别给。
+    // 不同版本接受的节点参数不同：fullHost 或三个节点分别给。
     try {
       return new Ctor({ fullHost: HOST });
     } catch (e) {
