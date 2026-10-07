@@ -1,9 +1,9 @@
 {
   "app_name": "nexuschat",
   "version": "1.0.1",
-  "build_number": "30",
+  "build_number": "31",
   "package_name": "nexuschat",
-  "published_at": "2026-10-07T07:40:32Z",
+  "published_at": "2026-10-07T08:57:31Z",
   "download_page": "https://nchat.web6.win/download/",
   "downloads": {
     "windows": "https://nchat.web6.win/download/windows/windows-release.zip",

@@ -136371,7 +136371,7 @@ if(n.b!==200){h=A.dN("HTTP "+n.b)
 throw A.d(h)}h=n
 m=t.a.a(B.Y.iP(0,A.iI(A.iH(h.e)).cU(0,h.w),null))
 l=A.bSm(m)
-g=A.mR("30",null)
+g=A.mR("31",null)
 k=g==null?0:g
 j=l.b>k
 h=o.f
@@ -141399,7 +141399,7 @@ if(s.c!=null)s.d.E9(!0)},
 $S:4}
 A.Db.prototype={
 aQ5(a,b){var s
-switch(b.a.a){case 0:return"1.0.1 (30)"
+switch(b.a.a){case 0:return"1.0.1 (31)"
 case 1:return a.n(0,"updateChecking")
 case 2:s=b.b
 return s!=null?a.jU("updateVersionLine",A.a([s.a,s.b],t.U)):a.n(0,"updateAvailableTitle")
@@ -141435,7 +141435,7 @@ h.toString
 s=A.ih(j,j,j,j,j,A.D(h.n(0,i),j,j,j,j,j,j,j),j)
 r=h.n(0,i)
 q=h.n(0,"settingsVersion")
-q=A.hc(!1,B.a0M,j,"1.0.1 (30)",q,j)
+q=A.hc(!1,B.a0M,j,"1.0.1 (31)",q,j)
 p=A.hc(!1,B.a0L,new A.au0(this,a),"GNU GPL v3.0",h.n(0,"settingsLicense"),j)
 o=A.hc(!1,B.a_U,new A.au1(this,a),"MIT \xb7 BSD-3 \xb7 Apache-2.0",h.n(0,"settingsThirdPartyLicenses"),j)
 n=h.n(0,"updateCheck")
