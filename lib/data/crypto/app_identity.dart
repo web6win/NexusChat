@@ -16,6 +16,7 @@ import 'tron_address.dart';
 ///
 /// 派生路径：
 /// - `m/44'/60'/0'/0/0`：以太坊帐户（同时决定 did:ethr 身份）
+/// - `m/44'/195'/0'/0/0`：波场（TRON）帐户，coin type 195 为波场标准
 /// - `m/10016'/0'`：NexusChat 专用的 X25519 讯息加密金钥（与 EVM 帐户路径隔离）
 @immutable
 class AppIdentity {
@@ -26,11 +27,19 @@ class AppIdentity {
     required this.tronAddress,
     required this.ethPrivateHex,
     required this.ethPublicHex,
+    required this.tronPrivateHex,
     required this.encSeedHex,
     required this.encPublicKeyB64,
     this.passphrase = '',
     required this.createdAt,
   });
+
+  /// 波场（TRON）的 BIP44 推导路径。
+  ///
+  /// SLIP-44 中 TRON 的 coin type 是 **195**，TronLink 与波场官方钱包都使用
+  /// `m/44'/195'/0'/0/0`。早期版本误用以太坊路径（60'）来编码波场地址，
+  /// 导致同一组助记词在 TronLink 显示的地址与本 App 不同；这里改为标准路径。
+  static const String tronPath = "m/44'/195'/0'/0/0";
 
   /// BIP39 助记词（12 / 24 个单字）。
   final String mnemonic;
@@ -41,8 +50,7 @@ class AppIdentity {
   /// 以太坊地址（小写，含 0x）。
   final String address;
 
-  /// TRON 地址（T 开头 Base58Check）。
-  /// 由同一把 secp256k1 公钥派生，与 [address] 指向同一个帐户。
+  /// TRON 地址（T 开头 Base58Check），由 [tronPath] 派生的那把钥匙编码而来。
   final String tronAddress;
 
   /// secp256k1 私钥（hex，不含 0x）。
@@ -50,6 +58,12 @@ class AppIdentity {
 
   /// secp256k1 公钥（64 位元组未压缩表示不含前缀，hex）。
   final String ethPublicHex;
+
+  /// 波场专用私钥（hex，不含 0x），由 [tronPath] 派生。
+  ///
+  /// 波场交易签章**必须**用这把钥匙，不能拿 [ethPrivateHex]：
+  /// 签章与 owner_address 不符时，节点会直接拒绝广播。
+  final String tronPrivateHex;
 
   /// X25519 加密金钥种子（32 位元组，hex）。
   final String encSeedHex;
@@ -99,17 +113,17 @@ class AppIdentity {
     final encPair = await X25519().newKeyPairFromSeed(encSeed);
     final encPub = await encPair.extractPublicKey();
 
-    final tron = TronAddress.fromPublicKeyHex(
-      Hex.encode(privateKeyToPublic(ethKey.privateKeyInt)),
-    );
+    // 波场走自己的标准路径（coin type 195），与 TronLink 一致。
+    final tron = _deriveTron(normalized, passphrase);
 
     return AppIdentity(
       mnemonic: normalized,
       did: Did.fromAddress(address),
       address: address,
-      tronAddress: tron,
+      tronAddress: tron.address,
       ethPrivateHex: Hex.encode(ethKey.privateKey),
       ethPublicHex: Hex.encode(privateKeyToPublic(ethKey.privateKeyInt)),
+      tronPrivateHex: tron.privateHex,
       encSeedHex: Hex.encode(encSeed),
       encPublicKeyB64: B64.encode(encPub.bytes),
       passphrase: passphrase,
@@ -141,6 +155,9 @@ class AppIdentity {
       tronAddress: tron,
       ethPrivateHex: Hex.encode(key.privateKey),
       ethPublicHex: Hex.encode(privateKeyToPublic(key.privateKeyInt)),
+      // 汇入私钥的身份没有推导路径，波场就共用同一把钥匙 ——
+      // 这与把同一把私钥汇入 TronLink 的结果一致。
+      tronPrivateHex: Hex.encode(key.privateKey),
       encSeedHex: Hex.encode(encSeed),
       encPublicKeyB64: B64.encode(encPub.bytes),
       // 私钥汇入没有助记词，自然也没有密码短语。
@@ -197,6 +214,26 @@ class AppIdentity {
     return '0x${Hex.encode(key.address.addressBytes)}';
   }
 
+  /// 由助记词推导波场钥匙（同步，不需要非同步的密码学运算）。
+  ///
+  /// 供建立身份与「旧身份迁移」共用：既有身份在载入时会重新用标准路径
+  /// 推导一次，于是自动改用与 TronLink 相同的地址。
+  static ({String address, String privateHex}) _deriveTron(
+    String mnemonic,
+    String passphrase,
+  ) {
+    final seed = bip39.mnemonicToSeed(mnemonic, passphrase: passphrase);
+    final root = bip32.BIP32.fromSeed(seed);
+    final node = root.derivePath(tronPath);
+    final key = EthPrivateKey(_pad32(node.privateKey!));
+    return (
+      address: TronAddress.fromPublicKeyHex(
+        Hex.encode(privateKeyToPublic(key.privateKeyInt)),
+      ),
+      privateHex: Hex.encode(key.privateKey),
+    );
+  }
+
   /// 左侧补零至 32 位元组，避免 BIP32 丢弃前导零。
   static Uint8List _pad32(Uint8List input) {
     if (input.length == 32) return input;
@@ -212,6 +249,7 @@ class AppIdentity {
         'tronAddress': tronAddress,
         'ethPrivateHex': ethPrivateHex,
         'ethPublicHex': ethPublicHex,
+        'tronPrivateHex': tronPrivateHex,
         'encSeedHex': encSeedHex,
         'encPublicKeyB64': encPublicKeyB64,
         // 秘密材料：只会出现在保险库的密文里，绝不进公开提示。
@@ -222,18 +260,35 @@ class AppIdentity {
   static AppIdentity fromJson(Map<dynamic, dynamic> json) {
     final created = json['createdAt'];
     final ethPublicHex = json['ethPublicHex'] as String;
+    final mnemonic = (json['mnemonic'] ?? '') as String;
+    final passphrase = (json['passphrase'] ?? '') as String;
     final savedTron = json['tronAddress'];
-    // 兼容旧版备份：若没有 tronAddress，就用公钥即时派生。
-    final tronAddress = savedTron is String && savedTron.isNotEmpty
-        ? savedTron
-        : TronAddress.fromPublicKeyHex(ethPublicHex);
+    var tronAddress = savedTron is String ? savedTron : '';
+    var tronPrivateHex = (json['tronPrivateHex'] as String?) ?? '';
+
+    if (mnemonic.isNotEmpty) {
+      // 助记词身份：一律改用波场标准路径（coin type 195），与 TronLink 一致。
+      // 这会覆盖旧版用以太坊路径（60'）存下来的地址 —— 旧地址上的资产仍在
+      // 链上，只是本 App 不再显示。
+      final derived = _deriveTron(mnemonic, passphrase);
+      tronAddress = derived.address;
+      tronPrivateHex = derived.privateHex;
+    } else if (tronPrivateHex.isEmpty) {
+      // 汇入私钥的身份（或无助记词的旧资料）：波场共用以太坊钥匙。
+      tronPrivateHex = json['ethPrivateHex'] as String;
+      if (tronAddress.isEmpty) {
+        tronAddress = TronAddress.fromPublicKeyHex(ethPublicHex);
+      }
+    }
+
     return AppIdentity(
-      mnemonic: (json['mnemonic'] ?? '') as String,
+      mnemonic: mnemonic,
       did: json['did'] as String,
       address: json['address'] as String,
       tronAddress: tronAddress,
       ethPrivateHex: json['ethPrivateHex'] as String,
       ethPublicHex: ethPublicHex,
+      tronPrivateHex: tronPrivateHex,
       encSeedHex: json['encSeedHex'] as String,
       encPublicKeyB64: json['encPublicKeyB64'] as String,
       // 旧版密文没有这个栏位，视为未使用密码短语。

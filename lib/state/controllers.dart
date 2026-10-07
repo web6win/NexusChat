@@ -1739,7 +1739,10 @@ class WalletSendController extends Notifier<SendState> {
       final result = await TxService.send(
         chain: settings.chain,
         rpcUrl: settings.rpcFor(settings.chain),
-        privateKeyHex: identity.ethPrivateHex,
+        // 波场必须用自己那把（195' 路径）私钥签章，否则签章与地址不符。
+        privateKeyHex: settings.chain == ChainType.tron
+            ? identity.tronPrivateHex
+            : identity.ethPrivateHex,
         toAddress: toAddress,
         amount: amount,
         explorerBase: ChainConfig.of(settings.chain).explorerUrl,
@@ -1781,7 +1784,10 @@ class WalletSendController extends Notifier<SendState> {
       final result = await TxService.sendToken(
         chain: settings.chain,
         rpcUrl: settings.rpcFor(settings.chain),
-        privateKeyHex: identity.ethPrivateHex,
+        // 同上：TRC-20 也要用波场专用钥匙签章。
+        privateKeyHex: settings.chain == ChainType.tron
+            ? identity.tronPrivateHex
+            : identity.ethPrivateHex,
         contractAddress: token.address,
         toAddress: toAddress,
         amount: amount,

@@ -100,6 +100,8 @@ const String _tronTemplate = r'''
   var ADDRESS = '__TRON_ADDRESS__';
   var ADDRESS_HEX = '__TRON_ADDRESS_HEX__';
   var HOST = '__TRON_HOST__';
+  // 没设定节点时会让建构式直接抛错，退回官方节点。
+  if (!HOST) HOST = 'https://api.trongrid.io';
   var seq = 0;
   var pending = {};
   function resolve(id, resultJson) {
@@ -121,12 +123,41 @@ const String _tronTemplate = r'''
     });
   }
 
-  function installTron() {
-    if (!window.TronWeb) return false;
-    var tw;
+  var lastError = '';
+
+  /// 建立 tronWeb 实例，并处理两种常见的打包/版本差异。
+  function newTronWeb() {
+    var Ctor = window.TronWeb;
+    // 1) 部分 UMD 打包会把实体放在 .default 底下。
+    if (Ctor && typeof Ctor !== 'function' && typeof Ctor.default === 'function') {
+      Ctor = Ctor.default;
+    }
+    if (typeof Ctor !== 'function') {
+      lastError = 'TronWeb not a constructor (type=' + (typeof window.TronWeb) + ')';
+      return null;
+    }
+    // 2) 不同版本接受的节点参数不同：fullHost 或三个节点分别给。
     try {
-      tw = new window.TronWeb({ fullHost: HOST });
-    } catch (e) { return false; }
+      return new Ctor({ fullHost: HOST });
+    } catch (e) {
+      lastError = 'ctor(fullHost): ' + (e && e.message ? e.message : String(e));
+    }
+    try {
+      return new Ctor({
+        fullNode: HOST, solidityNode: HOST, eventServer: HOST
+      });
+    } catch (e) {
+      lastError += ' | ctor(3-node): ' + (e && e.message ? e.message : String(e));
+    }
+    return null;
+  }
+
+  function installTron() {
+    if (!window.TronWeb) {
+      lastError = 'no window.TronWeb';
+      return false;
+    }
+    var tw = newTronWeb();
     if (!tw) return false;
     // setAddress() 各版本接受的格式不一（有的要 hex 41…，有的接受 base58），
     // 因此除了尝试呼叫，最后一定直接写入 defaultAddress，避免它是空的 ——
@@ -174,7 +205,9 @@ const String _tronTemplate = r'''
         note: note,
         lib: !!window.TronWeb,
         tronWeb: !!window.tronWeb,
-        addr: addr
+        addr: addr,
+        host: HOST,
+        err: lastError
       }]);
     } catch (e) {}
   }
@@ -467,8 +500,15 @@ class DappWalletBridge {
     return tron;
   }
 
-  Uint8List _privateKeyBytes() =>
-      hexToBytes(_privateHex().replaceFirst(RegExp(r'^0[xX]'), ''));
+  /// 波场专用私钥（195' 路径）—— 波场签章一律用它。
+  Uint8List _tronPrivateKeyBytes() =>
+      hexToBytes(_tronPrivateHex().replaceFirst(RegExp(r'^0[xX]'), ''));
+
+  String _tronPrivateHex() {
+    final identity = ref.read(coreProvider).identity;
+    if (identity == null) throw const DappError('No account', 4100);
+    return identity.tronPrivateHex;
+  }
 
   /// 波场连线授权（对应 TronLink 的 `tron_requestAccounts`）。
   Future<Map<String, dynamic>> _tronRequestAccounts(DappRequest req) async {
@@ -517,7 +557,8 @@ class DappWalletBridge {
     if (!approved) throw const DappError('User rejected the request', 4001);
 
     final txId = Uint8List.fromList(sha256.convert(hexToBytes(rawHex)).bytes);
-    final signature = sign(txId, _privateKeyBytes());
+    // 用波场专用钥匙签章，才能对应 tronWeb.defaultAddress 的那个地址。
+    final signature = sign(txId, _tronPrivateKeyBytes());
     return TxService.packSignature(signature);
   }
 
@@ -542,7 +583,7 @@ class DappWalletBridge {
     final inner = keccak256(utf8.encode(message));
     final header = utf8.encode('\u0019TRON Signed Message:\n32');
     final digest = keccak256(Uint8List.fromList(<int>[...header, ...inner]));
-    final signature = sign(digest, _privateKeyBytes());
+    final signature = sign(digest, _tronPrivateKeyBytes());
     return '${_padHex(signature.r)}${_padHex(signature.s)}'
         '${signature.v.toRadixString(16).padLeft(2, '0')}';
   }
@@ -553,7 +594,8 @@ class DappWalletBridge {
     final info = (req.params.first as Map?)?.cast<String, dynamic>() ??
         <String, dynamic>{};
     final msg = 'tron diag: note=${info['note']} lib=${info['lib']} '
-        'tronWeb=${info['tronWeb']} addr=${info['addr']}';
+        'tronWeb=${info['tronWeb']} addr=${info['addr']} '
+        'host=${info['host']} err=${info['err']}';
     debugPrint(msg);
     if (context.mounted) showAppSnack(context, msg);
     return null;

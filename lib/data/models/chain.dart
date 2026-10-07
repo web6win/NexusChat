@@ -2,9 +2,11 @@
 ///
 /// 设计原则：NexusChat 的聊天身份（DID）固定为 `did:ethr`，与链无关；
 /// 此处的 `chain` 仅控制「钱包页要显示哪一条链的地址与余额」。
-/// 同一把 secp256k1 私钥会同时派生出以太坊 0x 地址与 TRON 的 T 地址
-/// （两者的 20 位元组主体完全相同，只是编码方式不同），因此切换链
-/// 不需要第二组助记词或第二把金钥。
+/// 以太坊 0x 地址与 TRON 的 T 地址都来自同一组助记词，但走**不同的推导
+/// 路径**：EVM 用 `m/44'/60'/0'/0/0`，波场用标准路径 `m/44'/195'/0'/0/0`
+/// （coin type 195，与 TronLink 一致）。因此两条链各有一把私钥
+/// （[AppIdentity.ethPrivateHex] / [AppIdentity.tronPrivateHex]），
+/// 波场签章必须用波场那把，否则节点会因签章与 owner 不符而拒收。
 ///
 /// 所有 EVM 链（以太坊 / Base / Arbitrum / BSC / WEB6）共用同一个 0x 地址
 /// 与同一套 JSON-RPC，新增一条链只需要 [ChainConfig._map] 加一项，
