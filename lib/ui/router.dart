@@ -118,8 +118,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/scan',
         builder: (BuildContext context, GoRouterState state) => ScanPage(
-          // 转帐页呼叫时只挑收款地址；一般扫码则走完整的结果处理。
+          // 转帐页呼叫时只挑收款地址；浏览器呼叫时只挑网址；
+          // 一般扫码则走完整的结果处理。
           pickAddress: state.uri.queryParameters['pick'] == '1',
+          pickUrl: state.uri.queryParameters['pickUrl'] == '1',
           chain: state.uri.queryParameters['chain'] == null
               ? null
               : ChainType.fromId(state.uri.queryParameters['chain']),

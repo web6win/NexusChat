@@ -88,6 +88,15 @@ abstract final class K {
   static const browserAddressHint = 'browserAddressHint';
   static const browserStartHint = 'browserStartHint';
   static const browserWebNote = 'browserWebNote';
+  static const browserBookmark = 'browserBookmark';
+  static const browserAddBookmark = 'browserAddBookmark';
+  static const browserBookmarkAdded = 'browserBookmarkAdded';
+  static const browserBookmarkEmpty = 'browserBookmarkEmpty';
+  static const browserBookmarkRemoved = 'browserBookmarkRemoved';
+  static const browserWallet = 'browserWallet';
+  static const browserWalletConnected = 'browserWalletConnected';
+  static const browserWalletNotConnected = 'browserWalletNotConnected';
+  static const browserDisconnect = 'browserDisconnect';
   static const scanPayAction = 'scanPayAction';
   static const scanResultPayment = 'scanResultPayment';
   static const scanPickHint = 'scanPickHint';
@@ -569,6 +578,15 @@ const Map<String, Map<String, String>> _bundles = {
     K.browserAddressHint: '输入网址',
     K.browserStartHint: '输入网址开始浏览',
     K.browserWebNote: '网页版不支援内嵌浏览器，将改用系统浏览器开启',
+    K.browserBookmark: '收藏',
+    K.browserAddBookmark: '加入当前页面',
+    K.browserBookmarkAdded: '已加入收藏',
+    K.browserBookmarkEmpty: '还没有收藏',
+    K.browserBookmarkRemoved: '已移除收藏',
+    K.browserWallet: '钱包',
+    K.browserWalletConnected: '已连线此网站',
+    K.browserWalletNotConnected: '尚未连线此网站',
+    K.browserDisconnect: '断开连线',
     K.scanPayAction: '向它转账',
     K.scanResultPayment: '付款请求',
     K.scanPickHint: '将镜头对准收款方的二维码',
@@ -1016,6 +1034,15 @@ const Map<String, Map<String, String>> _bundles = {
     K.browserAddressHint: 'Enter address',
     K.browserStartHint: 'Enter a URL to start browsing',
     K.browserWebNote: "In-app browser isn't available in the web build; opening in your system browser",
+    K.browserBookmark: 'Bookmarks',
+    K.browserAddBookmark: 'Add current page',
+    K.browserBookmarkAdded: 'Added to bookmarks',
+    K.browserBookmarkEmpty: 'No bookmarks yet',
+    K.browserBookmarkRemoved: 'Removed from bookmarks',
+    K.browserWallet: 'Wallet',
+    K.browserWalletConnected: 'Connected to this site',
+    K.browserWalletNotConnected: 'Not connected to this site',
+    K.browserDisconnect: 'Disconnect',
     K.scanPayAction: 'Send to it',
     K.scanResultPayment: 'Payment request',
     K.scanPickHint: 'Point the camera at the recipient QR code',
@@ -2908,6 +2935,15 @@ class Strings {
   String get browserAddressHint => get(K.browserAddressHint);
   String get browserStartHint => get(K.browserStartHint);
   String get browserWebNote => get(K.browserWebNote);
+  String get browserBookmark => get(K.browserBookmark);
+  String get browserAddBookmark => get(K.browserAddBookmark);
+  String get browserBookmarkAdded => get(K.browserBookmarkAdded);
+  String get browserBookmarkEmpty => get(K.browserBookmarkEmpty);
+  String get browserBookmarkRemoved => get(K.browserBookmarkRemoved);
+  String get browserWallet => get(K.browserWallet);
+  String get browserWalletConnected => get(K.browserWalletConnected);
+  String get browserWalletNotConnected => get(K.browserWalletNotConnected);
+  String get browserDisconnect => get(K.browserDisconnect);
   String get scanPayAction => get(K.scanPayAction);
   String get scanResultPayment => get(K.scanResultPayment);
   String get scanPickHint => get(K.scanPickHint);

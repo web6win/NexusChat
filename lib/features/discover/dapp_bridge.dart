@@ -184,6 +184,17 @@ class DappWalletBridge {
   List<String> _accounts() =>
       _connected ? <String>[_address()] : const <String>[];
 
+  /// 目前是否已授权给这个网站（eth_requestAccounts 通过后为 true）。
+  bool get connected => _connected;
+
+  /// 断开与本网站钱包的连线：之后 eth_accounts 会回传空阵列，
+  /// 网站必须重新请求授权才能拿到地址。
+  void disconnect() {
+    if (!_connected) return;
+    _connected = false;
+    unawaited(_emit('accountsChanged', const <String>[]));
+  }
+
   Future<List<String>> _requestAccounts(DappRequest req) async {
     final address = _address();
     final approved = await _approve(

@@ -27,11 +27,20 @@ import '../../state/controllers.dart';
 /// 相机后端由 mobile_scanner 提供，仅支援 Android / iOS / macOS / 浏览器；
 /// 其余平台（Windows、Linux）改为显示不支援提示，而不是让画面坏掉。
 class ScanPage extends ConsumerStatefulWidget {
-  const ScanPage({this.pickAddress = false, this.chain, super.key});
+  const ScanPage({
+    this.pickAddress = false,
+    this.pickUrl = false,
+    this.chain,
+    super.key,
+  });
 
   /// 挑选模式：只把「收款地址 / 付款请求」回传给上一页（转帐页用），
   /// 不做加入联络人等其他动作。
   final bool pickAddress;
+
+  /// 挑选网址模式：只把 http(s) 网址回传给上一页（浏览器用），
+  /// 让网址直接在原本的浏览器分页里打开，而不是再叠一层新页面。
+  final bool pickUrl;
 
   /// 期望的链；扫到的内容若明显属于别条链，仍会回传，由转帐页提示并切换。
   final ChainType? chain;
@@ -99,6 +108,10 @@ class _ScanPageState extends ConsumerState<ScanPage> {
       await _pickAddress(value);
       return;
     }
+    if (widget.pickUrl) {
+      await _pickUrl(value);
+      return;
+    }
     // 付款请求优先：`ethereum:0x…?value=…` 同时带地址与金额，比纯地址明确。
     final payment = PaymentUri.parse(value);
     if (payment != null) {
@@ -129,6 +142,18 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     }
     if (!mounted) return;
     Navigator.pop(context, value);
+  }
+
+  /// 挑选网址模式：只接受 http(s) 网址，原样回传给上一页（浏览器）。
+  Future<void> _pickUrl(String value) async {
+    final uri = _asHttpUri(value);
+    if (uri == null) {
+      showAppSnack(context, context.s.scanPickInvalid, danger: true);
+      await _resume();
+      return;
+    }
+    if (!mounted) return;
+    Navigator.pop(context, uri.toString());
   }
 
   /// 带著扫到的内容前往转帐页。

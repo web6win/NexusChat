@@ -2,19 +2,27 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/l10n/strings.dart';
+import '../../core/theme/app_theme.dart';
+import '../../data/models/chain.dart';
+import '../../features/discover/bookmarks_provider.dart';
 import '../../features/discover/dapp_bridge.dart';
 import '../../shared/feedback.dart';
+import '../../state/controllers.dart';
 
 /// 应用内浏览器：内嵌 WebView + 手动输入网址。
 ///
 /// 两种进入方式：
 /// - 扫码得到网址 → 直接载入 [WebViewPage.url]；
 /// - 发现页的「浏览器」工具 → 网址为空白，先显示起始页，由使用者输入网址。
+///
+/// 工具栏提供：扫一扫（把网址带回本页）、收藏、钱包（钱包插件状态）、重新整理。
 ///
 /// 同时向页面注入 `window.ethereum`（EIP-1193 provider），把网站的钱包请求
 /// 桥接到 App 本地钱包：连接 / 签名 / 发交易 / 切链，其余只读 JSON-RPC 透明
@@ -39,6 +47,8 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
   final TextEditingController _address = TextEditingController();
   final FocusNode _addressFocus = FocusNode();
   bool _started = false;
+  String _current = '';
+  String? _lastErrorUrl;
 
   bool get _valid {
     final scheme = Uri.tryParse(widget.url)?.scheme;
@@ -48,7 +58,10 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.url.isNotEmpty) _address.text = widget.url;
+    if (widget.url.isNotEmpty) {
+      _address.text = widget.url;
+      _current = widget.url;
+    }
     // 网页版没有内嵌 WebView 实作，不建立 controller，改走系统浏览器。
     if (kIsWeb) return;
 
@@ -70,6 +83,13 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
             _inject();
           },
           onWebResourceError: (error) {
+            // 只有「整页（主框架）」载入失败才提示。favicon、图片、脚本等
+            // 子资源的错误非常常见，若一并提示就会变成一直跳错误讯息。
+            if (error.isForMainFrame != true) return;
+            final failing = error.url ?? '';
+            // 同一个网址只提示一次，避免重试时重复弹。
+            if (failing.isNotEmpty && failing == _lastErrorUrl) return;
+            _lastErrorUrl = failing;
             if (mounted) {
               showAppSnack(context, context.s.scanOpenFailed, danger: true);
             }
@@ -106,8 +126,9 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
 
   /// 页面换页时同步网址列；使用者正在输入时不覆写，免得打一半被洗掉。
   void _syncAddress(String url) {
-    if (url.isEmpty || _addressFocus.hasFocus) return;
-    _address.text = url;
+    if (url.isEmpty) return;
+    _current = url;
+    if (!_addressFocus.hasFocus) _address.text = url;
   }
 
   /// 向页面注入 EIP-1193 provider。每次导航都重新注入，确保新文档也有。
@@ -129,7 +150,10 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
       return;
     }
 
-    _address.text = uri.toString();
+    final url = uri.toString();
+    _address.text = url;
+    _current = url;
+    _lastErrorUrl = null;
     _addressFocus.unfocus();
 
     if (kIsWeb) {
@@ -146,6 +170,40 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
     await controller.loadRequest(uri);
     if (mounted) setState(() => _started = true);
     _inject();
+  }
+
+  /// 扫一扫：用「挑选网址」模式，把扫到的网址带回这一页直接打开。
+  Future<void> _scan() async {
+    final result = await context.push<String>('/scan?pickUrl=1');
+    if (!mounted || result == null || result.isEmpty) return;
+    await _goTo(result);
+  }
+
+  void _showBookmarks() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => _BookmarksSheet(
+        currentUrl: _current,
+        onOpen: (url) {
+          Navigator.of(ctx).pop();
+          unawaited(_goTo(url));
+        },
+      ),
+    );
+  }
+
+  void _showWallet() {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => _WalletSheet(
+        connected: _bridge?.connected ?? false,
+        onDisconnect: () {
+          _bridge?.disconnect();
+          Navigator.of(ctx).pop();
+        },
+      ),
+    );
   }
 
   @override
@@ -170,6 +228,21 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
           onSubmit: _goTo,
         ),
         actions: <Widget>[
+          IconButton(
+            tooltip: s.scanTitle,
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+            onPressed: _scan,
+          ),
+          IconButton(
+            tooltip: s.browserBookmark,
+            icon: const Icon(Icons.bookmarks_rounded),
+            onPressed: _showBookmarks,
+          ),
+          IconButton(
+            tooltip: s.browserWallet,
+            icon: const Icon(Icons.account_balance_wallet_rounded),
+            onPressed: _showWallet,
+          ),
           if (showWeb)
             IconButton(
               tooltip: s.refresh,
@@ -275,8 +348,7 @@ class _AddressBar extends StatelessWidget {
               style: const TextStyle(fontSize: 13.5),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle:
-                    TextStyle(fontSize: 13.5, color: dim.withValues(alpha: 0.7)),
+                hintStyle: TextStyle(fontSize: 13.5, color: dim),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -289,5 +361,259 @@ class _AddressBar extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// 收藏面板：加入当前页面、点选开启、删除。
+class _BookmarksSheet extends ConsumerWidget {
+  const _BookmarksSheet({required this.currentUrl, required this.onOpen});
+
+  final String currentUrl;
+  final ValueChanged<String> onOpen;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.s;
+    final theme = Theme.of(context);
+    final bookmarks = ref.watch(bookmarksProvider);
+    final already = bookmarks.any((b) => b.url == currentUrl);
+    final canAdd = currentUrl.isNotEmpty && !already;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              s.browserBookmark,
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            if (canAdd) ...<Widget>[
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  await ref
+                      .read(bookmarksProvider.notifier)
+                      .add(_bookmarkFor(currentUrl));
+                  if (context.mounted) {
+                    showAppSnack(context, s.browserBookmarkAdded);
+                  }
+                },
+                icon: const Icon(Icons.star_border_rounded, size: 18),
+                label: Text(s.browserAddBookmark),
+              ),
+            ],
+            const SizedBox(height: 8),
+            if (bookmarks.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text(
+                    s.browserBookmarkEmpty,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
+              )
+            else
+              // 不用 Flexible：外层 Column 是 mainAxisSize.min（高度无上限），
+              // Flexible 会拿到 unbounded 约束而报错，改用 maxHeight 限制。
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 360),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: bookmarks.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final item = bookmarks[index];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.star_rounded, size: 18),
+                      title: Text(
+                        item.title ?? item.url,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        item.url,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () => onOpen(item.url),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded, size: 19),
+                        onPressed: () async {
+                          await ref
+                              .read(bookmarksProvider.notifier)
+                              .remove(item.url);
+                          if (context.mounted) {
+                            showAppSnack(context, s.browserBookmarkRemoved);
+                          }
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Bookmark _bookmarkFor(String url) => Bookmark(
+        url: url,
+        title: Uri.tryParse(url)?.host ?? url,
+        addedAtMs: DateTime.now().millisecondsSinceEpoch,
+      );
+}
+
+/// 钱包面板（钱包插件）：显示地址、目前网路与本网站的连线状态。
+class _WalletSheet extends ConsumerWidget {
+  const _WalletSheet({required this.connected, required this.onDisconnect});
+
+  final bool connected;
+  final VoidCallback onDisconnect;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.s;
+    final theme = Theme.of(context);
+    final identity = ref.watch(sessionProvider).identity;
+    final settings = ref.watch(settingsProvider);
+    final address = identity?.address ?? '';
+    final shortAddress = address.length > 12
+        ? '${address.substring(0, 8)}…${address.substring(address.length - 6)}'
+        : address;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              s.browserWallet,
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: <Widget>[
+                SizedBox(
+                  width: 84,
+                  child: Text(
+                    s.dappAccount,
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.hintColor),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    shortAddress.isEmpty ? '—' : shortAddress,
+                    style: const TextStyle(fontFamily: 'monospace'),
+                  ),
+                ),
+                if (address.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.copy_rounded, size: 18),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: address));
+                      if (context.mounted) showAppSnack(context, s.copied);
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: <Widget>[
+                SizedBox(
+                  width: 84,
+                  child: Text(
+                    s.dappNetwork,
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.hintColor),
+                  ),
+                ),
+                Expanded(
+                  child: DropdownButton<ChainType>(
+                    value: settings.chain,
+                    isExpanded: true,
+                    underline: const SizedBox.shrink(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      unawaited(ref
+                          .read(settingsProvider.notifier)
+                          .setChain(value));
+                    },
+                    items: <DropdownMenuItem<ChainType>>[
+                      for (final chain in ChainType.values)
+                        DropdownMenuItem<ChainType>(
+                          value: chain,
+                          child: Text(_chainLabel(chain)),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: <Widget>[
+                Icon(
+                  connected
+                      ? Icons.link_rounded
+                      : Icons.link_off_rounded,
+                  size: 17,
+                  color: connected ? AppColors.success : theme.hintColor,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    connected
+                        ? s.browserWalletConnected
+                        : s.browserWalletNotConnected,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (connected) ...<Widget>[
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: onDisconnect,
+                child: Text(s.browserDisconnect),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _chainLabel(ChainType chain) {
+    switch (chain) {
+      case ChainType.ethereum:
+        return 'Ethereum';
+      case ChainType.base:
+        return 'Base';
+      case ChainType.arbitrum:
+        return 'Arbitrum';
+      case ChainType.bsc:
+        return 'BNB Chain';
+      case ChainType.tron:
+        return 'TRON';
+      case ChainType.besu:
+        return 'WEB6';
+    }
   }
 }
