@@ -69,5 +69,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/tokens.json
+    # 浏览器内嵌波场（TRON）钱包注入用的 tronWeb 函式库（官方 UMD 版本）。
+    # 内嵌而非从 CDN 载入，离线可用且不受网页 CSP 限制。
+    - assets/tronweb/
     # 注意：THIRD_PARTY_LICENSES.md 刻意**不**打包進安裝檔（省體積），
     # App 內「關於」直接連到 GitHub 上的該檔案；由 tool/gen_licenses.dart 產生。

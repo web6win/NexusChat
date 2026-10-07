@@ -2,15 +2,18 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart' show sha256;
 import 'package:eth_sig_util/eth_sig_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:web3dart/crypto.dart' show hexToBytes, keccak256, sign;
 import 'package:web3dart/web3dart.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/l10n/strings.dart';
 import '../../core/utils/hex.dart';
+import '../../data/ethereum/tx_service.dart';
 import '../../data/models/chain.dart';
 import '../../state/controllers.dart';
 
@@ -82,6 +85,106 @@ const String kDappProviderJs = r'''
   window.ethereum = provider;
 })();
 ''';
+
+/// 波场（TRON）provider：`window.tronWeb` / `window.tronLink`（TronLink 相容）。
+///
+/// 做法与 EVM 不同：TRON DApp（JustLend / SunSwap 等）大量依赖真正的
+/// `tronWeb` 能力与 ABI 编解码，手写模仿几乎不可能相容。因此这里：
+/// 1. 使用**真正的 tronWeb 函式库**（页面自带的、或从 CDN 载入）建立实例，
+///    节点通讯、交易建构、合约读取全部由它自己处理（纯 HTTP，不需私钥）；
+/// 2. 只把「签章」与「连线授权」接到 App 钱包 —— 私钥永远不进页面 JS。
+const String _tronTemplate = r'''
+(function () {
+  var CHANNEL = 'NexusDapp';
+  var ADDRESS = '__TRON_ADDRESS__';
+  var HOST = '__TRON_HOST__';
+  var seq = 0;
+  var pending = {};
+  function resolve(id, resultJson) {
+    var p = pending[id];
+    if (p) { pending[id] = null; p.resolve(JSON.parse(resultJson)); }
+  }
+  function reject(id, errorJson) {
+    var p = pending[id];
+    if (p) { pending[id] = null; p.reject(new Error(JSON.parse(errorJson))); }
+  }
+  function post(method, params) {
+    return new Promise(function (res, rej) {
+      if (!window[CHANNEL]) { rej(new Error('provider not ready')); return; }
+      var id = (++seq);
+      pending[id] = { resolve: res, reject: rej };
+      try {
+        window[CHANNEL].postMessage(JSON.stringify({ id: id, method: method, params: params || [] }));
+      } catch (e) { rej(e); }
+    });
+  }
+
+  function installTron() {
+    if (!window.TronWeb) return false;
+    var tw;
+    try {
+      tw = new window.TronWeb({ fullHost: HOST });
+    } catch (e) { return false; }
+    if (!tw) return false;
+    if (ADDRESS && typeof tw.setAddress === 'function') {
+      try { tw.setAddress(ADDRESS); } catch (e) {}
+    }
+    tw.ready = true;
+    tw.isNexus = true;
+    // 签章与讯息签章改由 App 钱包处理，私钥不进页面。
+    try {
+      tw.trx.sign = function (transaction) {
+        return post('tron_signTransaction', [transaction]).then(function (signature) {
+          if (transaction && typeof transaction === 'object') {
+            transaction.signature = transaction.signature || [];
+            transaction.signature.push(signature);
+          }
+          return transaction;
+        });
+      };
+      tw.trx.signMessageV2 = function (message) {
+        return post('tron_signMessage', [message]);
+      };
+      if (typeof tw.trx.signMessage !== 'function') {
+        tw.trx.signMessage = tw.trx.signMessageV2;
+      }
+    } catch (e) {}
+    window.tronWeb = tw;
+    return true;
+  }
+
+  window.__nexusInstallTron = installTron;
+
+  window.tronLink = {
+    ready: true,
+    isNexus: true,
+    request: function (payload) {
+      var method = payload && payload.method;
+      if (method === 'tron_requestAccounts') return post('tron_requestAccounts', []);
+      return Promise.reject(new Error('unsupported method: ' + method));
+    }
+  };
+
+  // tronWeb 可能尚未载入：先试一次，失败就注入 script 等 onload 再装。
+  if (!installTron()) {
+    try {
+      var s = document.createElement('script');
+      s.src = window.__nexusTronLibUrl ||
+        'https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js';
+      s.onload = function () { try { installTron(); } catch (e) {} };
+      (document.head || document.documentElement).appendChild(s);
+    } catch (e) {}
+  }
+})();
+''';
+
+/// 产生波场 provider 的注入脚本。
+///
+/// [address] 为钱包波场地址（Base58，T 开头）；[host] 为波场节点 API 根网址。
+String tronProviderJs({required String address, required String host}) =>
+    _tronTemplate
+        .replaceAll('__TRON_ADDRESS__', address)
+        .replaceAll('__TRON_HOST__', host);
 
 /// DApp 请求被用户拒绝或参数非法时抛出。
 class DappError implements Exception {
@@ -173,6 +276,12 @@ class DappWalletBridge {
         return _switchChain(req);
       case 'wallet_addEthereumChain':
         return _addChain(req);
+      case 'tron_requestAccounts':
+        return _tronRequestAccounts(req);
+      case 'tron_signTransaction':
+        return _tronSignTransaction(req);
+      case 'tron_signMessage':
+        return _tronSignMessage(req);
       default:
         // 其余（eth_call / eth_getBalance / eth_gasPrice / eth_chainId …）透明转发。
         return _relay(req.method, req.params);
@@ -306,6 +415,107 @@ class DappWalletBridge {
     final hex = '0x${chainId.toRadixString(16)}';
     await _emit('chainChanged', hex);
     return null;
+  }
+
+  // ----------------------------------------------------------------- 波场
+
+  String _tronAddress() {
+    final identity = ref.read(coreProvider).identity;
+    final tron = identity?.tronAddress ?? '';
+    if (tron.isEmpty) throw const DappError('No TRON account', 4100);
+    return tron;
+  }
+
+  Uint8List _privateKeyBytes() =>
+      hexToBytes(_privateHex().replaceFirst(RegExp(r'^0[xX]'), ''));
+
+  /// 波场连线授权（对应 TronLink 的 `tron_requestAccounts`）。
+  Future<Map<String, dynamic>> _tronRequestAccounts(DappRequest req) async {
+    final address = _tronAddress();
+    final approved = await _approve(
+      title: context.s.dappConnect,
+      origin: req.origin,
+      rows: <(String, String)>[
+        (context.s.dappAccount, _short(address)),
+        (context.s.dappNetwork, 'TRON'),
+      ],
+    );
+    if (!approved) throw const DappError('User rejected the request', 4001);
+    _connected = true;
+    return <String, dynamic>{
+      'code': 200,
+      'data': <String, dynamic>{'address': address, 'name': ''},
+    };
+  }
+
+  /// 波场交易签章。
+  ///
+  /// 与以太坊不同：TRON 是对 **txID = sha256(raw_data)** 直接做 secp256k1
+  /// ECDSA（不能再过一次 keccak256），签章格式也用 [TxService.packSignature]
+  /// 转成 java-tron 要求的样子（v 为 0/1 且 low-S），否则节点会拒收。
+  Future<String> _tronSignTransaction(DappRequest req) async {
+    final tx = (req.params.first as Map?)?.cast<String, dynamic>() ??
+        <String, dynamic>{};
+    final rawHex = tx['raw_data_hex'] as String?;
+    if (rawHex == null || rawHex.isEmpty) {
+      throw const DappError('missing raw_data_hex', -32602);
+    }
+    final address = _tronAddress();
+    final rows = <(String, String)>[
+      (context.s.dappAccount, _short(address)),
+      (context.s.dappNetwork, 'TRON'),
+    ];
+    final type = _tronContractType(tx);
+    if (type.isNotEmpty) rows.add((context.s.dappMessage, type));
+
+    final approved = await _approve(
+      title: context.s.dappTransaction,
+      origin: req.origin,
+      rows: rows,
+    );
+    if (!approved) throw const DappError('User rejected the request', 4001);
+
+    final txId = Uint8List.fromList(sha256.convert(hexToBytes(rawHex)).bytes);
+    final signature = sign(txId, _privateKeyBytes());
+    return TxService.packSignature(signature);
+  }
+
+  /// 波场讯息签章（对应 tronWeb 的 `signMessageV2`）：
+  /// `keccak256("\x19TRON Signed Message:\n32" + keccak256(message))`。
+  ///
+  /// ⚠️ 各版本 tronWeb 的讯息签章语意略有差异，此实作**尚未经 JustLend /
+  /// SunSwap 实测**；若对方验签失败请把错误回报，再依实际语意校正。
+  Future<String> _tronSignMessage(DappRequest req) async {
+    final address = _tronAddress();
+    final message = req.params.isEmpty ? '' : '${req.params.first}';
+    final approved = await _approve(
+      title: context.s.dappSign,
+      origin: req.origin,
+      rows: <(String, String)>[
+        (context.s.dappAccount, _short(address)),
+        (context.s.dappMessage, message),
+      ],
+    );
+    if (!approved) throw const DappError('User rejected the request', 4001);
+
+    final inner = keccak256(utf8.encode(message));
+    final header = utf8.encode('\u0019TRON Signed Message:\n32');
+    final digest = keccak256(Uint8List.fromList(<int>[...header, ...inner]));
+    final signature = sign(digest, _privateKeyBytes());
+    return '${_padHex(signature.r)}${_padHex(signature.s)}'
+        '${signature.v.toRadixString(16).padLeft(2, '0')}';
+  }
+
+  static String _padHex(BigInt value) => value.toRadixString(16).padLeft(64, '0');
+
+  static String _tronContractType(Map<String, dynamic> tx) {
+    final raw = tx['raw_data'] as Map?;
+    final contracts = raw?['contract'];
+    if (contracts is List && contracts.isNotEmpty) {
+      final first = contracts.first;
+      if (first is Map) return (first['type'] as String?) ?? '';
+    }
+    return '';
   }
 
   // ----------------------------------------------------------------- 广播交易

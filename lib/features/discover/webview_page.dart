@@ -49,6 +49,7 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
   bool _started = false;
   String _current = '';
   String? _lastErrorUrl;
+  String? _tronLib;
 
   bool get _valid {
     final scheme = Uri.tryParse(widget.url)?.scheme;
@@ -76,11 +77,11 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
           onProgress: (p) => _progress.value = p,
           onPageStarted: (url) {
             _syncAddress(url);
-            _inject();
+            unawaited(_inject());
           },
           onPageFinished: (url) {
             _syncAddress(url);
-            _inject();
+            unawaited(_inject());
           },
           onWebResourceError: (error) {
             // 只有「整页（主框架）」载入失败才提示。favicon、图片、脚本等
@@ -131,11 +132,50 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
     if (!_addressFocus.hasFocus) _address.text = url;
   }
 
-  /// 向页面注入 EIP-1193 provider。每次导航都重新注入，确保新文档也有。
-  void _inject() {
+  /// 注入钱包 provider：依目前选择的链决定注入哪一种。
+  ///
+  /// - TRON → `window.tronWeb` / `window.tronLink`（TronLink 相容）
+  /// - 其余 EVM 链 → `window.ethereum`（EIP-1193）
+  ///
+  /// 每次导航都重新注入，确保新文档也有。
+  Future<void> _inject() async {
     final controller = _controller;
     if (controller == null) return;
-    unawaited(controller.runJavaScript(kDappProviderJs).catchError((_) {}));
+    final chain = ref.read(settingsProvider).chain;
+    if (chain != ChainType.tron) {
+      // EVM 链：注入 EIP-1193 provider。
+      await controller.runJavaScript(kDappProviderJs).catchError((_) {});
+      return;
+    }
+    // 波场：先注入内嵌的 tronWeb 函式库，再注入我们的 TronLink 相容层。
+    // 顺序很重要 —— 相容层需要 window.TronWeb 已经存在才能建立实例。
+    final lib = await _loadTronLib();
+    if (lib != null) {
+      await controller.runJavaScript(lib).catchError((_) {});
+    }
+    final identity = ref.read(coreProvider).identity;
+    await controller
+        .runJavaScript(
+          tronProviderJs(
+            address: identity?.tronAddress ?? '',
+            host: ref.read(settingsProvider).rpcFor(ChainType.tron),
+          ),
+        )
+        .catchError((_) {});
+  }
+
+  /// 读取并快取内嵌的 tronWeb 函式库（约 900 KB，只从 assets 读一次）。
+  Future<String?> _loadTronLib() async {
+    final cached = _tronLib;
+    if (cached != null) return cached;
+    try {
+      final lib = await rootBundle.loadString('assets/tronweb/TronWeb.js');
+      _tronLib = lib;
+      return lib;
+    } catch (_) {
+      // 读不到就回退：相容层会尝试从 CDN 载入。
+      return null;
+    }
   }
 
   /// 载入网址列里的网址：没写协定就补 https://，让使用者能直接打 example.com。
@@ -169,7 +209,7 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
     if (controller == null) return;
     await controller.loadRequest(uri);
     if (mounted) setState(() => _started = true);
-    _inject();
+    unawaited(_inject());
   }
 
   /// 扫一扫：用「挑选网址」模式，把扫到的网址带回这一页直接打开。
@@ -217,6 +257,15 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
   @override
   Widget build(BuildContext context) {
     final s = context.s;
+    // 切换链（EVM ↔ 波场）时改用对应的钱包 provider，并重整页面，
+    // 让 DApp 重新侦测到正确的钱包物件。
+    ref.listen<ChainType>(
+      settingsProvider.select((value) => value.chain),
+      (previous, next) {
+        unawaited(_inject());
+        _controller?.reload();
+      },
+    );
     final showWeb = !kIsWeb && _controller != null && _started;
     return Scaffold(
       appBar: AppBar(
