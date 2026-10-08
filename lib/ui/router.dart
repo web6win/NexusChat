@@ -72,8 +72,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      // 5) 全新使用者。
-      return isOnboarding ? null : '/welcome';
+      // 5) 全新使用者：只能停在引导页与「扫码」页。
+      //
+      //    `/scan` 必须放行 —— 它是导入流程的一环（从 /restore 扫助记词 /
+      //    私钥）。少了这一条，全新使用者点扫码会被踢回 /welcome，
+      //    看起来就像「点了扫码却回到初始页」。
+      return (isOnboarding || location == '/scan') ? null : '/welcome';
     },
     routes: <RouteBase>[
       GoRoute(
