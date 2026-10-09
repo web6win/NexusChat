@@ -83,6 +83,9 @@ abstract final class K {
   static const dappAmount = 'dappAmount';
   static const dappNetwork = 'dappNetwork';
   static const dappMessage = 'dappMessage';
+  static const dappFeeLimit = 'dappFeeLimit';
+  static const signVerifyTitle = 'signVerifyTitle';
+  static const signVerifyDesc = 'signVerifyDesc';
   static const browserTitle = 'browserTitle';
   static const browserDesc = 'browserDesc';
   static const browserAddressHint = 'browserAddressHint';
@@ -576,6 +579,9 @@ const Map<String, Map<String, String>> _bundles = {
     K.dappAmount: '金额',
     K.dappNetwork: '网络',
     K.dappMessage: '消息',
+    K.dappFeeLimit: '手续费上限',
+    K.signVerifyTitle: '签名验证',
+    K.signVerifyDesc: '输入密码以授权此次签名',
     K.browserTitle: '浏览器',
     K.browserDesc: '用内建浏览器开启网页，也可用钱包连接 DApp',
     K.browserAddressHint: '输入网址',
@@ -1035,6 +1041,9 @@ const Map<String, Map<String, String>> _bundles = {
     K.dappAmount: 'Amount',
     K.dappNetwork: 'Network',
     K.dappMessage: 'Message',
+    K.dappFeeLimit: 'Fee limit',
+    K.signVerifyTitle: 'Confirm signature',
+    K.signVerifyDesc: 'Enter your password to authorize this signature',
     K.browserTitle: 'Browser',
     K.browserDesc: 'Browse with the built-in browser and connect DApps with your wallet',
     K.browserAddressHint: 'Enter address',
@@ -2939,6 +2948,9 @@ class Strings {
   String get dappAmount => get(K.dappAmount);
   String get dappNetwork => get(K.dappNetwork);
   String get dappMessage => get(K.dappMessage);
+  String get dappFeeLimit => get(K.dappFeeLimit);
+  String get signVerifyTitle => get(K.signVerifyTitle);
+  String get signVerifyDesc => get(K.signVerifyDesc);
   String get browserTitle => get(K.browserTitle);
   String get browserDesc => get(K.browserDesc);
   String get browserAddressHint => get(K.browserAddressHint);

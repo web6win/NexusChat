@@ -13,6 +13,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../core/l10n/strings.dart';
 import '../../core/utils/hex.dart';
+import '../../shared/auth.dart';
 import '../../shared/feedback.dart';
 import '../../data/ethereum/tx_service.dart';
 import '../../data/models/chain.dart';
@@ -431,12 +432,16 @@ class DappWalletBridge {
   Future<String> _personalSign(DappRequest req, {required bool legacy}) async {
     final address = _address();
     final decoded = _decodeSignMessage(req.params);
+    final s = context.s;
+    if (!await _authenticate()) {
+      throw const DappError('User rejected the request', 4001);
+    }
     final approved = await _approve(
-      title: context.s.dappSign,
+      title: s.dappSign,
       origin: req.origin,
       rows: <(String, String)>[
-        (context.s.dappAccount, _short(address)),
-        (context.s.dappMessage, decoded.text),
+        (s.dappAccount, _short(address)),
+        (s.dappMessage, decoded.text),
       ],
     );
     if (!approved) throw const DappError('User rejected the request', 4001);
@@ -452,12 +457,16 @@ class DappWalletBridge {
   Future<String> _signTypedData(DappRequest req) async {
     final address = _address();
     final parsed = _parseTypedDataParams(req.params);
+    final s = context.s;
+    if (!await _authenticate()) {
+      throw const DappError('User rejected the request', 4001);
+    }
     final approved = await _approve(
-      title: context.s.dappSign,
+      title: s.dappSign,
       origin: req.origin,
       rows: <(String, String)>[
-        (context.s.dappAccount, _short(address)),
-        (context.s.dappMessage, parsed.summary),
+        (s.dappAccount, _short(address)),
+        (s.dappMessage, parsed.summary),
       ],
     );
     if (!approved) throw const DappError('User rejected the request', 4001);
@@ -476,18 +485,22 @@ class DappWalletBridge {
     if (from.isNotEmpty && from.toLowerCase() != address.toLowerCase()) {
       throw const DappError('from address mismatch', 4100);
     }
+    final s = context.s;
+    if (!await _authenticate()) {
+      throw const DappError('User rejected the request', 4001);
+    }
     final approved = await _approve(
-      title: context.s.dappTransaction,
+      title: s.dappTransaction,
       origin: req.origin,
       rows: <(String, String)>[
-        (context.s.dappAccount, _short(address)),
+        (s.dappAccount, _short(address)),
         if (tx['to'] != null)
-          (context.s.dappTo, _short(tx['to'] as String)),
-        (context.s.dappNetwork, _networkName()),
+          (s.dappTo, _short(tx['to'] as String)),
+        (s.dappNetwork, _networkName()),
         if (tx['value'] != null && tx['value'] != '0x0')
-          (context.s.dappAmount, _weiToEther(tx['value'] as String)),
+          (s.dappAmount, _weiToEther(tx['value'] as String)),
         if ((tx['data'] as String?) != null && (tx['data'] as String) != '0x')
-          (context.s.dappMessage, '0x… (${(tx['data'] as String).length - 2} bytes)'),
+          (s.dappMessage, '0x… (${(tx['data'] as String).length - 2} bytes)'),
       ],
     );
     if (!approved) throw const DappError('User rejected the request', 4001);
@@ -574,15 +587,18 @@ class DappWalletBridge {
       throw const DappError('missing raw_data_hex', -32602);
     }
     final address = _tronAddress();
+    final s = context.s;
     final rows = <(String, String)>[
-      (context.s.dappAccount, _short(address)),
-      (context.s.dappNetwork, 'TRON'),
+      (s.dappAccount, _short(address)),
+      (s.dappNetwork, 'TRON'),
+      ..._tronTxReviewRows(tx),
     ];
-    final type = _tronContractType(tx);
-    if (type.isNotEmpty) rows.add((context.s.dappMessage, type));
 
+    if (!await _authenticate()) {
+      throw const DappError('User rejected the request', 4001);
+    }
     final approved = await _approve(
-      title: context.s.dappTransaction,
+      title: s.dappTransaction,
       origin: req.origin,
       rows: rows,
     );
@@ -602,12 +618,16 @@ class DappWalletBridge {
   Future<String> _tronSignMessage(DappRequest req) async {
     final address = _tronAddress();
     final message = req.params.isEmpty ? '' : '${req.params.first}';
+    final s = context.s;
+    if (!await _authenticate()) {
+      throw const DappError('User rejected the request', 4001);
+    }
     final approved = await _approve(
-      title: context.s.dappSign,
+      title: s.dappSign,
       origin: req.origin,
       rows: <(String, String)>[
-        (context.s.dappAccount, _short(address)),
-        (context.s.dappMessage, message),
+        (s.dappAccount, _short(address)),
+        (s.dappMessage, message),
       ],
     );
     if (!approved) throw const DappError('User rejected the request', 4001);
@@ -635,14 +655,38 @@ class DappWalletBridge {
 
   static String _padHex(BigInt value) => value.toRadixString(16).padLeft(64, '0');
 
-  static String _tronContractType(Map<String, dynamic> tx) {
+  /// 把波场交易的 `raw_data` 拆解成可审阅的几行：合约地址、方法选择器、金额、手续费上限。
+  ///
+  /// 没有 ABI 无法还原函数名，因此「方法」只给 4 字节 selector（前 8 个 hex 字符）；
+  /// `call_value` / `fee_limit` 以 SUN 计，换算成 TRX 显示，避免用户盲签看不懂的交易。
+  Iterable<(String, String)> _tronTxReviewRows(Map<String, dynamic> tx) sync* {
     final raw = tx['raw_data'] as Map?;
     final contracts = raw?['contract'];
-    if (contracts is List && contracts.isNotEmpty) {
-      final first = contracts.first;
-      if (first is Map) return (first['type'] as String?) ?? '';
+    if (contracts is! List || contracts.isEmpty) return;
+    final first = contracts.first;
+    if (first is! Map) return;
+    final value = first['parameter']?['value'];
+    if (value is Map) {
+      final contractAddress = value['contract_address'] as String?;
+      if (contractAddress != null && contractAddress.isNotEmpty) {
+        yield (context.s.dappTo, _short(contractAddress));
+      }
+      final callValue = value['call_value'];
+      if (callValue is num && callValue > 0) {
+        yield (context.s.dappAmount,
+            '${(callValue / 1e6).toStringAsFixed(2)} TRX');
+      }
+      final data = value['data'] as String?;
+      if (data != null && data.length >= 8) {
+        // 前 4 字节（8 个 hex 字符）是函数选择器，例如 transfer(address,uint256) = 0xa9059cbb。
+        yield (context.s.dappMessage, '0x${data.substring(0, 8)}');
+      }
     }
-    return '';
+    final feeLimit = raw?['fee_limit'];
+    if (feeLimit is num && feeLimit > 0) {
+      yield (context.s.dappFeeLimit,
+          '${(feeLimit / 1e6).toStringAsFixed(2)} TRX');
+    }
   }
 
   // ----------------------------------------------------------------- 广播交易
@@ -777,6 +821,14 @@ class DappWalletBridge {
             'window.ethereum._emit(${jsonEncode(name)}, $dataJson)')
         .catchError((_) {});
   }
+
+  // ----------------------------------------------------------------- 签名前校验
+
+  /// 签名前的密码二次校验。
+  ///
+  /// App 解锁后私钥常驻内存，这里在真正签章前再要一次密码，
+  /// 避免页面在用户离开座位时静默代签。取消或密码错误一律视为拒绝。
+  Future<bool> _authenticate() => authorizeWithPassword(context, ref);
 
   // ----------------------------------------------------------------- 授权弹窗
 

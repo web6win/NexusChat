@@ -7,11 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/crypto/did.dart';
+import '../../shared/auth.dart';
 import '../../shared/feedback.dart';
 import '../../shared/layout.dart';
 import '../../shared/widgets.dart';
 import '../../state/controllers.dart';
-import '../security/password_fields.dart';
 
 /// 身份页：DID 细节与助记词备份。
 ///
@@ -104,22 +104,13 @@ class _IdentityPageState extends ConsumerState<IdentityPage>
       return;
     }
 
-    final s = context.s;
-    final password = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => _PasswordPromptDialog(
-        title: s.exportVerifyTitle,
-        desc: s.exportVerifyDesc,
-      ),
+    final ok = await authorizeWithPassword(
+      context,
+      ref,
+      title: context.s.exportVerifyTitle,
+      desc: context.s.exportVerifyDesc,
     );
-    if (password == null || password.isEmpty) return;
-
-    final ok = await ref.read(coreProvider).verifyPassword(password);
-    if (!mounted) return;
-    if (!ok) {
-      showAppSnack(context, s.passwordWrong, danger: true);
-      return;
-    }
+    if (!ok || !mounted) return;
     _showSecrets();
   }
 
@@ -517,68 +508,6 @@ class _AutoHideNotice extends StatelessWidget {
             ),
           ),
         ),
-      ],
-    );
-  }
-}
-
-/// 汇出敏感资料前的密码验证对话框。
-///
-/// 回传输入的密码；取消时回传 `null`。
-class _PasswordPromptDialog extends StatefulWidget {
-  const _PasswordPromptDialog({required this.title, required this.desc});
-
-  final String title;
-  final String desc;
-
-  @override
-  State<_PasswordPromptDialog> createState() => _PasswordPromptDialogState();
-}
-
-class _PasswordPromptDialogState extends State<_PasswordPromptDialog> {
-  final TextEditingController _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _submit() => Navigator.pop(context, _controller.text);
-
-  @override
-  Widget build(BuildContext context) {
-    final s = context.s;
-    final theme = Theme.of(context);
-    return AlertDialog(
-      title: Text(widget.title),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            widget.desc,
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.5,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 16),
-          PasswordInput(
-            controller: _controller,
-            autofocus: true,
-            label: s.passwordLabel,
-            onSubmitted: (_) => _submit(),
-          ),
-        ],
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(s.cancel),
-        ),
-        FilledButton(onPressed: _submit, child: Text(s.confirm)),
       ],
     );
   }

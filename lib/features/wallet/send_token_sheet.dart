@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/format.dart';
+import '../../shared/auth.dart';
 import '../../data/ethereum/tx_service.dart';
 import '../../data/models/chain.dart';
 import '../../data/models/token_def.dart';
@@ -188,6 +189,9 @@ class _SendTokenSheetState extends ConsumerState<SendTokenSheet> {
         ) ??
         false;
     if (!confirmed || !mounted) return;
+
+    // 发币前再验一次密码：解锁后私钥常驻内存，避免页面静默代签。
+    if (!await authorizeWithPassword(context, ref) || !mounted) return;
 
     final result = await ref.read(walletSendProvider.notifier).sendToken(
           token: widget.token,
