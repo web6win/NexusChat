@@ -97,6 +97,9 @@ abstract final class K {
   static const browserWalletConnected = 'browserWalletConnected';
   static const browserWalletNotConnected = 'browserWalletNotConnected';
   static const browserDisconnect = 'browserDisconnect';
+  static const browserHome = 'browserHome';
+  static const browserHomeTitle = 'browserHomeTitle';
+  static const browserHomeHint = 'browserHomeHint';
   static const scanPayAction = 'scanPayAction';
   static const scanResultPayment = 'scanResultPayment';
   static const scanPickHint = 'scanPickHint';
@@ -587,6 +590,9 @@ const Map<String, Map<String, String>> _bundles = {
     K.browserWalletConnected: '已连线此网站',
     K.browserWalletNotConnected: '尚未连线此网站',
     K.browserDisconnect: '断开连线',
+    K.browserHome: '主页',
+    K.browserHomeTitle: '常用 DApp',
+    K.browserHomeHint: '点选任意 DApp，即可在此浏览器中开启；列表会随钱包当前的网络切换',
     K.scanPayAction: '向它转账',
     K.scanResultPayment: '付款请求',
     K.scanPickHint: '将镜头对准收款方的二维码',
@@ -1043,6 +1049,9 @@ const Map<String, Map<String, String>> _bundles = {
     K.browserWalletConnected: 'Connected to this site',
     K.browserWalletNotConnected: 'Not connected to this site',
     K.browserDisconnect: 'Disconnect',
+    K.browserHome: 'Home',
+    K.browserHomeTitle: 'Popular DApps',
+    K.browserHomeHint: 'Tap any DApp to open it here. The list follows your wallet network.',
     K.scanPayAction: 'Send to it',
     K.scanResultPayment: 'Payment request',
     K.scanPickHint: 'Point the camera at the recipient QR code',
@@ -2944,6 +2953,9 @@ class Strings {
   String get browserWalletConnected => get(K.browserWalletConnected);
   String get browserWalletNotConnected => get(K.browserWalletNotConnected);
   String get browserDisconnect => get(K.browserDisconnect);
+  String get browserHome => get(K.browserHome);
+  String get browserHomeTitle => get(K.browserHomeTitle);
+  String get browserHomeHint => get(K.browserHomeHint);
   String get scanPayAction => get(K.scanPayAction);
   String get scanResultPayment => get(K.scanResultPayment);
   String get scanPickHint => get(K.scanPickHint);

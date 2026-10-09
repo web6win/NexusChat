@@ -46,6 +46,19 @@ enum ChainType {
       };
 }
 
+/// 显示用的链名称（英文专有名词，不随语系变化）。
+///
+/// 与 [ChainConfig] 解耦，避免 UI 到处重复同一份 switch；
+/// 浏览器默认页与钱包面板共用它。
+String chainLabel(ChainType chain) => switch (chain) {
+      ChainType.ethereum => 'Ethereum',
+      ChainType.base => 'Base',
+      ChainType.arbitrum => 'Arbitrum',
+      ChainType.bsc => 'BNB Chain',
+      ChainType.tron => 'TRON',
+      ChainType.besu => 'WEB6',
+    };
+
 /// 每条链的技术参数（显示名称走 i18n，不放在这里以免循环依赖）。
 class ChainConfig {
   const ChainConfig({

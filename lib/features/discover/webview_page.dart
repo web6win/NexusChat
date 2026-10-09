@@ -14,6 +14,7 @@ import '../../data/crypto/tron_address.dart';
 import '../../data/models/chain.dart';
 import '../../features/discover/bookmarks_provider.dart';
 import '../../features/discover/dapp_bridge.dart';
+import '../../features/discover/dapp_catalog.dart';
 import '../../shared/feedback.dart';
 import '../../state/controllers.dart';
 
@@ -270,6 +271,9 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
         _controller?.reload();
       },
     );
+    // 起始页（默认页）要随钱包当前网络切换，因此这里直接 watch，
+    // 切链时重建主页、列出对应链常用的 DApp。
+    final chain = ref.watch(settingsProvider.select((value) => value.chain));
     final showWeb = !kIsWeb && _controller != null && _started;
     return Scaffold(
       appBar: AppBar(
@@ -281,27 +285,68 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
           onSubmit: _goTo,
         ),
         actions: <Widget>[
-          IconButton(
-            tooltip: s.scanTitle,
-            icon: const Icon(Icons.qr_code_scanner_rounded),
-            onPressed: _scan,
-          ),
-          IconButton(
-            tooltip: s.browserBookmark,
-            icon: const Icon(Icons.bookmarks_rounded),
-            onPressed: _showBookmarks,
-          ),
-          IconButton(
-            tooltip: s.browserWallet,
-            icon: const Icon(Icons.account_balance_wallet_rounded),
-            onPressed: _showWallet,
-          ),
+          // 网页内才常驻「刷新」；其余操作收入「⋯」菜单，避免把网址框挤窄。
           if (showWeb)
             IconButton(
               tooltip: s.refresh,
               icon: const Icon(Icons.refresh_rounded),
               onPressed: () => _controller?.reload(),
             ),
+          PopupMenuButton<String>(
+            tooltip: s.more,
+            icon: const Icon(Icons.more_vert_rounded),
+            onSelected: (value) {
+              switch (value) {
+                case 'home':
+                  setState(() {
+                    // 回到默认页：隐藏 WebView、清空网址列。
+                    _started = false;
+                    _address.text = '';
+                    _current = '';
+                  });
+                case 'scan':
+                  _scan();
+                case 'bookmarks':
+                  _showBookmarks();
+                case 'wallet':
+                  _showWallet();
+              }
+            },
+            itemBuilder: (ctx) {
+              final items = <PopupMenuEntry<String>>[
+                if (showWeb)
+                  PopupMenuItem<String>(
+                    value: 'home',
+                    child: _MenuItem(
+                      icon: Icons.home_rounded,
+                      label: s.browserHome,
+                    ),
+                  ),
+                PopupMenuItem<String>(
+                  value: 'scan',
+                  child: _MenuItem(
+                    icon: Icons.qr_code_scanner_rounded,
+                    label: s.scanTitle,
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'bookmarks',
+                  child: _MenuItem(
+                    icon: Icons.bookmarks_rounded,
+                    label: s.browserBookmark,
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'wallet',
+                  child: _MenuItem(
+                    icon: Icons.account_balance_wallet_rounded,
+                    label: s.browserWallet,
+                  ),
+                ),
+              ];
+              return items;
+            },
+          ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(2),
@@ -314,49 +359,188 @@ class _WebViewPageState extends ConsumerState<WebViewPage> {
           ),
         ),
       ),
-      body: showWeb ? WebViewWidget(controller: _controller!) : _buildStart(s),
+      body: showWeb ? WebViewWidget(controller: _controller!) : _buildHome(s, chain),
     );
   }
 
-  /// 起始页：还没有载入任何网页（发现页进入、或网址无效）时显示。
-  Widget _buildStart(Strings s) {
+  /// 默认页（起始页）：尚未载入任何网页（发现页进入、或按「主页」）时显示。
+  ///
+  /// 依 [chain]（钱包当前网络）列出该链常用的 DApp，点选即开启；
+  /// 切链时由 [build] 的 watch 自动重建。网页版没有内嵌 WebView，
+  /// 点选会改用系统浏览器开启。
+  Widget _buildHome(Strings s, ChainType chain) {
     final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    final dapps = dappsFor(chain);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 90),
+      children: <Widget>[
+        Row(
           children: <Widget>[
-            Icon(
-              Icons.language_rounded,
-              size: 46,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.35),
-            ),
-            const SizedBox(height: 14),
+            Icon(Icons.explore_rounded, color: theme.colorScheme.primary),
+            const SizedBox(width: 8),
             Text(
-              s.browserStartHint,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              s.browserHomeTitle,
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          s.browserHomeHint,
+          style: TextStyle(
+            fontSize: 12.5,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: <Widget>[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    Icons.public_rounded,
+                    size: 15,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    chainLabel(chain),
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ],
               ),
             ),
-            if (kIsWeb) ...<Widget>[
-              const SizedBox(height: 10),
-              Text(
-                s.browserWebNote,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
+          ],
+        ),
+        if (kIsWeb) ...<Widget>[
+          const SizedBox(height: 10),
+          Text(
+            s.browserWebNote,
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+          ),
+        ],
+        const SizedBox(height: 14),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisExtent: 74,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemCount: dapps.length,
+          itemBuilder: (ctx, i) => _DappTile(
+            d: dapps[i],
+            onTap: () => unawaited(_goTo(dapps[i].url)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 默认页里的单个 DApp 入口：彩色图标 + 名称 + 分类/域名。
+class _DappTile extends StatelessWidget {
+  const _DappTile({required this.d, required this.onTap});
+
+  final DappEntry d;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final host = Uri.tryParse(d.url)?.host ?? d.url;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+          ),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        child: Row(
+          children: <Widget>[
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: d.color.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(12),
               ),
-            ],
+              child: Icon(d.icon, color: d.color, size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    d.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.5,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    d.category ?? host,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+/// 工具栏「⋯」菜单里的单一项：图标 + 文字。
+class _MenuItem extends StatelessWidget {
+  const _MenuItem({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: <Widget>[
+          Icon(icon, size: 20),
+          const SizedBox(width: 12),
+          Text(label),
+        ],
+      );
 }
 
 /// 网址列：圆角输入框，输入后按键盘的「前往」即可载入。
@@ -609,7 +793,7 @@ class _WalletSheet extends ConsumerWidget {
                       for (final chain in ChainType.values)
                         DropdownMenuItem<ChainType>(
                           value: chain,
-                          child: Text(_chainLabel(chain)),
+                          child: Text(chainLabel(chain)),
                         ),
                     ],
                   ),
@@ -651,22 +835,5 @@ class _WalletSheet extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  static String _chainLabel(ChainType chain) {
-    switch (chain) {
-      case ChainType.ethereum:
-        return 'Ethereum';
-      case ChainType.base:
-        return 'Base';
-      case ChainType.arbitrum:
-        return 'Arbitrum';
-      case ChainType.bsc:
-        return 'BNB Chain';
-      case ChainType.tron:
-        return 'TRON';
-      case ChainType.besu:
-        return 'WEB6';
-    }
   }
 }
