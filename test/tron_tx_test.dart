@@ -9,8 +9,8 @@ import 'package:web3dart/crypto.dart'
 // padUint8ListTo32 由 src/utils/typed_data.dart 提供，仅经 web3dart.dart 转出。
 import 'package:web3dart/web3dart.dart' show padUint8ListTo32;
 
-import '../lib/data/crypto/tron_address.dart';
-import '../lib/data/ethereum/tx_service.dart';
+import 'package:nexuschat/data/crypto/tron_address.dart';
+import 'package:nexuschat/data/ethereum/tx_service.dart';
 
 /// TRON 签章流程的离线验证（不需连网）。
 ///

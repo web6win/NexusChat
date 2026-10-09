@@ -51,9 +51,9 @@ class _ImageViewerPageState extends State<ImageViewerPage> {
     final size = MediaQuery.sizeOf(context);
     // 把中心移到原点 → 缩放 → 移回去，画面才不会往左上角跑。
     final aboutCenter = Matrix4.identity()
-      ..translate(size.width / 2, size.height / 2)
-      ..scale(delta)
-      ..translate(-size.width / 2, -size.height / 2);
+      ..translateByDouble(size.width / 2, size.height / 2, 0.0, 1.0)
+      ..scaleByDouble(delta, delta, 1.0, 1.0)
+      ..translateByDouble(-size.width / 2, -size.height / 2, 0.0, 1.0);
     _transform.value = aboutCenter * value;
     setState(() {});
   }

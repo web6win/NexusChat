@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 import 'package:web3dart/credentials.dart' show EthPrivateKey;
 import 'package:web3dart/crypto.dart' show privateKeyToPublic, keccak256;
 
-import '../lib/data/crypto/tron_address.dart';
+import 'package:nexuschat/data/crypto/tron_address.dart';
 
 /// TRON 地址派生验证：
 /// 同一把 secp256k1 私钥的 TRON 地址主体（20 位元组）必须与以太坊地址完全一致，

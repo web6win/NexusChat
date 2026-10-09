@@ -238,7 +238,7 @@ class PassphraseFields extends StatefulWidget {
 }
 
 class _PassphraseFieldsState extends State<PassphraseFields> {
-  final ExpansionTileController _tile = ExpansionTileController();
+  final ExpansibleController _tile = ExpansibleController();
 
   @override
   void didUpdateWidget(PassphraseFields oldWidget) {

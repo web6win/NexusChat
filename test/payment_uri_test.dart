@@ -64,7 +64,7 @@ void main() {
 
     test('EIP-681 的 @chainId 会被读出', () {
       final request =
-          PaymentUri.parse('ethereum:${_ethAddress}@1?value=0.5');
+          PaymentUri.parse('ethereum:$_ethAddress@1?value=0.5');
       expect(request?.requestChainId, 1);
       expect(request?.address, _ethAddress);
       expect(request?.amount, 0.5);
@@ -110,15 +110,15 @@ void main() {
     test('@chainId 与 scheme 矛盾时整包拒绝', () {
       // 写著 ethereum 却标 Base 的 chainId：无从判断该走哪条链。
       expect(
-        PaymentUri.parse('ethereum:${_ethAddress}@8453'),
+        PaymentUri.parse('ethereum:$_ethAddress@8453'),
         isNull,
         reason: '矛盾的 @chainId 必须拒绝，不能默默照 scheme 送',
       );
       // 一致则放行。
-      expect(PaymentUri.parse('base:${_ethAddress}@8453'), isNotNull);
-      expect(PaymentUri.parse('ethereum:${_ethAddress}@1'), isNotNull);
+      expect(PaymentUri.parse('base:$_ethAddress@8453'), isNotNull);
+      expect(PaymentUri.parse('ethereum:$_ethAddress@1'), isNotNull);
       // chainId 由部署决定的链（Besu）不比对。
-      expect(PaymentUri.parse('besu:${_ethAddress}@1'), isNotNull);
+      expect(PaymentUri.parse('besu:$_ethAddress@1'), isNotNull);
     });
 
     test('代币转帐不解析（避免误当原生代币）', () {

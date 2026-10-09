@@ -202,7 +202,7 @@ class _TokenList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
       itemCount: tokens.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, index) => const Divider(height: 1),
       itemBuilder: (context, index) =>
           _TokenTile(token: tokens[index], onTap: () => onTap(tokens[index])),
     );
@@ -714,7 +714,7 @@ String _trim(double value) {
 /// 时间戳记转成 `YYYY-MM-DD HH:mm`。
 String _fmtTime(int ts) {
   final d = DateTime.fromMillisecondsSinceEpoch(ts);
-  final p = (int n) => n.toString().padLeft(2, '0');
+  String p(int n) => n.toString().padLeft(2, '0');
   return '${d.year}-${p(d.month)}-${p(d.day)} ${p(d.hour)}:${p(d.minute)}';
 }
 

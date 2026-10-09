@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -377,6 +376,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
   Future<void> _startRecord() async {
     try {
       if (!await _recorder.hasPermission()) {
+        if (!mounted) return;
         _showError(context.s.chatPermissionMicrophone);
         return;
       }

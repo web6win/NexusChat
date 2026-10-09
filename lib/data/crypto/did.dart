@@ -1,4 +1,6 @@
-import 'package:web3dart/credentials.dart' show EthereumAddress;
+import 'dart:convert' show utf8;
+
+import 'package:web3dart/crypto.dart' show bytesToHex, keccak256;
 
 /// DID 相关工具：目前主要支援 `did:ethr`，同时容许直接以地址或 ENS 输入。
 abstract final class Did {
@@ -63,12 +65,28 @@ abstract final class Did {
   static final RegExp _addressPattern = RegExp(r'^0x[0-9a-fA-F]{40}$');
 
   /// 把地址转成 EIP-55 检查码格式，用于显示。
+  ///
+  /// 直接以 keccak256 运算，输入先转小写，因此即便传入「校验和损坏」的
+  /// 混大小写地址也只会算出正确的校验和（不会抛异常、也不会原样回传），
+  /// 这样 [hasValidChecksum] 才能正确识破被改坏的地址。
   static String eip55(String address) {
-    try {
-      return EthereumAddress.fromHex(address).hexEip55;
-    } catch (_) {
-      return address;
+    final v = address.trim().toLowerCase();
+    if (!_addressPattern.hasMatch(v)) return address;
+    final body = v.substring(2);
+    final hash = bytesToHex(keccak256(utf8.encode(body)));
+    final buffer = StringBuffer('0x');
+    for (var i = 0; i < body.length; i++) {
+      final code = body.codeUnitAt(i);
+      final ch = body[i];
+      // 数字（0-9）不区分大小写，原样保留；字母依校验和位决定大小写。
+      if (code >= 0x30 && code <= 0x39) {
+        buffer.write(ch);
+      } else {
+        final nibble = int.parse(hash[i], radix: 16);
+        buffer.write(nibble >= 8 ? ch.toUpperCase() : ch.toLowerCase());
+      }
     }
+    return buffer.toString();
   }
 
   /// 显示用短地址：`0x1234…abcd`

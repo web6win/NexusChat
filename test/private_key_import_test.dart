@@ -1,7 +1,7 @@
 import 'package:test/test.dart';
 
-import '../lib/data/crypto/app_identity.dart';
-import '../lib/data/crypto/did.dart';
+import 'package:nexuschat/data/crypto/app_identity.dart';
+import 'package:nexuschat/data/crypto/did.dart';
 
 /// 私钥汇入的离线验证（不需连网）。
 ///

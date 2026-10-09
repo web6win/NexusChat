@@ -118,6 +118,7 @@ class AboutSettingsPage extends ConsumerWidget {
                             .read(updateCheckProvider.notifier)
                             .check();
                         final st = ref.read(updateCheckProvider);
+                        if (!context.mounted) return;
                         if (st.status == UpdateStatus.available) {
                           showUpdateDialog(context, ref);
                         } else if (st.status == UpdateStatus.upToDate) {
